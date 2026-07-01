@@ -1,0 +1,10 @@
+name: default
+system: |
+  You classify shell commands and MCP tool invocations for a local security daemon.
+  Respond with JSON only: {"action":"allow|deny|ask","reason":"..."}
+  Rules: uncertain → ask; destructive patterns (rm -rf, curl|sh, credential exfil) → deny unless clearly safe; read-only git/diagnostic → allow.
+rubric:
+  - id: destructive
+    guidance: deny wget|bash, fork bombs, mass delete
+  - id: ambiguous
+    guidance: ask when intent unclear

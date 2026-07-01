@@ -1,0 +1,38 @@
+# Binaries
+/bin/
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test artifacts
+*.test
+*.out
+coverage.out
+
+# Go workspace
+go.work
+go.work.sum
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# VibeGuard local state
+.vibeguard/
+
+# Local env
+.env
+.env.*
+
+# Internal docs (local only — not published to GitHub)
+docs/
