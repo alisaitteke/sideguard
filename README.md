@@ -1,10 +1,10 @@
 # VibeGuard
 
-Local security layer for AI coding agents (Cursor, Claude Code). VibeGuard intercepts **shell/terminal commands** and **MCP tool calls**, holding them for user approval via a terminal CLI and macOS alert-only notifications.
+Local security layer for AI coding agents (Cursor, Claude Code). VibeGuard intercepts **shell/terminal commands** and **MCP tool calls**, holding them for user approval via the terminal CLI (`vibeguard ui`), an optional macOS menu-bar tray, and alert-only notifications.
 
 ## Status
 
-**MVP complete (vgf Phases 1–8):** shell/MCP intercept → YAML policy (auto-allow/deny) → macOS notify → terminal approvals → `vibeguard doctor` bypass detection → HTTP Stream MCP proxy library. **Tier 2 interactive UI** (`vibeguard ui`) is built into the binary. HTTP URL install wrap remains future work per [roadmap](docs/roadmap.md).
+**MVP complete (vgf Phases 1–8):** shell/MCP intercept → YAML policy (auto-allow/deny) → macOS notify → terminal approvals → `vibeguard doctor` bypass detection → HTTP Stream MCP proxy library. **Tier 2 interactive UI** (`vibeguard ui`) is built into the binary. **Recent:** global approval mode (`vibeguard mode`), experimental macOS menu-bar tray (`vibeguard tray`), surgical `vibeguard uninstall`, client reload hints (`vibeguard clients reload`), and repo-scoped dev workspace policy (`vibeguard policy init-dev` / `install --dev`). HTTP URL install wrap remains future work per [roadmap](docs/roadmap.md).
 
 ## Quick start
 
@@ -27,6 +27,8 @@ After `install` or `uninstall`, reload AI clients so hook and MCP config changes
 Run `vibeguard clients reload` for the full per-client guide.
 
 On macOS, `vibeguard install` also registers the menu-bar tray LaunchAgent (`com.vibeguard.tray.plist`) so approvals are available from the menu bar after login. Use `--headless` to skip tray install (SSH, CI, or servers without a GUI session). `--skip-daemon` only skips the daemon LaunchAgent; hooks/MCP are unchanged.
+
+To remove integration: `vibeguard uninstall` surgically strips VibeGuard hooks and MCP wraps (your other config stays). It removes daemon and tray LaunchAgents on macOS unless you pass `--keep-daemon`. Use `--restore-backup` to revert files from the oldest pre-install backup instead. Then run `vibeguard clients reload`.
 
 ### Menu bar tray (macOS, experimental)
 
@@ -77,6 +79,7 @@ Global approval mode (`ask` / `auto-allow` / `auto-deny`) is persisted by the da
 ```bash
 vibeguard mode                    # show current mode
 vibeguard mode set auto-allow     # hands-off local dev (audit logged)
+vibeguard mode set auto-deny      # reject queued items (audit logged)
 vibeguard mode set ask            # back to manual approvals
 ```
 
@@ -125,8 +128,8 @@ macOS notifications are **alert-only** — decisions always happen in the termin
 
 ## Architecture
 
-- **Single Go binary** — daemon, CLI, hook bridge, MCP wrap, and interactive TUI
-- **Terminal-first UX** — `vibeguard ui` for keyboard-driven approvals; notifications are alert-only
+- **Single Go binary** — daemon, CLI, hook bridge, MCP wrap, interactive TUI, and menu-bar tray (CGO on macOS)
+- **Terminal-first UX** — `vibeguard ui` for keyboard-driven approvals; optional macOS menu-bar tray for Allow/Deny; notifications are alert-only
 - **Hybrid interception** — MCP STDIO proxy + Cursor/Claude hook bridge
 - **Fail-closed** — commands do not reach the OS until explicitly approved
 - **LaunchAgent daemon** — user-session GUI context for `osascript` / `terminal-notifier`
