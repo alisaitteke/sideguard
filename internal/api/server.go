@@ -42,6 +42,8 @@ func NewServer(version string, st *store.Store) *Server {
 	mux.HandleFunc("GET /v1/health", h.Health)
 	mux.HandleFunc("POST /v1/approval/request", h.CreateApprovalRequest)
 	mux.HandleFunc("GET /v1/approval/pending", h.ListPending)
+	mux.HandleFunc("GET /v1/approval/mode", h.GetApprovalMode)
+	mux.HandleFunc("PUT /v1/approval/mode", h.SetApprovalMode)
 	mux.HandleFunc("GET /v1/approval/{id}/wait", h.WaitApproval)
 	mux.HandleFunc("POST /v1/approval/{id}/decide", h.DecideApproval)
 

@@ -3,7 +3,7 @@ package policy
 // DefaultTemplate is the starter policy written on install when no file exists.
 // Mirrors docs/roadmap.md example policy.
 const DefaultTemplate = `rules:
-  - match: { command: '^vibeguard (pending|approve|deny|ui|status|daemon|uninstall|doctor)(\s|$)' }
+  - match: { command: '^vibeguard (pending|approve|deny|ui|status|daemon|uninstall|doctor|policy|clients)(\s|$)' }
     action: allow
     reason: "VibeGuard control-plane CLI (unblocks hook deadlock)"
   - match: { command: "^git (status|diff|log)" }

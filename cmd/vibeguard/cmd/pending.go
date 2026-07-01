@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/alisaitteke/vibeguard/internal/api"
-	"github.com/alisaitteke/vibeguard/internal/tui"
+	"github.com/alisaitteke/vibeguard/internal/approvalfmt"
 )
 
 var pendingJSON bool
@@ -54,15 +54,15 @@ func printPendingTable(items []api.PendingApproval) {
 		return
 	}
 
-	home := tui.HomeDir()
+	home := approvalfmt.HomeDir()
 	for _, item := range items {
 		fmt.Printf(" %s  %-7s  %s  %s\n",
-			tui.ShortApprovalID(item.ID),
-			tui.FormatClientLabel(item.Client),
-			tui.FormatAgeLong(item.AgeSeconds),
-			tui.FormatCWD(item.CWD, home),
+			approvalfmt.ShortApprovalID(item.ID),
+			approvalfmt.FormatClientLabel(item.Client),
+			approvalfmt.FormatAgeLong(item.AgeSeconds),
+			approvalfmt.FormatCWD(item.CWD, home),
 		)
-		fmt.Printf("     %s\n\n", tui.FormatSummary(item))
+		fmt.Printf("     %s\n\n", approvalfmt.FormatSummary(item))
 	}
 
 	fmt.Println("Interactive: vibeguard ui")

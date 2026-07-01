@@ -29,6 +29,12 @@ const (
 	// LaunchAgentFile is the plist filename under ~/Library/LaunchAgents.
 	LaunchAgentFile = "com.vibeguard.daemon.plist"
 
+	// TrayLaunchAgentLabel is the launchd label for the menu-bar tray.
+	TrayLaunchAgentLabel = "com.vibeguard.tray"
+
+	// TrayLaunchAgentFile is the tray plist filename under ~/Library/LaunchAgents.
+	TrayLaunchAgentFile = "com.vibeguard.tray.plist"
+
 	// BackupsSubdir holds timestamped config backups from install.
 	BackupsSubdir = "backups"
 
@@ -146,4 +152,14 @@ func LaunchAgentPath() (string, error) {
 		return "", err
 	}
 	return filepath.Join(home, "Library", "LaunchAgents", LaunchAgentFile), nil
+}
+
+// TrayLaunchAgentPath returns the tray LaunchAgent plist path
+// (~/Library/LaunchAgents/com.vibeguard.tray.plist).
+func TrayLaunchAgentPath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, "Library", "LaunchAgents", TrayLaunchAgentFile), nil
 }

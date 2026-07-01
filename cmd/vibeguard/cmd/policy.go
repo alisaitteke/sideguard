@@ -106,12 +106,36 @@ var policyTestCmd = &cobra.Command{
 	},
 }
 
+var policyInitDevCmd = &cobra.Command{
+	Use:   "init-dev",
+	Short: "Write repo-scoped workspace dev policy for local development",
+	Long: `Creates .vibeguard/policy.yaml in the current repo with allow rules for make, go, and scripts/
+only when the shell cwd is under this repo root. Safe for developing VibeGuard inside Cursor
+without weakening global policy for other projects. Skips if the file already exists.`,
+	RunE: func(_ *cobra.Command, _ []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		path, created, err := policy.EnsureDevWorkspacePolicy(cwd)
+		if err != nil {
+			return err
+		}
+		if created {
+			fmt.Printf("workspace dev policy created: %s\n", path)
+		} else {
+			fmt.Printf("workspace dev policy already exists: %s\n", path)
+		}
+		return nil
+	},
+}
+
 func init() {
 	policyTestCmd.Flags().StringVar(&policyTestCommand, "command", "", "Shell command to evaluate")
 	policyTestCmd.Flags().StringVar(&policyTestTool, "tool", "", "MCP tool name to evaluate")
 	policyTestCmd.Flags().StringVar(&policyTestCWD, "cwd", "", "Workspace directory for policy override lookup")
 	policyTestCmd.Flags().BoolVar(&policyTestWithLLM, "with-llm", false, "Run LLM triage after YAML returns ask (requires llm.enabled)")
 
-	policyCmd.AddCommand(policyValidateCmd, policyTestCmd)
+	policyCmd.AddCommand(policyValidateCmd, policyTestCmd, policyInitDevCmd)
 	rootCmd.AddCommand(policyCmd)
 }

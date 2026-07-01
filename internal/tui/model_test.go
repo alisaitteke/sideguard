@@ -6,153 +6,91 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/alisaitteke/vibeguard/internal/api"
+	"github.com/alisaitteke/vibeguard/internal/approvalmode"
 )
 
-func TestPendingIDsForAutoApprove(t *testing.T) {
+func TestNextModeCycles(t *testing.T) {
 	t.Parallel()
-
-	items := []api.PendingApproval{
-		{ID: "first"},
-		{ID: "second"},
-		{ID: "third"},
+	if got := nextMode(approvalmode.Ask); got != approvalmode.AutoAllow {
+		t.Fatalf("ask -> %q", got)
 	}
-
-	got := pendingIDsForAutoApprove(items, map[string]bool{"second": true})
-	want := []string{"first", "third"}
-	if len(got) != len(want) {
-		t.Fatalf("got %v, want %v", got, want)
+	if got := nextMode(approvalmode.AutoAllow); got != approvalmode.AutoDeny {
+		t.Fatalf("auto_allow -> %q", got)
 	}
-	for i := range want {
-		if got[i] != want[i] {
-			t.Fatalf("got %v, want %v", got, want)
-		}
+	if got := nextMode(approvalmode.AutoDeny); got != approvalmode.Ask {
+		t.Fatalf("auto_deny -> %q", got)
 	}
 }
 
-func TestPendingIDsForAutoApproveEmpty(t *testing.T) {
+func TestModeBanner(t *testing.T) {
 	t.Parallel()
-	if got := pendingIDsForAutoApprove(nil, nil); got != nil {
-		t.Fatalf("got %v, want nil", got)
+	if modeBanner(approvalmode.Ask) != "" {
+		t.Fatal("ask should have no banner")
+	}
+	if !strings.Contains(modeBanner(approvalmode.AutoAllow), "AUTO-ALLOW") {
+		t.Fatal("auto-allow banner missing")
+	}
+	if !strings.Contains(modeBanner(approvalmode.AutoDeny), "AUTO-DENY") {
+		t.Fatal("auto-deny banner missing")
 	}
 }
 
-func TestNewModelAutoApprove(t *testing.T) {
+func TestUpdateRefreshSetsMode(t *testing.T) {
 	t.Parallel()
 
-	m := newModel(nil, Options{AutoApprove: true})
-	if !m.autoApprove {
-		t.Fatal("expected autoApprove true")
-	}
-	if m.deciding == nil {
-		t.Fatal("expected deciding map initialized")
-	}
-}
-
-func TestUpdateRefreshAutoApproveQueuesDecisions(t *testing.T) {
-	t.Parallel()
-
-	m := newModel(nil, Options{AutoApprove: true})
+	m := newModel(nil)
 	updated, cmd := m.Update(refreshDoneMsg{
-		items: []api.PendingApproval{
-			{ID: "abc-123", Command: "git status"},
-		},
-	})
-	if cmd == nil {
-		t.Fatal("expected decide command batch")
-	}
-
-	um := updated.(model)
-	if !um.deciding["abc-123"] {
-		t.Fatal("expected deciding flag for abc-123")
-	}
-}
-
-func TestUpdateRefreshManualModeNoAutoDecide(t *testing.T) {
-	t.Parallel()
-
-	m := newModel(nil, Options{})
-	_, cmd := m.Update(refreshDoneMsg{
 		items: []api.PendingApproval{{ID: "abc-123", Command: "git status"}},
+		mode:  approvalmode.AutoAllow,
 	})
 	if cmd != nil {
-		t.Fatal("expected no decide command without auto-approve")
+		t.Fatal("expected no command after refresh")
 	}
-}
-
-func TestUpdateDecideDoneAutoApproveFlash(t *testing.T) {
-	t.Parallel()
-
-	m := newModel(nil, Options{AutoApprove: true})
-	m.items = []api.PendingApproval{{ID: "abc-123", Command: "git status"}}
-	m.deciding = map[string]bool{"abc-123": true}
-
-	updated, _ := m.Update(decideDoneMsg{decision: "allow", id: "abc-123"})
 	um := updated.(model)
-	if !strings.Contains(um.flash, "Auto-approved") {
-		t.Fatalf("flash = %q, want Auto-approved prefix", um.flash)
-	}
-	if !strings.Contains(um.flash, "git status") {
-		t.Fatalf("flash = %q, want command summary", um.flash)
-	}
-	if um.deciding["abc-123"] {
-		t.Fatal("expected deciding flag cleared")
+	if um.mode != approvalmode.AutoAllow {
+		t.Fatalf("mode = %q", um.mode)
 	}
 }
 
-func TestUpdateToggleAutoApproveWithG(t *testing.T) {
+func TestUpdateGKeyQueuesSetMode(t *testing.T) {
 	t.Parallel()
 
-	m := newModel(nil, Options{})
-	m.items = []api.PendingApproval{{ID: "abc-123", Command: "git status"}}
-
+	m := newModel(nil)
+	m.mode = approvalmode.Ask
 	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'g'}})
-	um := updated.(model)
-	if !um.autoApprove {
-		t.Fatal("expected autoApprove enabled after g")
-	}
-	if um.flash != "Auto-approve ON" {
-		t.Fatalf("flash = %q, want Auto-approve ON", um.flash)
-	}
 	if cmd == nil {
-		t.Fatal("expected decide command when enabling with pending items")
+		t.Fatal("expected set mode command")
 	}
-	if !um.deciding["abc-123"] {
-		t.Fatal("expected deciding flag for pending item")
-	}
-
-	updated2, cmd2 := um.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'g'}})
-	um2 := updated2.(model)
-	if um2.autoApprove {
-		t.Fatal("expected autoApprove disabled after second g")
-	}
-	if um2.flash != "Auto-approve OFF" {
-		t.Fatalf("flash = %q, want Auto-approve OFF", um2.flash)
-	}
-	if cmd2 == nil {
-		t.Fatal("expected flash clear command")
+	um := updated.(model)
+	if !strings.Contains(um.flash, "Auto-allow") {
+		t.Fatalf("flash = %q", um.flash)
 	}
 }
 
-func TestViewAutoApproveBanner(t *testing.T) {
+func TestViewAutoModeBanner(t *testing.T) {
 	t.Parallel()
 
-	m := newModel(nil, Options{AutoApprove: true})
+	m := newModel(nil)
+	m.mode = approvalmode.AutoDeny
 	view := m.View()
-	if !strings.Contains(view, "AUTO-APPROVE MODE") {
+	if !strings.Contains(view, "AUTO-DENY MODE") {
 		t.Fatalf("view missing banner: %q", view)
 	}
-	if !strings.Contains(view, "Auto-approve OFF") {
-		t.Fatalf("view missing toggle hint when on: %q", view)
+	if !strings.Contains(view, "Mode: Auto-deny") {
+		t.Fatalf("view missing footer mode: %q", view)
 	}
 }
 
-func TestFormatAutoApproveFlash(t *testing.T) {
+func TestSetModeDoneUpdatesMode(t *testing.T) {
 	t.Parallel()
 
-	flash := formatAutoApproveFlash("abc-123", []api.PendingApproval{
-		{ID: "abc-123", Command: "npm test"},
-	})
-	if flash != "Auto-approved #abc-123 · npm test" {
-		t.Fatalf("got %q", flash)
+	m := newModel(nil)
+	updated, cmd := m.Update(setModeDoneMsg{mode: approvalmode.AutoAllow})
+	um := updated.(model)
+	if um.mode != approvalmode.AutoAllow {
+		t.Fatalf("mode = %q", um.mode)
+	}
+	if cmd == nil {
+		t.Fatal("expected refresh after set mode")
 	}
 }

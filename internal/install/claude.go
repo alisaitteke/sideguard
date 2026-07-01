@@ -125,6 +125,77 @@ func countClaudeHookCommands(matchers []claudeHookMatcher) int {
 	return n
 }
 
+func filterClaudeHookCommands(hooks []claudeHookCommand) ([]claudeHookCommand, int) {
+	removed := 0
+	var kept []claudeHookCommand
+	for _, h := range hooks {
+		if IsVibeguardHookCommand(h.Command) {
+			removed++
+			continue
+		}
+		kept = append(kept, h)
+	}
+	return kept, removed
+}
+
+// UnpatchClaudeHooks removes VibeGuard PreToolUse hook commands in-place.
+func UnpatchClaudeHooks(path, binary string, dryRun bool) (removed int, diff string, err error) {
+	_ = binary
+	var data []byte
+	if _, statErr := os.Stat(path); statErr != nil {
+		if os.IsNotExist(statErr) {
+			return 0, "", nil
+		}
+		return 0, "", statErr
+	}
+	data, err = os.ReadFile(path)
+	if err != nil {
+		return 0, "", err
+	}
+
+	before := string(data)
+	doc := &claudeSettingsDoc{}
+	if len(data) > 0 {
+		if err := json.Unmarshal(data, doc); err != nil {
+			return 0, "", fmt.Errorf("parse claude settings.json: %w", err)
+		}
+	}
+	if doc.Hooks == nil {
+		return 0, "", nil
+	}
+
+	for key, matchers := range doc.Hooks {
+		var kept []claudeHookMatcher
+		for _, m := range matchers {
+			filtered, n := filterClaudeHookCommands(m.Hooks)
+			removed += n
+			if len(filtered) == 0 {
+				continue
+			}
+			m.Hooks = filtered
+			kept = append(kept, m)
+		}
+		if len(kept) == 0 {
+			delete(doc.Hooks, key)
+		} else {
+			doc.Hooks[key] = kept
+		}
+	}
+
+	out, err := marshalJSONPretty(doc)
+	if err != nil {
+		return 0, "", err
+	}
+	if before == string(out) {
+		return 0, "", nil
+	}
+
+	if err := writeFileAtomic(path, out, dryRun); err != nil {
+		return 0, "", err
+	}
+	return removed, diffSummary(path, before, string(out)), nil
+}
+
 func absoluteHookCommand(binary, kind string) string {
 	suffix := " hook " + kind
 	if binary == "" {

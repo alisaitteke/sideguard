@@ -4,21 +4,27 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/alisaitteke/vibeguard/internal/bootstrap"
 	"github.com/alisaitteke/vibeguard/internal/daemon"
 	"github.com/alisaitteke/vibeguard/internal/policy"
+	"github.com/alisaitteke/vibeguard/internal/tray"
 )
 
-// Options controls the install wizard.
+// Options controls install and uninstall.
 type Options struct {
-	Cursor      bool
-	Claude      bool
-	DryRun      bool
-	Discover    bool
-	SkipDaemon  bool
-	Cwd         string
+	Cursor        bool
+	Claude        bool
+	DryRun        bool
+	Discover      bool
+	SkipDaemon    bool
+	Headless      bool // install: skip menu-bar tray LaunchAgent (macOS)
+	Dev           bool // install: write repo-scoped workspace dev policy (.vibeguard/policy.yaml)
+	RestoreBackup bool // uninstall: restore oldest backup instead of surgical removal
+	KeepDaemon    bool // uninstall: leave daemon and tray LaunchAgents installed
+	Cwd           string
 }
 
 // Result summarizes install actions for CLI output.
@@ -29,6 +35,7 @@ type Result struct {
 	HooksAdded     int
 	Warnings       []string
 	Diffs          []string
+	TrayInstalled  bool
 }
 
 // Run executes discover → backup → MCP wrap → hook merge → daemon service install.
@@ -103,6 +110,25 @@ func Run(opts Options) (*Result, error) {
 		if _, err := policy.EnsureDefault(); err != nil {
 			result.Warnings = append(result.Warnings, fmt.Sprintf("default policy: %v", err))
 		}
+		if opts.Dev {
+			repoRoot := opts.Cwd
+			if repoRoot == "" {
+				repoRoot, err = os.Getwd()
+				if err != nil {
+					result.Warnings = append(result.Warnings, fmt.Sprintf("dev workspace policy: %v", err))
+				}
+			}
+			if repoRoot != "" {
+				if path, created, err := policy.EnsureDevWorkspacePolicy(repoRoot); err != nil {
+					result.Warnings = append(result.Warnings, fmt.Sprintf("dev workspace policy: %v", err))
+				} else if created {
+					result.FilesChanged = append(result.FilesChanged, path)
+					fmt.Printf("  dev workspace policy: %s\n", path)
+				} else {
+					fmt.Printf("  dev workspace policy: already exists (%s)\n", path)
+				}
+			}
+		}
 		if err := bootstrap.EnsureDefaults(); err != nil {
 			result.Warnings = append(result.Warnings, fmt.Sprintf("default config: %v", err))
 		}
@@ -111,25 +137,21 @@ func Run(opts Options) (*Result, error) {
 				return nil, fmt.Errorf("install daemon service: %w", err)
 			}
 		}
+		if ShouldInstallTray(opts) {
+			if err := tray.InstallService(); err != nil {
+				return nil, fmt.Errorf("install tray service: %w", err)
+			}
+			result.TrayInstalled = true
+		}
 	}
 
-	printSummary(result, opts.DryRun)
+	printSummary(result, opts)
 	return result, nil
 }
 
-// Uninstall restores backed-up configs for all known client paths.
-func Uninstall(opts Options) error {
-	if !opts.Cursor && !opts.Claude {
-		opts.Cursor = true
-		opts.Claude = true
-	}
-
-	paths := appendHookPaths(nil, opts)
-	if err := RestoreLatest(paths); err != nil {
-		return err
-	}
-	fmt.Println("Restored client configs from latest backups.")
-	return nil
+// ShouldInstallTray reports whether install should register the menu-bar tray LaunchAgent.
+func ShouldInstallTray(opts Options) bool {
+	return runtime.GOOS == "darwin" && !opts.Headless
 }
 
 func resolveBinary() (string, error) {
@@ -277,9 +299,9 @@ func recordChange(result *Result, path, diff string) {
 	}
 }
 
-func printSummary(result *Result, dryRun bool) {
+func printSummary(result *Result, opts Options) {
 	prefix := "Install"
-	if dryRun {
+	if opts.DryRun {
 		prefix = "Dry-run"
 	}
 	fmt.Printf("\n%s summary\n", prefix)
@@ -288,6 +310,16 @@ func printSummary(result *Result, dryRun bool) {
 	}
 	fmt.Printf("  MCP servers wrapped: %d\n", result.MCPServersWrap)
 	fmt.Printf("  hook entries added: %d\n", result.HooksAdded)
+	if runtime.GOOS == "darwin" {
+		switch {
+		case result.TrayInstalled:
+			fmt.Println("  tray LaunchAgent: installed")
+		case opts.Headless:
+			fmt.Println("  tray LaunchAgent: skipped (--headless)")
+		case opts.DryRun:
+			fmt.Println("  tray LaunchAgent: would install")
+		}
+	}
 	if len(result.FilesChanged) > 0 {
 		fmt.Println("  files changed:")
 		for _, f := range result.FilesChanged {
@@ -297,15 +329,19 @@ func printSummary(result *Result, dryRun bool) {
 	for _, w := range result.Warnings {
 		fmt.Printf("  warning: %s\n", w)
 	}
-	if dryRun && len(result.Diffs) > 0 {
+	if opts.DryRun && len(result.Diffs) > 0 {
 		fmt.Println("\nPlanned changes:")
 		fmt.Println(strings.Join(result.Diffs, "\n"))
 	}
-	if !dryRun {
+	if !opts.DryRun {
 		fmt.Println("\nImportant: Cursor/Claude shell hooks now block agent commands until you approve them.")
 		fmt.Println("  1. Run `vibeguard ui` for interactive approvals (or `vibeguard pending` + approve/deny for scripting).")
 		fmt.Println("  2. Or open Terminal.app (outside Cursor) for approval if the agent cannot run the CLI.")
-		fmt.Println("  3. Local dev/testing only: export VIBEGUARD_DEV=1 to bypass the hook queue.")
-		fmt.Println("\nNext: `vibeguard status` and restart Cursor/Claude so hooks take effect.")
+		fmt.Println("  3. Developing VibeGuard in Cursor: run `vibeguard install --dev` or `vibeguard policy init-dev`")
+		fmt.Println("     to allow make/go/scripts only in this repo (.vibeguard/policy.yaml).")
+		fmt.Println("  4. Full local bypass (all commands): set VIBEGUARD_DEV=1 in the Cursor agent environment")
+		fmt.Println("     (Terminal.app: export VIBEGUARD_DEV=1 — does not apply to in-IDE agents).")
+		fmt.Println("\nNext: `vibeguard status`")
+		PrintClientReloadHints(opts, "install changes", ReloadHintsBrief)
 	}
 }

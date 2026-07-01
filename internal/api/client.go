@@ -9,6 +9,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/alisaitteke/vibeguard/internal/approvalmode"
 )
 
 var (
@@ -176,6 +178,60 @@ func (c *Client) WaitApproval(ctx context.Context, id string) (*ApprovalDecision
 		return nil, err
 	}
 	return &out, nil
+}
+
+// GetApprovalMode returns the daemon's global approval mode.
+func (c *Client) GetApprovalMode(ctx context.Context) (approvalmode.Mode, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/v1/approval/mode", nil)
+	if err != nil {
+		return "", err
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("daemon unreachable: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		raw, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("get approval mode failed: status %d: %s", resp.StatusCode, string(raw))
+	}
+
+	var out ApprovalModeResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return "", err
+	}
+	return approvalmode.Parse(out.Mode)
+}
+
+// SetApprovalMode updates the daemon's global approval mode.
+func (c *Client) SetApprovalMode(ctx context.Context, mode approvalmode.Mode) error {
+	body, err := json.Marshal(SetApprovalModeRequest{Mode: string(mode)})
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, c.baseURL+"/v1/approval/mode", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("daemon unreachable: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusBadRequest {
+		raw, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("invalid approval mode: %s", string(raw))
+	}
+	if resp.StatusCode != http.StatusOK {
+		raw, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("set approval mode failed: status %d: %s", resp.StatusCode, string(raw))
+	}
+	return nil
 }
 
 // Ping reports whether the daemon is reachable.

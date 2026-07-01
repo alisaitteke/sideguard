@@ -46,3 +46,13 @@ type HealthResponse struct {
 	Status  string `json:"status"`
 	Version string `json:"version"`
 }
+
+// ApprovalModeResponse is returned by GET /v1/approval/mode.
+type ApprovalModeResponse struct {
+	Mode string `json:"mode"`
+}
+
+// SetApprovalModeRequest is the payload for PUT /v1/approval/mode.
+type SetApprovalModeRequest struct {
+	Mode string `json:"mode"`
+}

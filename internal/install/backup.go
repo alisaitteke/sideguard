@@ -90,36 +90,73 @@ func RestoreLatest(filePaths []string) error {
 		if session == "" {
 			continue
 		}
-		src := filepath.Join(session, rel)
-		if err := copyFile(src, original); err != nil {
-			return fmt.Errorf("restore %s: %w", original, err)
+		if err := restoreFromSession(session, rel, original); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-func findLatestBackup(originalPath string) (sessionDir, relName string, err error) {
+// RestoreFirst restores each file from the oldest backup session that contains it.
+// Use this for uninstall fallback: the first install backup predates VibeGuard patches.
+func RestoreFirst(filePaths []string) error {
+	for _, original := range uniqueStrings(filePaths) {
+		session, rel, err := findFirstBackup(original)
+		if err != nil {
+			return err
+		}
+		if session == "" {
+			continue
+		}
+		if err := restoreFromSession(session, rel, original); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func restoreFromSession(sessionDir, relName, original string) error {
+	src := filepath.Join(sessionDir, relName)
+	if err := copyFile(src, original); err != nil {
+		return fmt.Errorf("restore %s: %w", original, err)
+	}
+	return nil
+}
+
+func listBackupSessions() ([]string, error) {
 	base, err := paths.BackupsDir()
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 	entries, err := os.ReadDir(base)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", "", nil
+			return nil, nil
 		}
-		return "", "", err
+		return nil, err
 	}
-
 	var sessions []string
 	for _, e := range entries {
 		if e.IsDir() {
 			sessions = append(sessions, e.Name())
 		}
 	}
-	sort.Sort(sort.Reverse(sort.StringSlice(sessions)))
+	return sessions, nil
+}
 
-	for _, name := range sessions {
+func findBackupInSessions(sessions []string, originalPath string, newestFirst bool) (sessionDir, relName string, err error) {
+	base, err := paths.BackupsDir()
+	if err != nil {
+		return "", "", err
+	}
+	ordered := append([]string(nil), sessions...)
+	if newestFirst {
+		sort.Sort(sort.Reverse(sort.StringSlice(ordered)))
+	} else {
+		sort.Strings(ordered)
+	}
+
+	for _, name := range ordered {
 		sessionDir := filepath.Join(base, name)
 		manifestPath := filepath.Join(sessionDir, manifestName)
 		raw, err := os.ReadFile(manifestPath)
@@ -135,6 +172,22 @@ func findLatestBackup(originalPath string) (sessionDir, relName string, err erro
 		}
 	}
 	return "", "", nil
+}
+
+func findLatestBackup(originalPath string) (sessionDir, relName string, err error) {
+	sessions, err := listBackupSessions()
+	if err != nil {
+		return "", "", err
+	}
+	return findBackupInSessions(sessions, originalPath, true)
+}
+
+func findFirstBackup(originalPath string) (sessionDir, relName string, err error) {
+	sessions, err := listBackupSessions()
+	if err != nil {
+		return "", "", err
+	}
+	return findBackupInSessions(sessions, originalPath, false)
 }
 
 func backupRelName(original string) string {

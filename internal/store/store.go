@@ -73,10 +73,13 @@ func Open(path string) (*Store, error) {
 	return s, nil
 }
 
-// Migrate applies schema migration v1.
+// Migrate applies schema migrations.
 func (s *Store) Migrate() error {
 	if _, err := s.db.Exec(schemaV1); err != nil {
 		return fmt.Errorf("migrate v1: %w", err)
+	}
+	if _, err := s.db.Exec(schemaV2); err != nil {
+		return fmt.Errorf("migrate v2: %w", err)
 	}
 	return nil
 }

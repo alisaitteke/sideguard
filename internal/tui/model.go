@@ -8,14 +8,20 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/alisaitteke/vibeguard/internal/api"
+	"github.com/alisaitteke/vibeguard/internal/approvalfmt"
+	"github.com/alisaitteke/vibeguard/internal/approvalmode"
 )
 
 const autoRefreshInterval = 2 * time.Second
 
-const autoApproveBanner = "*** AUTO-APPROVE MODE — all pending items are approved automatically ***"
+const (
+	autoAllowBanner = "*** AUTO-ALLOW MODE ***"
+	autoDenyBanner  = "*** AUTO-DENY MODE ***"
+)
 
 type refreshDoneMsg struct {
 	items []api.PendingApproval
+	mode  approvalmode.Mode
 	err   error
 }
 
@@ -25,29 +31,33 @@ type decideDoneMsg struct {
 	err      error
 }
 
+type setModeDoneMsg struct {
+	mode  approvalmode.Mode
+	err   error
+}
+
 type flashClearMsg struct{}
 
 // model drives the interactive approval UI.
+// Global approval mode is owned by the daemon; see gam-phase-4.0-tui-sync.md.
 type model struct {
-	client      *api.Client
-	home        string
-	items       []api.PendingApproval
-	cursor      int
-	err         string
-	flash       string
-	quitting    bool
-	width       int
-	height      int
-	autoApprove bool
-	deciding    map[string]bool
+	client   *api.Client
+	home     string
+	items    []api.PendingApproval
+	mode     approvalmode.Mode
+	cursor   int
+	err      string
+	flash    string
+	quitting bool
+	width    int
+	height   int
 }
 
-func newModel(client *api.Client, opts Options) model {
+func newModel(client *api.Client) model {
 	return model{
-		client:      client,
-		home:        HomeDir(),
-		autoApprove: opts.AutoApprove,
-		deciding:    make(map[string]bool),
+		client: client,
+		home:   approvalfmt.HomeDir(),
+		mode:   approvalmode.Ask,
 	}
 }
 
@@ -68,7 +78,14 @@ func refreshCmd(client *api.Client) tea.Cmd {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		items, err := client.ListPending(ctx)
-		return refreshDoneMsg{items: items, err: err}
+		if err != nil {
+			return refreshDoneMsg{err: err}
+		}
+		mode, modeErr := client.GetApprovalMode(ctx)
+		if modeErr != nil {
+			return refreshDoneMsg{items: items, err: modeErr}
+		}
+		return refreshDoneMsg{items: items, mode: mode}
 	}
 }
 
@@ -81,35 +98,24 @@ func decideCmd(client *api.Client, id, decision string) tea.Cmd {
 	}
 }
 
-// pendingIDsForAutoApprove returns pending ids in FIFO order that are not already being decided.
-func pendingIDsForAutoApprove(items []api.PendingApproval, deciding map[string]bool) []string {
-	if len(items) == 0 {
-		return nil
+func setModeCmd(client *api.Client, mode approvalmode.Mode) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		err := client.SetApprovalMode(ctx, mode)
+		return setModeDoneMsg{mode: mode, err: err}
 	}
-	out := make([]string, 0, len(items))
-	for _, item := range items {
-		if deciding[item.ID] {
-			continue
-		}
-		out = append(out, item.ID)
-	}
-	return out
 }
 
-func (m model) autoApproveCmds() tea.Cmd {
-	if !m.autoApprove {
-		return nil
+func nextMode(m approvalmode.Mode) approvalmode.Mode {
+	switch m {
+	case approvalmode.Ask:
+		return approvalmode.AutoAllow
+	case approvalmode.AutoAllow:
+		return approvalmode.AutoDeny
+	default:
+		return approvalmode.Ask
 	}
-	ids := pendingIDsForAutoApprove(m.items, m.deciding)
-	if len(ids) == 0 {
-		return nil
-	}
-	cmds := make([]tea.Cmd, 0, len(ids))
-	for _, id := range ids {
-		m.deciding[id] = true
-		cmds = append(cmds, decideCmd(m.client, id, "allow"))
-	}
-	return tea.Batch(cmds...)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -143,7 +149,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, flashClearAfter()
 			}
 			id := m.items[m.cursor].ID
-			m.flash = "Approving " + ShortApprovalID(id) + "..."
+			m.flash = "Approving " + approvalfmt.ShortApprovalID(id) + "..."
 			return m, decideCmd(m.client, id, "allow")
 		case "d":
 			if len(m.items) == 0 {
@@ -151,19 +157,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, flashClearAfter()
 			}
 			id := m.items[m.cursor].ID
-			m.flash = "Denying " + ShortApprovalID(id) + "..."
+			m.flash = "Denying " + approvalfmt.ShortApprovalID(id) + "..."
 			return m, decideCmd(m.client, id, "deny")
 		case "g":
-			m.autoApprove = !m.autoApprove
-			if m.autoApprove {
-				m.flash = "Auto-approve ON"
-				if cmd := m.autoApproveCmds(); cmd != nil {
-					return m, tea.Batch(flashClearAfter(), cmd)
-				}
-			} else {
-				m.flash = "Auto-approve OFF"
-			}
-			return m, flashClearAfter()
+			next := nextMode(m.mode)
+			m.flash = "Setting mode: " + next.Label() + "..."
+			return m, setModeCmd(m.client, next)
 		}
 
 	case tickMsg:
@@ -181,38 +180,37 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			prevID = m.items[m.cursor].ID
 		}
 		m.items = msg.items
+		m.mode = msg.mode
 		if prevID != "" {
 			for i, item := range m.items {
 				if item.ID == prevID {
 					m.cursor = i
-					if cmd := m.autoApproveCmds(); cmd != nil {
-						return m, cmd
-					}
 					return m, nil
 				}
 			}
 		}
 		m.cursor = ClampSelection(m.cursor, len(m.items))
-		if cmd := m.autoApproveCmds(); cmd != nil {
-			return m, cmd
-		}
 		return m, nil
 
+	case setModeDoneMsg:
+		if msg.err != nil {
+			m.flash = fmt.Sprintf("Mode change failed: %v", msg.err)
+			return m, tea.Batch(flashClearAfter(), refreshCmd(m.client))
+		}
+		m.mode = msg.mode
+		m.flash = "Mode: " + msg.mode.Label()
+		return m, tea.Batch(flashClearAfter(), refreshCmd(m.client))
+
 	case decideDoneMsg:
-		delete(m.deciding, msg.id)
 		if msg.err != nil {
 			m.flash = fmt.Sprintf("Failed to %s: %v", msg.decision, msg.err)
 			return m, tea.Batch(flashClearAfter(), refreshCmd(m.client))
 		}
-		if m.autoApprove && msg.decision == "allow" {
-			m.flash = formatAutoApproveFlash(msg.id, m.items)
-		} else {
-			label := "approved"
-			if msg.decision == "deny" {
-				label = "denied"
-			}
-			m.flash = ShortApprovalID(msg.id) + " " + label
+		label := "approved"
+		if msg.decision == "deny" {
+			label = "denied"
 		}
+		m.flash = approvalfmt.ShortApprovalID(msg.id) + " " + label
 		return m, tea.Batch(flashClearAfter(), refreshCmd(m.client))
 
 	case flashClearMsg:
@@ -223,31 +221,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func formatAutoApproveFlash(id string, items []api.PendingApproval) string {
-	summary := ""
-	for _, item := range items {
-		if item.ID == id {
-			summary = FormatSummary(item)
-			break
-		}
-	}
-	if summary != "" {
-		return "Auto-approved " + ShortApprovalID(id) + " · " + summary
-	}
-	return "Auto-approved " + ShortApprovalID(id)
-}
-
 func flashClearAfter() tea.Cmd {
 	return tea.Tick(1500*time.Millisecond, func(time.Time) tea.Msg {
 		return flashClearMsg{}
 	})
 }
 
+func modeBanner(mode approvalmode.Mode) string {
+	switch mode {
+	case approvalmode.AutoAllow:
+		return autoAllowBanner
+	case approvalmode.AutoDeny:
+		return autoDenyBanner
+	default:
+		return ""
+	}
+}
+
 func (m model) View() string {
 	var b strings.Builder
 
-	if m.autoApprove {
-		b.WriteString(autoApproveBanner)
+	if banner := modeBanner(m.mode); banner != "" {
+		b.WriteString(banner)
 		b.WriteString("\n\n")
 	}
 
@@ -264,21 +259,17 @@ func (m model) View() string {
 			if i == m.cursor {
 				prefix = "▶ "
 			}
-			fmt.Fprintf(&b, "%s%s\n", prefix, FormatListLine(item, m.home))
+			fmt.Fprintf(&b, "%s%s\n", prefix, approvalfmt.FormatListLine(item, m.home))
 		}
 		b.WriteString("\n")
 		if m.cursor < len(m.items) {
-			cwd := FormatCWD(m.items[m.cursor].CWD, m.home)
+			cwd := approvalfmt.FormatCWD(m.items[m.cursor].CWD, m.home)
 			fmt.Fprintf(&b, "  cwd: %s\n\n", cwd)
 		}
 	}
 
 	b.WriteString("─────────────────────────────────────────\n")
-	if m.autoApprove {
-		b.WriteString("[a] Approve  [d] Deny  [r] Refresh  [g] Auto-approve OFF\n")
-	} else {
-		b.WriteString("[a] Approve  [d] Deny  [r] Refresh  [g] Auto-approve ON\n")
-	}
+	fmt.Fprintf(&b, "[a] Approve  [d] Deny  [r] Refresh  [g] Mode: %s\n", m.mode.Label())
 	b.WriteString("[q] Quit    ↑/↓ navigate\n")
 	if m.flash != "" {
 		fmt.Fprintf(&b, "\n%s\n", m.flash)

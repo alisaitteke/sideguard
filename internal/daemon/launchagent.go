@@ -190,3 +190,26 @@ func installServiceWithRunner(runner launchctlRunner) error {
 func LaunchAgentPlistPath() (string, error) {
 	return paths.LaunchAgentPath()
 }
+
+// UninstallService unloads the LaunchAgent and removes its plist.
+// Idempotent: missing plist or unloaded service is not an error.
+// See docs/plans/2026-07-01-1418-uninstall-architecture/ (uia-phase-2.0-daemon-lifecycle.md).
+func UninstallService() error {
+	return uninstallServiceWithRunner(execLaunchctlRunner{})
+}
+
+func uninstallServiceWithRunner(runner launchctlRunner) error {
+	plistPath, err := paths.LaunchAgentPath()
+	if err != nil {
+		return err
+	}
+
+	uid := fmt.Sprintf("%d", os.Getuid())
+	domain := launchctlDomain(uid)
+	bootoutLaunchAgent(runner, domain, paths.LaunchAgentLabel, plistPath)
+
+	if err := os.Remove(plistPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("remove LaunchAgent plist: %w", err)
+	}
+	return nil
+}

@@ -137,6 +137,80 @@ func hookCommandsEqual(a, b string) bool {
 	return trimHookCommand(a) == trimHookCommand(b)
 }
 
+// IsVibeguardHookCommand reports whether a hook command invokes vibeguard shell or MCP hooks.
+func IsVibeguardHookCommand(cmd string) bool {
+	t := trimHookCommand(cmd)
+	return t == "vibeguard hook shell" || t == "vibeguard hook mcp"
+}
+
+func filterCursorHookEntries(entries []cursorHookEntry) ([]cursorHookEntry, int) {
+	removed := 0
+	var kept []cursorHookEntry
+	for _, e := range entries {
+		if IsVibeguardHookCommand(e.Command) {
+			removed++
+			continue
+		}
+		kept = append(kept, e)
+	}
+	return kept, removed
+}
+
+// UnpatchCursorHooks removes VibeGuard hook entries without touching user hooks.
+func UnpatchCursorHooks(path, binary string, dryRun bool) (removed int, diff string, err error) {
+	_ = binary
+	var data []byte
+	if _, statErr := os.Stat(path); statErr != nil {
+		if os.IsNotExist(statErr) {
+			return 0, "", nil
+		}
+		return 0, "", statErr
+	}
+	data, err = os.ReadFile(path)
+	if err != nil {
+		return 0, "", err
+	}
+
+	before := string(data)
+	doc, nested, err := parseCursorHooks(data)
+	if err != nil {
+		return 0, "", err
+	}
+
+	if nested {
+		if doc.Hooks == nil {
+			return 0, "", nil
+		}
+		for key, entries := range doc.Hooks {
+			filtered, n := filterCursorHookEntries(entries)
+			removed += n
+			if len(filtered) == 0 {
+				delete(doc.Hooks, key)
+			} else {
+				doc.Hooks[key] = filtered
+			}
+		}
+	} else {
+		doc.BeforeShellExecution, removed = filterCursorHookEntries(doc.BeforeShellExecution)
+		var mcpRemoved int
+		doc.BeforeMCPExecution, mcpRemoved = filterCursorHookEntries(doc.BeforeMCPExecution)
+		removed += mcpRemoved
+	}
+
+	out, err := marshalJSONPretty(doc)
+	if err != nil {
+		return 0, "", err
+	}
+	if before == string(out) {
+		return 0, "", nil
+	}
+
+	if err := writeFileAtomic(path, out, dryRun); err != nil {
+		return 0, "", err
+	}
+	return removed, diffSummary(path, before, string(out)), nil
+}
+
 func trimHookCommand(cmd string) string {
 	const suffix = " hook shell"
 	if len(cmd) > len(suffix) && cmd[len(cmd)-len(suffix):] == suffix {

@@ -17,6 +17,9 @@ func TestIsControlPlaneCommand(t *testing.T) {
 		"vibeguard daemon start",
 		"vibeguard uninstall",
 		"vibeguard doctor",
+		"vibeguard policy validate",
+		"vibeguard policy init-dev",
+		"vibeguard clients reload",
 	}
 	for _, cmd := range allowed {
 		if !IsControlPlaneCommand(cmd) {

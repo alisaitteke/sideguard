@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/alisaitteke/vibeguard/internal/api"
+	"github.com/alisaitteke/vibeguard/internal/policy"
 	"github.com/alisaitteke/vibeguard/internal/store"
 )
 
@@ -128,6 +130,73 @@ func TestRunShellCursorWithHookEventName(t *testing.T) {
 	}
 	if strings.Contains(stdout.String(), "hookSpecificOutput") {
 		t.Fatalf("expected Cursor response shape, got %q", stdout.String())
+	}
+}
+
+func TestRunShellCursorToolInputCommand(t *testing.T) {
+	daemon := startTestDaemon(t)
+	client := NewClientWithBaseURL(daemon.URL)
+
+	cases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name: "preToolUse Shell",
+			input: `{
+				"hook_event_name": "preToolUse",
+				"tool_name": "Shell",
+				"tool_input": {"command": "echo hello", "working_directory": "/tmp"},
+				"cwd": "/tmp"
+			}`,
+			want: "echo hello",
+		},
+		{
+			name: "beforeShellExecution nested command",
+			input: `{
+				"hook_event_name": "beforeShellExecution",
+				"tool_name": "Shell",
+				"tool_input": {"command": "echo nested"},
+				"cwd": "/tmp"
+			}`,
+			want: "echo nested",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var stdout bytes.Buffer
+			var wg sync.WaitGroup
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				code := RunShell(strings.NewReader(tc.input), &stdout, client)
+				if code != ExitAllow {
+					t.Errorf("exit code = %d, want %d stdout=%q", code, ExitAllow, stdout.String())
+				}
+			}()
+
+			time.Sleep(150 * time.Millisecond)
+			apiClient := api.NewClientWithBaseURL(daemon.URL)
+			pending, err := apiClient.ListPending(context.Background())
+			if err != nil || len(pending) != 1 {
+				t.Fatalf("pending: %+v err=%v", pending, err)
+			}
+			if pending[0].Command != tc.want {
+				t.Fatalf("unexpected pending command: %+v", pending[0])
+			}
+			_, _ = apiClient.Decide(context.Background(), pending[0].ID, "allow", "")
+			waitHook(t, &wg)
+
+			var resp CursorPermissionResponse
+			if err := json.Unmarshal(stdout.Bytes(), &resp); err != nil {
+				t.Fatalf("decode stdout: %v raw=%q", err, stdout.String())
+			}
+			if resp.Permission != "allow" {
+				t.Fatalf("permission = %q, want allow", resp.Permission)
+			}
+		})
 	}
 }
 
@@ -432,6 +501,39 @@ func TestRunShellPolicyAutoAllow(t *testing.T) {
 	pending, _ := api.NewClientWithBaseURL(daemon.URL).ListPending(context.Background())
 	if len(pending) != 0 {
 		t.Fatalf("expected no pending approvals, got %d", len(pending))
+	}
+}
+
+func TestRunShellWorkspaceDevPolicyAutoAllow(t *testing.T) {
+	repo := t.TempDir()
+	content, err := policy.DevWorkspacePolicy(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wsDir := filepath.Join(repo, ".vibeguard")
+	if err := os.MkdirAll(wsDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(wsDir, "policy.yaml"), []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	daemon := startTestDaemon(t)
+	client := NewClientWithBaseURL(daemon.URL)
+
+	input := fmt.Sprintf(`{"command":"go test ./internal/policy/...","cwd":%q}`, repo)
+	var stdout bytes.Buffer
+	code := RunShell(strings.NewReader(input), &stdout, client)
+	if code != ExitAllow {
+		t.Fatalf("exit code = %d, want allow for in-repo go test", code)
+	}
+
+	pending, _ := api.NewClientWithBaseURL(daemon.URL).ListPending(context.Background())
+	if len(pending) != 0 {
+		t.Fatalf("workspace dev policy should auto-allow, got %d pending", len(pending))
 	}
 }
 

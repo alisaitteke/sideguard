@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 )
 
 // CursorPermissionResponse is stdout for Cursor beforeShellExecution / beforeMCPExecution.
@@ -13,12 +14,15 @@ type CursorPermissionResponse struct {
 	AgentMessage string `json:"agent_message,omitempty"`
 }
 
-// cursorShellInput is stdin for Cursor beforeShellExecution.
+// cursorShellInput is stdin for Cursor beforeShellExecution and preToolUse Shell.
+// Newer Cursor builds may send command inside tool_input instead of the top-level field.
 type cursorShellInput struct {
-	Command  string `json:"command"`
-	CWD      string `json:"cwd"`
-	Sandbox  bool   `json:"sandbox"`
-	HookName string `json:"hook_event_name"`
+	Command   string          `json:"command"`
+	CWD       string          `json:"cwd"`
+	Sandbox   bool            `json:"sandbox"`
+	HookName  string          `json:"hook_event_name"`
+	ToolName  string          `json:"tool_name"`
+	ToolInput json.RawMessage `json:"tool_input"`
 }
 
 // cursorMCPInput is stdin for Cursor beforeMCPExecution.
@@ -34,14 +38,44 @@ func parseCursorShell(data []byte) (command, cwd string, err error) {
 	if err := json.Unmarshal(data, &in); err != nil {
 		return "", "", fmt.Errorf("parse cursor shell hook input: %w", err)
 	}
-	if in.Command == "" {
+
+	command = strings.TrimSpace(in.Command)
+	var toolInput map[string]any
+	if command == "" && len(in.ToolInput) > 0 {
+		toolInput, err = decodeToolInput(in.ToolInput)
+		if err != nil {
+			return "", "", err
+		}
+		command = shellCommandFromToolInput(toolInput)
+	}
+	if command == "" {
 		return "", "", fmt.Errorf("missing command in hook input")
 	}
-	cwd = in.CWD
+
+	cwd = strings.TrimSpace(in.CWD)
+	if cwd == "" && toolInput != nil {
+		if wd, ok := toolInput["working_directory"].(string); ok {
+			cwd = strings.TrimSpace(wd)
+		}
+	}
 	if cwd == "" {
 		cwd = "."
 	}
-	return in.Command, cwd, nil
+	return command, cwd, nil
+}
+
+func shellCommandFromToolInput(toolInput map[string]any) string {
+	if toolInput == nil {
+		return ""
+	}
+	for _, key := range []string{"command", "cmd"} {
+		if raw, ok := toolInput[key]; ok {
+			if s, ok := raw.(string); ok {
+				return strings.TrimSpace(s)
+			}
+		}
+	}
+	return ""
 }
 
 func parseCursorMCP(data []byte) (toolName string, toolInput map[string]any, cwd string, err error) {

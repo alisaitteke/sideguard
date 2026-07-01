@@ -115,6 +115,78 @@ func TestDecideUnknownID(t *testing.T) {
 	}
 }
 
+func TestGetApprovalModeDefault(t *testing.T) {
+	srv := NewServer("test", testStore(t))
+	req := httptest.NewRequest(http.MethodGet, "/v1/approval/mode", nil)
+	rec := httptest.NewRecorder()
+	srv.http.Handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	var resp ApprovalModeResponse
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.Mode != "ask" {
+		t.Fatalf("mode = %q, want ask", resp.Mode)
+	}
+}
+
+func TestSetApprovalModeInvalid(t *testing.T) {
+	srv := NewServer("test", testStore(t))
+	body := strings.NewReader(`{"mode":"bogus"}`)
+	req := httptest.NewRequest(http.MethodPut, "/v1/approval/mode", body)
+	rec := httptest.NewRecorder()
+	srv.http.Handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d body=%s", rec.Code, http.StatusBadRequest, rec.Body.String())
+	}
+}
+
+func TestCreateApprovalAutoAllowMode(t *testing.T) {
+	st := testStore(t)
+	srv := NewServer("test", st)
+
+	setBody := strings.NewReader(`{"mode":"auto_allow"}`)
+	setReq := httptest.NewRequest(http.MethodPut, "/v1/approval/mode", setBody)
+	setRec := httptest.NewRecorder()
+	srv.http.Handler.ServeHTTP(setRec, setReq)
+	if setRec.Code != http.StatusOK {
+		t.Fatalf("set mode status = %d body=%s", setRec.Code, setRec.Body.String())
+	}
+
+	createBody := strings.NewReader(`{"source":"shell","client":"cursor","command":"echo hi","cwd":"/tmp"}`)
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/approval/request", createBody)
+	createRec := httptest.NewRecorder()
+	srv.http.Handler.ServeHTTP(createRec, createReq)
+	if createRec.Code != http.StatusAccepted {
+		t.Fatalf("create status = %d", createRec.Code)
+	}
+	var created ApprovalRequestResponse
+	if err := json.NewDecoder(createRec.Body).Decode(&created); err != nil {
+		t.Fatal(err)
+	}
+	if created.Status != "decided" {
+		t.Fatalf("status = %q, want decided", created.Status)
+	}
+
+	waitReq := httptest.NewRequest(http.MethodGet, "/v1/approval/"+created.ID+"/wait", nil)
+	waitRec := httptest.NewRecorder()
+	srv.http.Handler.ServeHTTP(waitRec, waitReq)
+	if waitRec.Code != http.StatusOK {
+		t.Fatalf("wait status = %d", waitRec.Code)
+	}
+	var waitResp ApprovalDecisionResponse
+	if err := json.NewDecoder(waitRec.Body).Decode(&waitResp); err != nil {
+		t.Fatal(err)
+	}
+	if waitResp.Permission != "allow" {
+		t.Fatalf("permission = %q, want allow", waitResp.Permission)
+	}
+}
+
 func TestServerBindsLoopback(t *testing.T) {
 	srv := NewServer("test", testStore(t))
 	if !IsLoopback(srv.Addr()) {

@@ -46,6 +46,68 @@ func parseClaudeJSON(data []byte) (*claudeJSONDoc, error) {
 	return &doc, nil
 }
 
+func unwrapMCPServers(servers map[string]mcpServerEntry, binary string) int {
+	if len(servers) == 0 {
+		return 0
+	}
+
+	unwrapped := 0
+	for name, entry := range servers {
+		if !isAlreadyWrapped(entry, binary) {
+			continue
+		}
+		upstreamCmd := entry.Args[2]
+		upstreamArgs := append([]string{}, entry.Args[3:]...)
+		entry.Command = upstreamCmd
+		entry.Args = upstreamArgs
+		servers[name] = entry
+		unwrapped++
+	}
+	return unwrapped
+}
+
+func unpatchMCPServersJSON(data []byte, binary string) ([]byte, int, error) {
+	var unwrapped int
+	out, err := patchJSONObject(data, func(doc map[string]json.RawMessage) error {
+		servers, err := rawMCPServers(doc)
+		if err != nil {
+			return err
+		}
+		unwrapped = unwrapMCPServers(servers, binary)
+		return setRawMCPServers(doc, servers)
+	})
+	return out, unwrapped, err
+}
+
+// UnpatchCursorMCP removes vibeguard wrap -- from STDIO MCP servers in-place.
+func UnpatchCursorMCP(path, binary string, dryRun bool) (unwrapped int, diff string, err error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return 0, "", nil
+		}
+		return 0, "", err
+	}
+
+	out, unwrapped, err := unpatchMCPServersJSON(data, binary)
+	if err != nil {
+		return 0, "", err
+	}
+	if string(data) == string(out) {
+		return 0, "", nil
+	}
+
+	if err := writeFileAtomic(path, out, dryRun); err != nil {
+		return 0, "", err
+	}
+	return unwrapped, diffSummary(path, string(data), string(out)), nil
+}
+
+// UnpatchClaudeMCP removes vibeguard wrap -- from mcpServers in ~/.claude.json.
+func UnpatchClaudeMCP(path, binary string, dryRun bool) (unwrapped int, diff string, err error) {
+	return UnpatchCursorMCP(path, binary, dryRun)
+}
+
 func wrapMCPServers(servers map[string]mcpServerEntry, binary string) (int, error) {
 	if len(servers) == 0 {
 		return 0, nil

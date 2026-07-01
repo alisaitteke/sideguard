@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alisaitteke/vibeguard/internal/approvalmode"
 	"github.com/alisaitteke/vibeguard/internal/notify"
 	"github.com/alisaitteke/vibeguard/internal/store"
 )
@@ -42,12 +43,49 @@ func (h *Handler) CreateApprovalRequest(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	status := "pending"
+	if _, autoDecided, err := h.Store.MaybeAutoDecide(rec.ID); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to auto-decide approval")
+		return
+	} else if autoDecided {
+		status = "decided"
+	}
+
 	writeJSON(w, http.StatusAccepted, ApprovalRequestResponse{
 		ID:     rec.ID,
-		Status: "pending",
+		Status: status,
 	})
 
-	go notifyPendingApproval(rec)
+	if status == "pending" {
+		go notifyPendingApproval(rec)
+	}
+}
+
+func (h *Handler) GetApprovalMode(w http.ResponseWriter, _ *http.Request) {
+	mode, err := h.Store.GetApprovalMode()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "get approval mode failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, ApprovalModeResponse{Mode: string(mode)})
+}
+
+func (h *Handler) SetApprovalMode(w http.ResponseWriter, r *http.Request) {
+	var req SetApprovalModeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	mode, err := approvalmode.Parse(req.Mode)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := h.Store.SetApprovalMode(mode); err != nil {
+		writeError(w, http.StatusInternalServerError, "set approval mode failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, ApprovalModeResponse{Mode: string(mode)})
 }
 
 func notifyPendingApproval(rec *store.ApprovalRecord) {
