@@ -33,7 +33,11 @@ export function InstallSection() {
   return (
     <section id="install" className="py-10">
       <div className="mx-auto max-w-[52rem] px-4">
-        <h2 className="mb-6 text-xl font-semibold">Install</h2>
+        <h2 className="mb-2 text-xl font-semibold">Install</h2>
+        <p className="mb-6 text-muted-foreground">
+          One curl command installs the SideGuard daemon, a single Go binary for
+          local AI coding agent security. No cloud account required.
+        </p>
         <div className="space-y-4">
           <div className="overflow-x-auto rounded-lg border border-border bg-card p-4">
             <pre className="font-mono text-sm leading-relaxed text-foreground">

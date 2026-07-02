@@ -1,5 +1,5 @@
 /**
- * Landing page footer — GitHub, license, and domain links.
+ * Landing page footer: GitHub, license, and domain links.
  * Plan: docs/plans/2026-07-02-1705-vite-shadcn-site/vss-phase-2.0-landing-router.md
  */
 export function SiteFooter() {
@@ -16,7 +16,9 @@ export function SiteFooter() {
             github.com/alisaitteke/sideguard
           </a>
         </p>
-        <p>MIT License</p>
+        <p className="text-muted-foreground/80">
+          Local approval daemon · shell + MCP guardrails · MIT License
+        </p>
         <p>
           <a
             href="https://sideguard.io"

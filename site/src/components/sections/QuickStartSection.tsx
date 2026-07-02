@@ -8,9 +8,10 @@ export function QuickStartSection() {
   return (
     <section id="quickstart" className="py-10">
       <div className="mx-auto max-w-[52rem] px-4">
-        <h2 className="mb-6 text-xl font-semibold">Quick start</h2>
+        <h2 className="mb-2 text-xl font-semibold">Quick start</h2>
         <p className="mb-4 text-muted-foreground">
-          After the binary is installed, wire SideGuard into your AI clients:
+          Register fail-closed Cursor hooks, MCP tool wrap, and the approval
+          daemon, then verify everything is running:
         </p>
         <pre className="overflow-x-auto rounded-lg border border-border bg-card p-4 font-mono text-sm leading-relaxed">
           <code>{QUICK_START_COMMANDS}</code>
