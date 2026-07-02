@@ -5,6 +5,7 @@
  */
 import { BrowserRouter, Route, Routes } from "react-router-dom"
 
+import { PostHogPageview } from "@/components/PostHogPageview"
 import { PageShell } from "@/components/layout/PageShell"
 import { HomePage } from "@/pages/HomePage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
@@ -12,6 +13,7 @@ import { NotFoundPage } from "@/pages/NotFoundPage"
 export function AppRouter() {
   return (
     <BrowserRouter>
+      <PostHogPageview />
       <Routes>
         <Route element={<PageShell />}>
           <Route index element={<HomePage />} />
