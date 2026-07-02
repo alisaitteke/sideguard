@@ -5,6 +5,7 @@ package store
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -68,6 +69,7 @@ type CommandEvent struct {
 // EventQuery filters command_events for GET /v1/events.
 type EventQuery struct {
 	Since  time.Time
+	Before time.Time // exclusive upper bound: created_at < before
 	Denied bool
 	CWD    string
 	Limit  int
@@ -124,7 +126,32 @@ func (s *Store) IngestEvent(e CommandEvent) error {
 	return nil
 }
 
+// GetEventByID returns a single command event by id, or nil if not found.
+func (s *Store) GetEventByID(id string) (*CommandEvent, error) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil, nil
+	}
+
+	row := s.db.QueryRow(`
+		SELECT id, created_at, source, client, cwd, command_redacted, command_norm,
+		       tool_name, yaml_action, detect_action, detect_rules, detect_score,
+		       final_action, decision_by, reason, approval_id, latency_ms
+		FROM command_events WHERE id = ?`, id)
+
+	ev, err := scanCommandEvent(row)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("get command event: %w", err)
+	}
+	return ev, nil
+}
+
 // QueryEvents returns command events matching the query, newest first.
+// Supports keyset pagination via Before (exclusive upper bound on created_at).
+// See docs/plans/2026-07-02-1226-tray-ui-polish/ (tup-phase-1.0-api-server.md).
 func (s *Store) QueryEvents(q EventQuery) ([]CommandEvent, error) {
 	limit := q.Limit
 	if limit <= 0 {
@@ -142,6 +169,10 @@ func (s *Store) QueryEvents(q EventQuery) ([]CommandEvent, error) {
 	if !q.Since.IsZero() {
 		clauses = append(clauses, "created_at >= ?")
 		args = append(args, q.Since.UTC().Format(time.RFC3339))
+	}
+	if !q.Before.IsZero() {
+		clauses = append(clauses, "created_at < ?")
+		args = append(args, q.Before.UTC().Format(time.RFC3339))
 	}
 	if q.Denied {
 		clauses = append(clauses, "final_action = ?")

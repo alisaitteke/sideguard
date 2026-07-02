@@ -8,10 +8,12 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/alisaitteke/vibeguard/internal/api"
 	"github.com/alisaitteke/vibeguard/internal/approvalfmt"
 	"github.com/alisaitteke/vibeguard/internal/approvalmode"
+	"github.com/alisaitteke/vibeguard/internal/llm"
 	"github.com/alisaitteke/vibeguard/internal/tray/darwin"
 )
 
@@ -27,6 +29,7 @@ func Run(opts Options) error {
 	defer cancel()
 
 	var deciding sync.Map
+	var loadMoreLoading sync.Mutex
 
 	home := approvalfmt.HomeDir()
 	version := opts.Version
@@ -44,33 +47,47 @@ func Run(opts Options) error {
 		snapshot.Update = updateUIState.Get()
 		panelMu.Unlock()
 
-		content := BuildPanelRows(snapshot)
+		content := BuildTrayContent(snapshot)
 
-		rows := make([]darwin.PanelJSONRow, 0, len(content.Rows))
-		for _, row := range content.Rows {
-			rows = append(rows, darwin.PanelJSONRow{
-				ID:    row.ID,
-				Label: row.Label,
+		pendingRows := make([]darwin.PanelJSONRow, 0, len(content.PendingRows))
+		for _, row := range content.PendingRows {
+			pendingRows = append(pendingRows, darwin.PanelJSONRow{
+				Kind:   string(row.Kind),
+				ID:     row.ID,
+				Label:  row.Label,
+				Detail: row.Detail,
+			})
+		}
+
+		historyRows := make([]darwin.PanelJSONRow, 0, len(content.HistoryRows))
+		for _, row := range content.HistoryRows {
+			historyRows = append(historyRows, darwin.PanelJSONRow{
+				Kind:   string(row.Kind),
+				ID:     row.ID,
+				Label:  row.Label,
+				Detail: row.Detail,
 			})
 		}
 
 		darwin.UpdatePanel(darwin.PanelJSON{
-			DaemonStatus:  content.DaemonStatus,
-			PendingCount:  content.PendingCount,
-			ModeIndex:     content.ModeIndex,
-			ModeEnabled:   content.ModeEnabled,
-			Rows:          rows,
-			OverflowHint:  content.OverflowHint,
-			EmptyMessage:  content.EmptyMessage,
-			UpdateVisible: content.UpdateVisible,
-			UpdateLabel:   content.UpdateLabel,
-			UpdateEnabled: content.UpdateEnabled,
+			ModeIndex:       content.ModeIndex,
+			ModeEnabled:     content.ModeEnabled,
+			PendingRows:     pendingRows,
+			HistoryRows:     historyRows,
+			HistoryHasMore:  content.HistoryHasMore,
+			PendingOverflow: content.PendingOverflow,
+			EmptyMessage:    content.EmptyMessage,
+			FooterDaemon:    content.FooterDaemon,
+			FooterPending:   content.FooterPending,
+			UpdateVisible:   content.UpdateVisible,
+			UpdateLabel:     content.UpdateLabel,
+			UpdateEnabled:   content.UpdateEnabled,
 		})
 	}
 
 	var prevPending []api.PendingApproval
 
-	pollSession.OnUpdate = func(items []api.PendingApproval, mode approvalmode.Mode, err error) {
+	pollSession.OnUpdate = func(items []api.PendingApproval, history []api.CommandEvent, mode approvalmode.Mode, historyHasMore bool, err error) {
 		pending := pendingCountForTitle(items, err)
 		healthOK := err == nil
 
@@ -80,11 +97,13 @@ func Run(opts Options) error {
 
 		panelMu.Lock()
 		lastSnapshot = PanelSnapshot{
-			Items:    items,
-			Mode:     mode,
-			HealthOK: healthOK,
-			Err:      err,
-			Home:     home,
+			Items:          items,
+			History:        history,
+			HistoryHasMore: historyHasMore,
+			Mode:           mode,
+			HealthOK:       healthOK,
+			Err:            err,
+			Home:           home,
 		}
 		panelMu.Unlock()
 
@@ -144,11 +163,53 @@ func Run(opts Options) error {
 
 	darwin.SetDecideHandler(onDecide)
 	darwin.SetModeHandler(onSetMode)
+	darwin.SetLoadMoreHandler(func() {
+		if !loadMoreLoading.TryLock() {
+			return
+		}
+		defer loadMoreLoading.Unlock()
+
+		loadCtx, loadCancel := context.WithTimeout(ctx, apiCallTimeout)
+		defer loadCancel()
+		if err := pollSession.LoadMoreHistory(loadCtx); err != nil {
+			return
+		}
+		panelMu.Lock()
+		lastSnapshot.History = pollSession.History()
+		lastSnapshot.HistoryHasMore = pollSession.HistoryHasMore()
+		panelMu.Unlock()
+		refreshPanel()
+	})
 	darwin.SetInstallHandler(func() {
 		refreshPanel()
 		HandleInstallUpdate(updateUIState, quitTray)
 	})
 	darwin.SetQuitHandler(quitTray)
+
+	darwin.SetOpenSettingsHandler(func() {
+		snap, err := darwin.LoadSettingsSnapshot()
+		if err != nil {
+			darwin.SetTooltip("VibeGuard — settings load failed: " + err.Error())
+			return
+		}
+		darwin.ShowSettings(snap)
+	})
+	darwin.SetSaveSettingsHandler(func(payload string) error {
+		if err := darwin.SaveSettingsFromJSON(payload); err != nil {
+			return err
+		}
+		llm.ResetClassifierCache()
+		return nil
+	})
+	darwin.SetAnalyseHandler(func(rowID, command string, useEventID bool) darwin.AnalyseResultJSON {
+		analyseCtx, analyseCancel := context.WithTimeout(ctx, 30*time.Second)
+		defer analyseCancel()
+		return darwin.RunAnalyze(analyseCtx, client, rowID, command, useEventID)
+	})
+
+	darwin.SetAppearanceHandler(func(dark bool) {
+		darwin.SetHeaderLogo(popoverHeaderLogo(dark))
+	})
 
 	readyCh := make(chan struct{})
 	darwin.SetReadyHandler(func() {
@@ -156,6 +217,7 @@ func Run(opts Options) error {
 	})
 	go func() {
 		<-readyCh
+		// Initial logo is set from ObjC after effective appearance is resolved.
 		darwin.SetIcon(menuBarIcon())
 		darwin.SetTooltip("VibeGuard — no pending")
 		pollSession.Start(ctx)

@@ -167,6 +167,9 @@ func (c *Client) QueryEvents(ctx context.Context, q EventQueryParams) ([]Command
 	if q.Since != "" {
 		vals.Set("since", q.Since)
 	}
+	if q.Before != "" {
+		vals.Set("before", q.Before)
+	}
 	if q.Denied {
 		vals.Set("denied", "true")
 	}
@@ -201,6 +204,37 @@ func (c *Client) QueryEvents(ctx context.Context, q EventQueryParams) ([]Command
 		return nil, err
 	}
 	return out, nil
+}
+
+// Analyze posts a command for on-demand LLM safety analysis.
+func (c *Client) Analyze(ctx context.Context, req AnalyzeRequest) (*AnalyzeResponse, error) {
+	body, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/v1/analyze", bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("daemon unreachable: %w", err)
+	}
+	defer resp.Body.Close()
+
+	raw, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("analyze failed: status %d: %s", resp.StatusCode, string(raw))
+	}
+
+	var out AnalyzeResponse
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 // RequestApproval queues a new approval and returns its id.

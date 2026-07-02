@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/alisaitteke/vibeguard/internal/approvalmode"
+	"github.com/alisaitteke/vibeguard/internal/config"
+	"github.com/alisaitteke/vibeguard/internal/llm"
 	"github.com/alisaitteke/vibeguard/internal/notify"
 	"github.com/alisaitteke/vibeguard/internal/store"
 )
@@ -19,6 +21,13 @@ import (
 type Handler struct {
 	Version string
 	Store   *store.Store
+
+	// NewAnalyzer overrides analyzer construction (tests only). Nil uses llm.NewAnalyzer.
+	NewAnalyzer func(settings config.LLMSettings, creds map[string]config.ProviderCredential) (llm.Analyzer, error)
+	// LoadLLMSettings overrides LLM config load (tests only). Nil uses config.LoadLLMSettings.
+	LoadLLMSettings func(cwd string) (config.LLMSettings, error)
+	// ResolveCredentials overrides credential load (tests only). Nil uses config.ResolveProviderCredentials.
+	ResolveCredentials func() (map[string]config.ProviderCredential, error)
 }
 
 func (h *Handler) Health(w http.ResponseWriter, _ *http.Request) {
@@ -212,6 +221,7 @@ func (h *Handler) QueryEvents(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	params := EventQueryParams{
 		Since:  q.Get("since"),
+		Before: q.Get("before"),
 		CWD:    q.Get("cwd"),
 		Search: q.Get("search"),
 	}
@@ -238,6 +248,14 @@ func (h *Handler) QueryEvents(w http.ResponseWriter, r *http.Request) {
 		}
 		storeQuery.Since = t
 	}
+	if params.Before != "" {
+		t, err := time.Parse(time.RFC3339, params.Before)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid before timestamp")
+			return
+		}
+		storeQuery.Before = t
+	}
 
 	rows, err := h.Store.QueryEvents(storeQuery)
 	if err != nil {
@@ -250,6 +268,122 @@ func (h *Handler) QueryEvents(w http.ResponseWriter, r *http.Request) {
 		out = append(out, FromStoreEvent(row))
 	}
 	writeJSON(w, http.StatusOK, out)
+}
+
+// AnalyzeCommand runs on-demand LLM command analysis with shell/detect enrichment.
+// See docs/plans/2026-07-02-1521-llm-settings-analyse/ (lsa-phase-3.0-api.md).
+func (h *Handler) AnalyzeCommand(w http.ResponseWriter, r *http.Request) {
+	var req AnalyzeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	command := strings.TrimSpace(req.Command)
+	toolName := strings.TrimSpace(req.ToolName)
+	cwd := strings.TrimSpace(req.CWD)
+	eventID := strings.TrimSpace(req.EventID)
+
+	if eventID != "" {
+		ev, err := h.Store.GetEventByID(eventID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "event lookup failed")
+			return
+		}
+		if ev == nil {
+			writeError(w, http.StatusNotFound, "event not found")
+			return
+		}
+		command = strings.TrimSpace(ev.CommandNorm)
+		if command == "" {
+			command = strings.TrimSpace(ev.CommandRedacted)
+		}
+		toolName = strings.TrimSpace(ev.ToolName)
+		if cwd == "" {
+			cwd = strings.TrimSpace(ev.CWD)
+		}
+	} else if command == "" {
+		writeError(w, http.StatusBadRequest, "command or event_id is required")
+		return
+	}
+
+	enrich := enrichForAnalyze(command, toolName, cwd)
+
+	loadSettings := h.LoadLLMSettings
+	if loadSettings == nil {
+		loadSettings = config.LoadLLMSettings
+	}
+	settings, err := loadSettings(cwd)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "load llm settings failed")
+		return
+	}
+	if !settings.Enabled {
+		writeError(w, http.StatusServiceUnavailable, "llm analysis is disabled")
+		return
+	}
+	if settings.DefaultProvider == "" && settings.Analysis.Provider == "" {
+		writeError(w, http.StatusServiceUnavailable, "no llm provider configured")
+		return
+	}
+	if len(settings.Providers) == 0 {
+		writeError(w, http.StatusServiceUnavailable, "no llm provider configured")
+		return
+	}
+
+	resolveCreds := h.ResolveCredentials
+	if resolveCreds == nil {
+		resolveCreds = config.ResolveProviderCredentials
+	}
+	creds, err := resolveCreds()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "load provider credentials failed")
+		return
+	}
+
+	newAnalyzer := h.NewAnalyzer
+	if newAnalyzer == nil {
+		newAnalyzer = llm.NewAnalyzer
+	}
+	analyzer, err := newAnalyzer(settings, creds)
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "llm analyzer unavailable")
+		return
+	}
+
+	redacted := llm.RedactCommand(command)
+	if eventID != "" {
+		log.Printf("vibeguard analyze: event_id=%s command=%q", eventID, redacted)
+	} else {
+		log.Printf("vibeguard analyze: command=%q", redacted)
+	}
+
+	result, err := analyzer.Analyze(r.Context(), llm.AnalyzeInput{
+		Command:       command,
+		ToolName:      toolName,
+		CWD:           cwd,
+		ShellIR:       enrich.ShellIR,
+		DetectSummary: enrich.DetectSummary,
+	})
+	if err != nil {
+		writeJSON(w, http.StatusOK, AnalyzeResponse{
+			Verdict:      "unknown",
+			Summary:      "Analysis unavailable",
+			Explanation:  err.Error(),
+			DetectAction: enrich.DetectAction,
+			DetectRules:  enrich.DetectRules,
+		})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, AnalyzeResponse{
+		Verdict:      result.Verdict,
+		Summary:      result.Summary,
+		Explanation:  result.Explanation,
+		Provider:     result.Provider,
+		DetectAction: enrich.DetectAction,
+		DetectRules:  enrich.DetectRules,
+	})
 }
 
 func approvalIDFromPath(path, suffix string) string {

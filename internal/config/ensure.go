@@ -1,16 +1,11 @@
 package config
 
-// HasAPIKeyForProvider reports whether credentials are configured for provider.
+// HasAPIKeyForProvider reports whether credentials are configured for a provider instance.
 // Ollama local mode does not require an API key.
-func HasAPIKeyForProvider(provider string, creds Credentials) bool {
-	switch provider {
-	case "ollama":
+func HasAPIKeyForProvider(driver string, creds map[string]ProviderCredential, providerID string) bool {
+	if driver == "ollama" {
 		return true
-	case "anthropic":
-		return creds.Anthropic.APIKey != ""
-	case "openai":
-		return creds.OpenAI.APIKey != ""
-	default:
-		return false
 	}
+	c, ok := creds[providerID]
+	return ok && c.APIKey != ""
 }

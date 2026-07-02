@@ -98,7 +98,12 @@ func TestCheckLLMConfigEnabledMissingAPIKey(t *testing.T) {
 	}
 	if err := os.WriteFile(filepath.Join(dir, "config.yaml"), []byte(`llm:
   enabled: true
-  provider: openai
+  default_provider: my-openai
+  providers:
+    - id: my-openai
+      driver: openai
+      model: gpt-4o-mini
+      auth_mode: api_key
 `), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -125,12 +130,16 @@ func TestCheckLLMConfigCredentialsPermWarn(t *testing.T) {
 	}
 	if err := os.WriteFile(filepath.Join(dir, "config.yaml"), []byte(`llm:
   enabled: true
-  provider: ollama
+  default_provider: my-ollama
+  providers:
+    - id: my-ollama
+      driver: ollama
+      model: llama3.2
+      auth_mode: api_key
 `), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "credentials.yaml"), []byte(`openai:
-  api_key: ""
+	if err := os.WriteFile(filepath.Join(dir, "credentials.yaml"), []byte(`providers: {}
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -157,12 +166,18 @@ func TestCheckLLMConfigEnabledOK(t *testing.T) {
 	}
 	if err := os.WriteFile(filepath.Join(dir, "config.yaml"), []byte(`llm:
   enabled: true
-  provider: openai
+  default_provider: my-openai
+  providers:
+    - id: my-openai
+      driver: openai
+      model: gpt-4o-mini
+      auth_mode: api_key
 `), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "credentials.yaml"), []byte(`openai:
-  api_key: sk-test
+	if err := os.WriteFile(filepath.Join(dir, "credentials.yaml"), []byte(`providers:
+  my-openai:
+    api_key: sk-test
 `), 0o600); err != nil {
 		t.Fatal(err)
 	}

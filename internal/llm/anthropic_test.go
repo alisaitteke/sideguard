@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/alisaitteke/vibeguard/internal/config"
 	"github.com/alisaitteke/vibeguard/internal/policy"
@@ -45,12 +46,15 @@ func TestAnthropicProviderClassify(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	cfg := config.LLMConfig{
-		Model:     "claude-3-5-haiku-latest",
-		TimeoutMS: 5000,
-		BaseURL:   srv.URL,
+	driver, err := newAnthropicChatDriver(driverConfig{
+		instance: config.ProviderInstance{Model: "claude-3-5-haiku-latest", BaseURL: srv.URL},
+		apiKey:   "ant-test-key",
+		timeout:  5 * time.Second,
+	})
+	if err != nil {
+		t.Fatalf("newAnthropicChatDriver: %v", err)
 	}
-	p := newAnthropicProvider(cfg, "ant-test-key")
+	p := &chatProvider{driver: driver}
 
 	req := ClassifyRequest{
 		Input:      policy.Input{Command: "rm -rf /"},
@@ -95,10 +99,17 @@ func TestAnthropicProviderHTTP403(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	cfg := config.LLMConfig{Model: "m", TimeoutMS: 3000, BaseURL: srv.URL}
-	p := newAnthropicProvider(cfg, "bad-key")
+	driver, err := newAnthropicChatDriver(driverConfig{
+		instance: config.ProviderInstance{Model: "m", BaseURL: srv.URL},
+		apiKey:   "bad-key",
+		timeout:  3 * time.Second,
+	})
+	if err != nil {
+		t.Fatalf("newAnthropicChatDriver: %v", err)
+	}
+	p := &chatProvider{driver: driver}
 
-	_, err := p.Classify(context.Background(), ClassifyRequest{
+	_, err = p.Classify(context.Background(), ClassifyRequest{
 		Signature:  "sys",
 		YAMLAction: policy.ActionAsk,
 	})

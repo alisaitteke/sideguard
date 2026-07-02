@@ -24,3 +24,13 @@ func mustMenuBarIconPNG(pending int, healthOK bool, size int) []byte {
 	}
 	return data
 }
+
+// popoverHeaderLogo returns the branded check-mark logo for the popover header.
+// When dark is true, opaque pixels are rendered white for dark popover backgrounds.
+func popoverHeaderLogo(dark bool) []byte {
+	data, err := renderPopoverHeaderLogoPNG(dark)
+	if err != nil {
+		panic("tray: popover header logo render failed: " + err.Error())
+	}
+	return data
+}

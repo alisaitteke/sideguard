@@ -121,7 +121,7 @@ func checkDaemon() []Finding {
 }
 
 func checkLLMConfig(cwd string) []Finding {
-	cfg, err := config.Load(cwd)
+	cfg, err := config.LoadLLMSettings(cwd)
 	if err != nil {
 		return []Finding{{
 			Check:    "llm_config",
@@ -147,7 +147,7 @@ func checkLLMConfig(cwd string) []Finding {
 
 	var findings []Finding
 
-	creds, credErr := config.ResolveCredentials()
+	creds, credErr := config.ResolveProviderCredentials()
 	if credErr != nil {
 		findings = append(findings, Finding{
 			Check:    "llm_credentials",
@@ -157,11 +157,26 @@ func checkLLMConfig(cwd string) []Finding {
 		return findings
 	}
 
-	if !config.HasAPIKeyForProvider(cfg.Provider, creds) {
+	defaultID := cfg.DefaultProvider
+	var defaultDriver string
+	for _, p := range cfg.Providers {
+		if p.ID == defaultID {
+			defaultDriver = p.Driver
+			break
+		}
+	}
+
+	if defaultID == "" {
+		findings = append(findings, Finding{
+			Check:    "llm_enabled_no_default",
+			Severity: SeverityWarn,
+			Message:  "LLM enabled but no default_provider configured",
+		})
+	} else if !config.HasAPIKeyForProvider(defaultDriver, creds, defaultID) {
 		findings = append(findings, Finding{
 			Check:    "llm_enabled_no_credentials",
 			Severity: SeverityWarn,
-			Message:  fmt.Sprintf("LLM enabled with provider %q but no API key configured", cfg.Provider),
+			Message:  fmt.Sprintf("LLM enabled with provider %q but no API key configured", defaultID),
 		})
 	}
 
@@ -188,7 +203,7 @@ func checkLLMConfig(cwd string) []Finding {
 		findings = append(findings, Finding{
 			Check:    "llm_config",
 			Severity: SeverityOK,
-			Message:  fmt.Sprintf("LLM enabled (provider %q)", cfg.Provider),
+			Message:  fmt.Sprintf("LLM enabled (default provider %q)", cfg.DefaultProvider),
 		})
 	}
 

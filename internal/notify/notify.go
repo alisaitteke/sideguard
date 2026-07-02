@@ -5,6 +5,7 @@ package notify
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -15,9 +16,27 @@ const (
 	pendingHint  = " · Run: vibeguard ui"
 )
 
+// envNotifications is the env var that enables desktop notifications when set to a truthy value.
+// Default is disabled — set VIBEGUARD_NOTIFICATIONS=1 to enable.
+const envNotifications = "VIBEGUARD_NOTIFICATIONS"
+
+// NotificationsEnabled reports whether desktop notifications are enabled via VIBEGUARD_NOTIFICATIONS.
+func NotificationsEnabled() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(envNotifications))) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
+}
+
 // PendingApproval notifies the user of a new pending approval (alert only).
 // Long commands and secrets are truncated in the notification body.
+// No-op when VIBEGUARD_NOTIFICATIONS is unset or not truthy (default: disabled).
 func PendingApproval(id, client, command, toolName, source string) error {
+	if !NotificationsEnabled() {
+		return nil
+	}
 	body := formatBody(id, client, command, toolName, source)
 	if err := sendMacOS(notifyTitle, body); err != nil {
 		return fmt.Errorf("pending approval notification: %w", err)

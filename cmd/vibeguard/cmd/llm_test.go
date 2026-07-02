@@ -56,12 +56,18 @@ func TestRunLLMTestWithMockClassifier(t *testing.T) {
 	vibeguardDir := home + "/.vibeguard"
 	if err := writeTestFile(vibeguardDir+"/config.yaml", `llm:
   enabled: true
-  provider: openai
+  default_provider: my-openai
+  providers:
+    - id: my-openai
+      driver: openai
+      model: gpt-4o-mini
+      auth_mode: api_key
 `); err != nil {
 		t.Fatal(err)
 	}
-	if err := writeTestFile(vibeguardDir+"/credentials.yaml", `openai:
-  api_key: sk-test
+	if err := writeTestFile(vibeguardDir+"/credentials.yaml", `providers:
+  my-openai:
+    api_key: sk-test
 `); err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +97,7 @@ system: test
 		"action: deny",
 		"reason: destructive pattern",
 		"llm_enabled: true",
-		"provider: openai",
+		"provider: my-openai",
 		"latency_ms:",
 	} {
 		if !strings.Contains(out, want) {
@@ -125,7 +131,7 @@ func TestEvaluateLLMTestYAMLAllowSkipsLLM(t *testing.T) {
 	result := evaluateLLMTest(context.Background(), "/tmp", policy.Input{
 		Command: "git status",
 		CWD:     "/tmp",
-	}, config.LLMConfig{Enabled: true, Provider: "openai"})
+	}, config.LLMSettings{Enabled: true, DefaultProvider: "my-openai"})
 
 	if result.Action != string(policy.ActionAllow) {
 		t.Fatalf("action = %q, want allow", result.Action)

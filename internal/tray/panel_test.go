@@ -10,21 +10,25 @@ import (
 
 // panelJSON mirrors darwin.PanelJSON for contract tests (no CGO required).
 type panelJSON struct {
-	DaemonStatus  string         `json:"daemon_status"`
-	PendingCount  string         `json:"pending_count"`
-	ModeIndex     int            `json:"mode_index"`
-	ModeEnabled   bool           `json:"mode_enabled"`
-	Rows          []panelJSONRow `json:"rows"`
-	OverflowHint  string         `json:"overflow_hint"`
-	EmptyMessage  string         `json:"empty_message"`
-	UpdateVisible bool           `json:"update_visible"`
-	UpdateLabel   string         `json:"update_label"`
-	UpdateEnabled bool           `json:"update_enabled"`
+	ModeIndex       int            `json:"mode_index"`
+	ModeEnabled     bool           `json:"mode_enabled"`
+	PendingRows     []panelJSONRow `json:"pending_rows"`
+	HistoryRows     []panelJSONRow `json:"history_rows"`
+	HistoryHasMore  bool           `json:"history_has_more"`
+	PendingOverflow string         `json:"pending_overflow"`
+	EmptyMessage    string         `json:"empty_message"`
+	FooterDaemon    string         `json:"footer_daemon"`
+	FooterPending   string         `json:"footer_pending"`
+	UpdateVisible   bool           `json:"update_visible"`
+	UpdateLabel     string         `json:"update_label"`
+	UpdateEnabled   bool           `json:"update_enabled"`
 }
 
 type panelJSONRow struct {
-	ID    string `json:"id"`
-	Label string `json:"label"`
+	Kind   string `json:"kind"`
+	ID     string `json:"id"`
+	Label  string `json:"label"`
+	Detail string `json:"detail,omitempty"`
 }
 
 func TestBuildPanelRows_CapAtTen(t *testing.T) {
@@ -94,6 +98,9 @@ func TestBuildPanelRows_PendingItemsProduceRows(t *testing.T) {
 	if content.Rows[0].Label == "" {
 		t.Fatal("row label should not be empty")
 	}
+	if content.Rows[0].Detail != "git status" {
+		t.Fatalf("row detail = %q, want git status", content.Rows[0].Detail)
+	}
 	if content.PendingCount != "● 1 pending" {
 		t.Fatalf("pending count = %q, want %q", content.PendingCount, "● 1 pending")
 	}
@@ -142,35 +149,56 @@ func TestBuildPanelRows_UpdateInstallingDisabled(t *testing.T) {
 	}
 }
 
-func TestBuildPanelRows_JSONPayloadMatchesObjCContract(t *testing.T) {
+func TestBuildTrayContent_DarwinJSONContract(t *testing.T) {
 	t.Parallel()
 
-	content := BuildPanelRows(PanelSnapshot{
+	content := BuildTrayContent(PanelSnapshot{
 		Items: []api.PendingApproval{{
 			ID:         "abc-def-123",
 			Client:     "cursor",
 			Command:    "echo hi",
 			AgeSeconds: 5,
 		}},
-		Mode:     approvalmode.Ask,
-		HealthOK: true,
+		History: []api.CommandEvent{{
+			ID:              "hist-1",
+			ApprovalID:      "resolved-1",
+			Client:          "claude",
+			FinalAction:     "deny",
+			CommandRedacted: "rm file",
+			CreatedAt:       "2026-07-02T10:00:00Z",
+		}},
+		HistoryHasMore: true,
+		Mode:           approvalmode.Ask,
+		HealthOK:       true,
 	})
 
-	rows := make([]panelJSONRow, 0, len(content.Rows))
-	for _, row := range content.Rows {
-		rows = append(rows, panelJSONRow{ID: row.ID, Label: row.Label})
+	pendingRows := make([]panelJSONRow, 0, len(content.PendingRows))
+	for _, row := range content.PendingRows {
+		pendingRows = append(pendingRows, panelJSONRow{
+			Kind:   string(row.Kind),
+			ID:     row.ID,
+			Label:  row.Label,
+			Detail: row.Detail,
+		})
 	}
+	historyRows := make([]panelJSONRow, 0, len(content.HistoryRows))
+	for _, row := range content.HistoryRows {
+		historyRows = append(historyRows, panelJSONRow{
+			Kind:   string(row.Kind),
+			ID:     row.ID,
+			Label:  row.Label,
+			Detail: row.Detail,
+		})
+	}
+
 	payload := panelJSON{
-		DaemonStatus:  content.DaemonStatus,
-		PendingCount:  content.PendingCount,
-		ModeIndex:     content.ModeIndex,
-		ModeEnabled:   content.ModeEnabled,
-		Rows:          rows,
-		OverflowHint:  content.OverflowHint,
-		EmptyMessage:  content.EmptyMessage,
-		UpdateVisible: content.UpdateVisible,
-		UpdateLabel:   content.UpdateLabel,
-		UpdateEnabled: content.UpdateEnabled,
+		ModeIndex:      content.ModeIndex,
+		ModeEnabled:    content.ModeEnabled,
+		PendingRows:    pendingRows,
+		HistoryRows:    historyRows,
+		HistoryHasMore: content.HistoryHasMore,
+		FooterDaemon:   content.FooterDaemon,
+		FooterPending:  content.FooterPending,
 	}
 
 	data, err := json.Marshal(payload)
@@ -183,19 +211,37 @@ func TestBuildPanelRows_JSONPayloadMatchesObjCContract(t *testing.T) {
 		t.Fatalf("unmarshal: %v", err)
 	}
 
-	rawRows, ok := decoded["rows"].([]any)
-	if !ok || len(rawRows) != 1 {
-		t.Fatalf("rows = %#v, want one-element array", decoded["rows"])
+	rawPending, ok := decoded["pending_rows"].([]any)
+	if !ok || len(rawPending) != 1 {
+		t.Fatalf("pending_rows = %#v, want one-element array", decoded["pending_rows"])
 	}
-	row, ok := rawRows[0].(map[string]any)
+	pending, ok := rawPending[0].(map[string]any)
 	if !ok {
-		t.Fatalf("row type = %T", rawRows[0])
+		t.Fatalf("pending row type = %T", rawPending[0])
 	}
-	if row["id"] != "abc-def-123" {
-		t.Fatalf("row id = %#v", row["id"])
+	if pending["id"] != "abc-def-123" {
+		t.Fatalf("pending id = %#v", pending["id"])
 	}
-	if row["label"] == "" || row["label"] == nil {
-		t.Fatalf("row label missing: %#v", row["label"])
+	if pending["kind"] != "pending" {
+		t.Fatalf("pending kind = %#v", pending["kind"])
+	}
+
+	rawHistory, ok := decoded["history_rows"].([]any)
+	if !ok || len(rawHistory) != 1 {
+		t.Fatalf("history_rows = %#v, want one-element array", decoded["history_rows"])
+	}
+	history, ok := rawHistory[0].(map[string]any)
+	if !ok {
+		t.Fatalf("history row type = %T", rawHistory[0])
+	}
+	if history["detail"] != "rm file" {
+		t.Fatalf("detail = %#v", history["detail"])
+	}
+	if decoded["footer_daemon"] != "● Daemon: OK" {
+		t.Fatalf("footer_daemon = %#v", decoded["footer_daemon"])
+	}
+	if decoded["history_has_more"] != true {
+		t.Fatalf("history_has_more = %#v", decoded["history_has_more"])
 	}
 }
 
@@ -236,6 +282,109 @@ func TestBuildPanelRows_DaemonDown(t *testing.T) {
 	}
 	if content.ModeEnabled {
 		t.Fatal("mode control should be disabled when daemon down")
+	}
+}
+
+func TestBuildTrayContent_HistoryRows(t *testing.T) {
+	t.Parallel()
+
+	content := BuildTrayContent(PanelSnapshot{
+		Items: []api.PendingApproval{{
+			ID:         "pending-1",
+			Client:     "cursor",
+			Command:    "git status",
+			AgeSeconds: 10,
+		}},
+		History: []api.CommandEvent{{
+			ID:              "hist-1",
+			ApprovalID:      "resolved-1",
+			Client:          "cursor",
+			FinalAction:     "allow",
+			CommandRedacted: "echo done",
+			CreatedAt:       "2026-07-02T10:00:00Z",
+		}},
+		HistoryHasMore: true,
+		HealthOK:       true,
+	})
+
+	if len(content.PendingRows) != 1 {
+		t.Fatalf("pending rows = %d, want 1", len(content.PendingRows))
+	}
+	if content.PendingRows[0].Kind != TrayRowPending {
+		t.Fatalf("pending kind = %q", content.PendingRows[0].Kind)
+	}
+	if len(content.HistoryRows) != 1 {
+		t.Fatalf("history rows = %d, want 1", len(content.HistoryRows))
+	}
+	if content.HistoryRows[0].Kind != TrayRowHistory {
+		t.Fatalf("history kind = %q", content.HistoryRows[0].Kind)
+	}
+	if content.HistoryRows[0].Detail != "echo done" {
+		t.Fatalf("history detail = %q", content.HistoryRows[0].Detail)
+	}
+	if !content.HistoryHasMore {
+		t.Fatal("expected history has more")
+	}
+	if content.EmptyMessage != "" {
+		t.Fatalf("empty message = %q, want unset when rows exist", content.EmptyMessage)
+	}
+}
+
+func TestBuildTrayContent_DedupePendingApprovalInHistory(t *testing.T) {
+	t.Parallel()
+
+	content := BuildTrayContent(PanelSnapshot{
+		Items: []api.PendingApproval{{
+			ID:     "approval-abc",
+			Client: "cursor",
+		}},
+		History: []api.CommandEvent{{
+			ID:         "evt-dup",
+			ApprovalID: "approval-abc",
+			Client:     "cursor",
+			FinalAction: "allow",
+			CreatedAt:  "2026-07-02T10:00:00Z",
+		}, {
+			ID:              "evt-ok",
+			ApprovalID:      "other-id",
+			Client:          "claude",
+			FinalAction:     "deny",
+			CommandRedacted: "rm file",
+			CreatedAt:       "2026-07-02T09:00:00Z",
+		}},
+		HealthOK: true,
+	})
+
+	if len(content.HistoryRows) != 1 {
+		t.Fatalf("history rows = %d, want 1 (deduped)", len(content.HistoryRows))
+	}
+	if content.HistoryRows[0].ID != "evt-ok" {
+		t.Fatalf("history id = %q", content.HistoryRows[0].ID)
+	}
+}
+
+func TestBuildTrayContent_HistoryOnlyNoEmptyMessage(t *testing.T) {
+	t.Parallel()
+
+	content := BuildTrayContent(PanelSnapshot{
+		History: []api.CommandEvent{{
+			ID:              "evt-1",
+			Client:          "cursor",
+			FinalAction:     "allow",
+			CommandRedacted: "ls",
+			CreatedAt:       "2026-07-02T10:00:00Z",
+		}},
+		HealthOK: true,
+	})
+
+	if len(content.PendingRows) != 0 {
+		t.Fatalf("pending rows = %d, want 0", len(content.PendingRows))
+	}
+	if len(content.HistoryRows) != 1 {
+		t.Fatalf("history rows = %d, want 1", len(content.HistoryRows))
+	}
+	if content.EmptyMessage != "" {
+		t.Fatalf("empty message = %q, want unset when history exists", content.EmptyMessage)
 	}
 }
 

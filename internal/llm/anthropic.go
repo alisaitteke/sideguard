@@ -1,5 +1,5 @@
 // Anthropic Messages API provider.
-// See docs/plans/2026-07-01-0318-llm-auto-triage/ (lat-phase-2.0-providers.md).
+// See docs/plans/2026-07-02-1521-llm-settings-analyse/ (lsa-phase-2.0-llm.md).
 package llm
 
 import (
@@ -11,9 +11,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/alisaitteke/vibeguard/internal/config"
-	"github.com/alisaitteke/vibeguard/internal/policy"
 )
 
 const (
@@ -22,7 +19,7 @@ const (
 	anthropicMaxTokens      = 256
 )
 
-type anthropicProvider struct {
+type anthropicChatDriver struct {
 	model   string
 	apiKey  string
 	baseURL string
@@ -30,68 +27,68 @@ type anthropicProvider struct {
 	client  *http.Client
 }
 
-func newAnthropicProvider(cfg config.LLMConfig, apiKey string) *anthropicProvider {
-	baseURL := cfg.BaseURL
+func newAnthropicChatDriver(cfg driverConfig) (ChatDriver, error) {
+	baseURL := cfg.instance.BaseURL
 	if baseURL == "" {
 		baseURL = defaultAnthropicBaseURL
 	}
-	return &anthropicProvider{
-		model:   cfg.Model,
-		apiKey:  apiKey,
+	return &anthropicChatDriver{
+		model:   cfg.instance.Model,
+		apiKey:  cfg.apiKey,
 		baseURL: strings.TrimRight(baseURL, "/"),
-		timeout: time.Duration(cfg.TimeoutMS) * time.Millisecond,
+		timeout: cfg.timeout,
 		client:  &http.Client{},
-	}
+	}, nil
 }
 
-func (p *anthropicProvider) Classify(ctx context.Context, req ClassifyRequest) (policy.Result, error) {
-	ctx, cancel := context.WithTimeout(ctx, p.timeout)
+func (d *anthropicChatDriver) Chat(ctx context.Context, req ChatRequest) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, d.timeout)
 	defer cancel()
 
 	body, err := json.Marshal(anthropicRequest{
-		Model:     p.model,
+		Model:     d.model,
 		MaxTokens: anthropicMaxTokens,
-		System:    req.Signature,
+		System:    req.SystemPrompt,
 		Messages: []anthropicMessage{
-			{Role: "user", Content: buildUserMessage(req)},
+			{Role: "user", Content: req.UserPrompt},
 		},
 	})
 	if err != nil {
-		return policy.Result{}, fmt.Errorf("marshal anthropic request: %w", err)
+		return "", fmt.Errorf("marshal anthropic request: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, p.baseURL+"/v1/messages", bytes.NewReader(body))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, d.baseURL+"/v1/messages", bytes.NewReader(body))
 	if err != nil {
-		return policy.Result{}, fmt.Errorf("build anthropic request: %w", err)
+		return "", fmt.Errorf("build anthropic request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("x-api-key", p.apiKey)
+	httpReq.Header.Set("x-api-key", d.apiKey)
 	httpReq.Header.Set("anthropic-version", anthropicVersion)
 
-	resp, err := p.client.Do(httpReq)
+	resp, err := d.client.Do(httpReq)
 	if err != nil {
-		return policy.Result{}, fmt.Errorf("anthropic request: %w", err)
+		return "", fmt.Errorf("anthropic request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
-		return policy.Result{}, fmt.Errorf("read anthropic response: %w", err)
+		return "", fmt.Errorf("read anthropic response: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return policy.Result{}, fmt.Errorf("anthropic API %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
+		return "", fmt.Errorf("anthropic API %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
 	}
 
 	var parsed anthropicResponse
 	if err := json.Unmarshal(respBody, &parsed); err != nil {
-		return policy.Result{}, fmt.Errorf("decode anthropic response: %w", err)
+		return "", fmt.Errorf("decode anthropic response: %w", err)
 	}
 	if len(parsed.Content) == 0 || strings.TrimSpace(parsed.Content[0].Text) == "" {
-		return policy.Result{}, fmt.Errorf("empty anthropic response")
+		return "", fmt.Errorf("empty anthropic response")
 	}
 
-	return parseClassifyResponse(parsed.Content[0].Text)
+	return parsed.Content[0].Text, nil
 }
 
 type anthropicRequest struct {

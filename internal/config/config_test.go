@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/alisaitteke/vibeguard/internal/paths"
 )
 
 func setupHome(t *testing.T) string {
@@ -36,63 +38,82 @@ func writeWorkspacePolicy(t *testing.T, cwd, content string) {
 	}
 }
 
-func TestLoadMissing(t *testing.T) {
+func TestLoadLLMSettingsMissing(t *testing.T) {
 	setupHome(t)
 
-	cfg, err := Load("")
+	cfg, err := LoadLLMSettings("")
 	if err != nil {
-		t.Fatalf("Load() error: %v", err)
+		t.Fatalf("LoadLLMSettings() error: %v", err)
 	}
 	if cfg.Enabled {
 		t.Fatal("expected LLM disabled when config missing")
 	}
-	if cfg.Provider != "openai" || cfg.Model != "gpt-4o-mini" || cfg.TimeoutMS != 3000 {
-		t.Fatalf("unexpected defaults: %+v", cfg)
+	if cfg.TimeoutMS != 3000 {
+		t.Fatalf("unexpected timeout: %d", cfg.TimeoutMS)
 	}
-	if cfg.Signature != "default" {
-		t.Fatalf("expected signature default, got %q", cfg.Signature)
+	if cfg.Analysis.Signature != "analysis" {
+		t.Fatalf("expected analysis signature default, got %q", cfg.Analysis.Signature)
+	}
+	if len(cfg.Providers) != 0 {
+		t.Fatalf("expected empty providers, got %+v", cfg.Providers)
 	}
 }
 
-func TestLoadValidConfig(t *testing.T) {
+func TestLoadLLMSettingsValidConfig(t *testing.T) {
 	home := setupHome(t)
 	writeConfig(t, home, `llm:
   enabled: true
-  provider: anthropic
-  model: claude-3-5-haiku
+  default_provider: my-anthropic
   timeout_ms: 5000
-  base_url: https://custom.example
-  signature: strict
+  providers:
+    - id: my-openai
+      driver: openai
+      model: gpt-4o-mini
+      base_url: ""
+      auth_mode: api_key
+    - id: my-anthropic
+      driver: anthropic
+      model: claude-3-5-sonnet-latest
+      auth_mode: api_key
+  analysis:
+    signature: analysis
+    provider: my-openai
 `)
 
-	cfg, err := Load("")
+	cfg, err := LoadLLMSettings("")
 	if err != nil {
-		t.Fatalf("Load() error: %v", err)
+		t.Fatalf("LoadLLMSettings() error: %v", err)
 	}
 	if !cfg.Enabled {
 		t.Fatal("expected enabled true")
 	}
-	if cfg.Provider != "anthropic" || cfg.Model != "claude-3-5-haiku" {
-		t.Fatalf("unexpected provider/model: %+v", cfg)
+	if cfg.DefaultProvider != "my-anthropic" {
+		t.Fatalf("default_provider = %q", cfg.DefaultProvider)
 	}
-	if cfg.TimeoutMS != 5000 || cfg.BaseURL != "https://custom.example" {
-		t.Fatalf("unexpected timeout/base_url: %+v", cfg)
+	if len(cfg.Providers) != 2 {
+		t.Fatalf("providers = %+v", cfg.Providers)
 	}
-	if cfg.Signature != "strict" {
-		t.Fatalf("expected signature strict, got %q", cfg.Signature)
+	if cfg.Providers[0].ID != "my-openai" || cfg.Providers[1].Driver != "anthropic" {
+		t.Fatalf("unexpected providers: %+v", cfg.Providers)
+	}
+	if cfg.TimeoutMS != 5000 {
+		t.Fatalf("timeout = %d", cfg.TimeoutMS)
+	}
+	if cfg.Analysis.Provider != "my-openai" {
+		t.Fatalf("analysis.provider = %q", cfg.Analysis.Provider)
 	}
 }
 
-func TestLoadInvalidYAML(t *testing.T) {
+func TestLoadLLMSettingsInvalidYAML(t *testing.T) {
 	home := setupHome(t)
 	writeConfig(t, home, "llm: [not a mapping")
 
-	if _, err := Load(""); err == nil {
+	if _, err := LoadLLMSettings(""); err == nil {
 		t.Fatal("expected parse error")
 	}
 }
 
-func TestLoadWorkspaceOverrideDisables(t *testing.T) {
+func TestLoadLLMSettingsWorkspaceOverrideDisables(t *testing.T) {
 	home := setupHome(t)
 	writeConfig(t, home, `llm:
   enabled: true
@@ -104,16 +125,16 @@ func TestLoadWorkspaceOverrideDisables(t *testing.T) {
 rules: []
 `)
 
-	cfg, err := Load(ws)
+	cfg, err := LoadLLMSettings(ws)
 	if err != nil {
-		t.Fatalf("Load() error: %v", err)
+		t.Fatalf("LoadLLMSettings() error: %v", err)
 	}
 	if cfg.Enabled {
 		t.Fatal("workspace llm.enabled:false should override global true")
 	}
 }
 
-func TestLoadWorkspaceOverrideEnables(t *testing.T) {
+func TestLoadLLMSettingsWorkspaceOverrideEnables(t *testing.T) {
 	home := setupHome(t)
 	writeConfig(t, home, `llm:
   enabled: false
@@ -125,71 +146,12 @@ func TestLoadWorkspaceOverrideEnables(t *testing.T) {
 rules: []
 `)
 
-	cfg, err := Load(ws)
+	cfg, err := LoadLLMSettings(ws)
 	if err != nil {
-		t.Fatalf("Load() error: %v", err)
+		t.Fatalf("LoadLLMSettings() error: %v", err)
 	}
 	if !cfg.Enabled {
 		t.Fatal("workspace llm.enabled:true should override global false")
-	}
-}
-
-func TestResolveCredentialsFromFile(t *testing.T) {
-	home := setupHome(t)
-	path := filepath.Join(home, ".vibeguard", "credentials.yaml")
-	content := `openai:
-  api_key: file-openai
-anthropic:
-  api_key: file-anthropic
-ollama:
-  api_key: ""
-`
-	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
-		t.Fatal(err)
-	}
-
-	creds, err := ResolveCredentials()
-	if err != nil {
-		t.Fatalf("ResolveCredentials() error: %v", err)
-	}
-	if creds.OpenAI.APIKey != "file-openai" || creds.Anthropic.APIKey != "file-anthropic" {
-		t.Fatalf("unexpected creds: %+v", creds)
-	}
-}
-
-func TestResolveCredentialsEnvOverride(t *testing.T) {
-	home := setupHome(t)
-	path := filepath.Join(home, ".vibeguard", "credentials.yaml")
-	if err := os.WriteFile(path, []byte(`openai:
-  api_key: file-key
-`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-
-	t.Setenv(envOpenAIKey, "env-openai")
-	t.Setenv(envAnthropicKey, "env-anthropic")
-
-	creds, err := ResolveCredentials()
-	if err != nil {
-		t.Fatalf("ResolveCredentials() error: %v", err)
-	}
-	if creds.OpenAI.APIKey != "env-openai" {
-		t.Fatalf("env should override file for openai, got %q", creds.OpenAI.APIKey)
-	}
-	if creds.Anthropic.APIKey != "env-anthropic" {
-		t.Fatalf("env should set anthropic, got %q", creds.Anthropic.APIKey)
-	}
-}
-
-func TestResolveCredentialsMissingFile(t *testing.T) {
-	setupHome(t)
-
-	creds, err := ResolveCredentials()
-	if err != nil {
-		t.Fatalf("ResolveCredentials() error: %v", err)
-	}
-	if creds.OpenAI.APIKey != "" || creds.Anthropic.APIKey != "" {
-		t.Fatalf("expected empty creds, got %+v", creds)
 	}
 }
 
@@ -216,6 +178,12 @@ func TestEnsureDefaultWritesConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	content := string(data)
+	if !strings.Contains(content, "providers: []") {
+		t.Fatalf("config missing providers block:\n%s", data)
+	}
+	if !strings.Contains(content, "analysis:") || !strings.Contains(content, "signature: analysis") {
+		t.Fatalf("config missing analysis defaults:\n%s", data)
+	}
 	if !strings.Contains(content, "history:") || !strings.Contains(content, "retention_days: 30") {
 		t.Fatalf("config missing history defaults:\n%s", data)
 	}
@@ -297,22 +265,188 @@ func TestLoadUpdateFromFile(t *testing.T) {
 	}
 }
 
-func TestEnsureCredentialsDefaultMode0600(t *testing.T) {
-	home := setupHome(t)
+func TestSaveProvidersRoundTrip(t *testing.T) {
+	setupHome(t)
 
-	path, err := EnsureCredentialsDefault()
-	if err != nil {
-		t.Fatalf("EnsureCredentialsDefault() error: %v", err)
+	settings := LLMSettings{
+		Enabled:         true,
+		DefaultProvider: "my-openai",
+		TimeoutMS:       4000,
+		Providers: []ProviderInstance{
+			{ID: "my-openai", Driver: "openai", Model: "gpt-4o-mini", AuthMode: "api_key"},
+		},
+		Analysis: AnalysisSettings{Signature: "analysis", Provider: ""},
 	}
-	want := filepath.Join(home, ".vibeguard", "credentials.yaml")
-	if path != want {
-		t.Fatalf("path %q, want %q", path, want)
+	if err := SaveProviders(settings); err != nil {
+		t.Fatal(err)
 	}
-	info, err := os.Stat(path)
+
+	loaded, err := LoadLLMSettings("")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode().Perm() != 0o600 {
-		t.Fatalf("expected mode 0600, got %o", info.Mode().Perm())
+	if loaded.DefaultProvider != "my-openai" || len(loaded.Providers) != 1 {
+		t.Fatalf("loaded = %+v", loaded)
+	}
+	if loaded.Providers[0].Model != "gpt-4o-mini" {
+		t.Fatalf("provider = %+v", loaded.Providers[0])
+	}
+
+	path, err := paths.ConfigPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	st, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Mode().Perm() != 0o600 {
+		t.Fatalf("expected config mode 0600, got %o", st.Mode().Perm())
+	}
+}
+
+func TestSaveProvidersPreservesHistoryUpdate(t *testing.T) {
+	home := setupHome(t)
+	writeConfig(t, home, `llm:
+  enabled: false
+history:
+  retention_days: 14
+  max_events: 2000
+update:
+  enabled: false
+  channel: beta
+`)
+
+	settings := LLMSettings{
+		Enabled: true,
+		Providers: []ProviderInstance{
+			{ID: "p1", Driver: "ollama", Model: "llama3", AuthMode: "api_key"},
+		},
+		Analysis: AnalysisSettings{Signature: "analysis"},
+	}
+	if err := SaveProviders(settings); err != nil {
+		t.Fatal(err)
+	}
+
+	hist, err := LoadHistory()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hist.RetentionDays != 14 || hist.MaxEvents != 2000 {
+		t.Fatalf("history not preserved: %+v", hist)
+	}
+	upd, err := LoadUpdate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if upd.Enabled || upd.Channel != "beta" {
+		t.Fatalf("update not preserved: %+v", upd)
+	}
+}
+
+func TestSaveProvidersDuplicateIDRejected(t *testing.T) {
+	setupHome(t)
+
+	settings := LLMSettings{
+		Providers: []ProviderInstance{
+			{ID: "dup", Driver: "openai", Model: "m", AuthMode: "api_key"},
+			{ID: "dup", Driver: "anthropic", Model: "m", AuthMode: "api_key"},
+		},
+	}
+	if err := SaveProviders(settings); err == nil {
+		t.Fatal("expected duplicate id error")
+	}
+}
+
+func TestSaveProvidersInvalidDefaultProvider(t *testing.T) {
+	setupHome(t)
+
+	settings := LLMSettings{
+		DefaultProvider: "missing",
+		Providers: []ProviderInstance{
+			{ID: "p1", Driver: "openai", Model: "m", AuthMode: "api_key"},
+		},
+	}
+	if err := SaveProviders(settings); err == nil {
+		t.Fatal("expected default_provider validation error")
+	}
+}
+
+func TestSetDefaultProvider(t *testing.T) {
+	setupHome(t)
+	settings := LLMSettings{
+		Providers: []ProviderInstance{
+			{ID: "a", Driver: "openai", Model: "m", AuthMode: "api_key"},
+			{ID: "b", Driver: "anthropic", Model: "m", AuthMode: "api_key"},
+		},
+		Analysis: AnalysisSettings{Signature: "analysis"},
+	}
+	if err := SaveProviders(settings); err != nil {
+		t.Fatal(err)
+	}
+	if err := SetDefaultProvider("b"); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := LoadLLMSettings("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.DefaultProvider != "b" {
+		t.Fatalf("default = %q", loaded.DefaultProvider)
+	}
+}
+
+func TestRemoveProvider(t *testing.T) {
+	setupHome(t)
+	settings := LLMSettings{
+		DefaultProvider: "keep",
+		Providers: []ProviderInstance{
+			{ID: "keep", Driver: "openai", Model: "m", AuthMode: "api_key"},
+			{ID: "drop", Driver: "anthropic", Model: "m", AuthMode: "api_key"},
+		},
+		Analysis: AnalysisSettings{Signature: "analysis"},
+	}
+	if err := SaveProviders(settings); err != nil {
+		t.Fatal(err)
+	}
+	if err := SetProviderKey("drop", "secret"); err != nil {
+		t.Fatal(err)
+	}
+	if err := RemoveProvider("drop"); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := LoadLLMSettings("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(loaded.Providers) != 1 || loaded.Providers[0].ID != "keep" {
+		t.Fatalf("providers = %+v", loaded.Providers)
+	}
+	creds, err := ResolveProviderCredentials()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := creds["drop"]; ok {
+		t.Fatal("credentials for removed provider should be deleted")
+	}
+}
+
+func TestLoadProviders(t *testing.T) {
+	setupHome(t)
+	settings := LLMSettings{
+		Providers: []ProviderInstance{
+			{ID: "x", Driver: "ollama", Model: "m", AuthMode: "api_key"},
+		},
+		Analysis: AnalysisSettings{Signature: "analysis"},
+	}
+	if err := SaveProviders(settings); err != nil {
+		t.Fatal(err)
+	}
+	providers, err := LoadProviders()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(providers) != 1 || providers[0].ID != "x" {
+		t.Fatalf("providers = %+v", providers)
 	}
 }

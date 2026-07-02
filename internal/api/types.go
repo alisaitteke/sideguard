@@ -79,9 +79,29 @@ type CommandEvent struct {
 	LatencyMS       int64    `json:"latency_ms,omitempty"`
 }
 
+// AnalyzeRequest is the payload for POST /v1/analyze.
+// See docs/plans/2026-07-02-1521-llm-settings-analyse/ (lsa-phase-3.0-api.md).
+type AnalyzeRequest struct {
+	Command  string `json:"command,omitempty"`
+	ToolName string `json:"tool_name,omitempty"`
+	CWD      string `json:"cwd,omitempty"`
+	EventID  string `json:"event_id,omitempty"`
+}
+
+// AnalyzeResponse is returned by POST /v1/analyze.
+type AnalyzeResponse struct {
+	Verdict      string   `json:"verdict"`
+	Summary      string   `json:"summary"`
+	Explanation  string   `json:"explanation"`
+	Provider     string   `json:"provider"`
+	DetectAction string   `json:"detect_action,omitempty"`
+	DetectRules  []string `json:"detect_rules,omitempty"`
+}
+
 // EventQueryParams are GET /v1/events query parameters.
 type EventQueryParams struct {
 	Since  string
+	Before string // RFC3339 exclusive upper bound for keyset pagination
 	Denied bool
 	CWD    string
 	Limit  int

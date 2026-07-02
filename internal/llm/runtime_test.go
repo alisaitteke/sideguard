@@ -31,9 +31,12 @@ func TestEnabledFromConfig(t *testing.T) {
 	t.Setenv("HOME", home)
 	writeTestConfig(t, home, `llm:
   enabled: true
-  provider: openai
-  model: gpt-4o-mini
-  signature: default
+  default_provider: my-openai
+  providers:
+    - id: my-openai
+      driver: openai
+      model: gpt-4o-mini
+      auth_mode: api_key
 `)
 
 	if !Enabled("/tmp") {
@@ -89,8 +92,12 @@ func TestClassifierForEnabledWithoutSignatureFails(t *testing.T) {
 	t.Setenv("HOME", home)
 	writeTestConfig(t, home, `llm:
   enabled: true
-  provider: openai
-  signature: nonexistent-signature
+  default_provider: my-openai
+  providers:
+    - id: my-openai
+      driver: openai
+      model: gpt-4o-mini
+      auth_mode: api_key
 `)
 
 	clf, err := ClassifierFor("/tmp")

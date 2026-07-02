@@ -150,19 +150,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, refreshCmd(m.client)
 		case "a":
 			if len(m.items) == 0 {
-				m.flash = "Nothing to approve"
+				m.flash = "Nothing to run"
 				return m, flashClearAfter()
 			}
 			id := m.items[m.cursor].ID
-			m.flash = "Approving " + approvalfmt.ShortApprovalID(id) + "..."
+			m.flash = "Running " + approvalfmt.ShortApprovalID(id) + "..."
 			return m, decideCmd(m.client, id, "allow")
 		case "d":
 			if len(m.items) == 0 {
-				m.flash = "Nothing to deny"
+				m.flash = "Nothing to decline"
 				return m, flashClearAfter()
 			}
 			id := m.items[m.cursor].ID
-			m.flash = "Denying " + approvalfmt.ShortApprovalID(id) + "..."
+			m.flash = "Declining " + approvalfmt.ShortApprovalID(id) + "..."
 			return m, decideCmd(m.client, id, "deny")
 		case "g":
 			next := nextMode(m.mode)
@@ -211,9 +211,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.flash = fmt.Sprintf("Failed to %s: %v", msg.decision, msg.err)
 			return m, tea.Batch(flashClearAfter(), refreshCmd(m.client))
 		}
-		label := "approved"
+		label := "run"
 		if msg.decision == "deny" {
-			label = "denied"
+			label = "declined"
 		}
 		m.flash = approvalfmt.ShortApprovalID(msg.id) + " " + label
 		return m, tea.Batch(flashClearAfter(), refreshCmd(m.client))
@@ -274,7 +274,7 @@ func (m model) View() string {
 	}
 
 	b.WriteString("─────────────────────────────────────────\n")
-	fmt.Fprintf(&b, "[a] Approve  [d] Deny  [r] Refresh  [g] Mode: %s\n", m.mode.Label())
+	fmt.Fprintf(&b, "[a] Run  [d] Decline  [r] Refresh  [g] Mode: %s\n", m.mode.Label())
 	b.WriteString("[q] Quit    ↑/↓ navigate\n")
 	if m.flash != "" {
 		fmt.Fprintf(&b, "\n%s\n", m.flash)

@@ -186,6 +186,57 @@ func TestQueryEventsSinceAndSearch(t *testing.T) {
 	}
 }
 
+func TestQueryEventsBeforeKeyset(t *testing.T) {
+	s := openTestDB(t)
+	base := time.Now().UTC().Truncate(time.Second)
+
+	for i := 0; i < 5; i++ {
+		if err := s.IngestEvent(CommandEvent{
+			ID:              fmt.Sprintf("event-%d", i),
+			CreatedAt:       base.Add(time.Duration(i) * time.Second),
+			Source:          "shell",
+			Client:          "cursor",
+			CWD:             "/tmp",
+			CommandRedacted: fmt.Sprintf("cmd-%d", i),
+			CommandNorm:     fmt.Sprintf("cmd-%d", i),
+			FinalAction:     "allow",
+			DecisionBy:      "detect",
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	page1, err := s.QueryEvents(EventQuery{Limit: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page1) != 2 {
+		t.Fatalf("page1 rows = %d, want 2", len(page1))
+	}
+	if page1[0].ID != "event-4" || page1[1].ID != "event-3" {
+		t.Fatalf("page1 order = [%s, %s], want [event-4, event-3]", page1[0].ID, page1[1].ID)
+	}
+
+	page2, err := s.QueryEvents(EventQuery{Before: page1[1].CreatedAt, Limit: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page2) != 2 {
+		t.Fatalf("page2 rows = %d, want 2", len(page2))
+	}
+	if page2[0].ID != "event-2" || page2[1].ID != "event-1" {
+		t.Fatalf("page2 order = [%s, %s], want [event-2, event-1]", page2[0].ID, page2[1].ID)
+	}
+
+	seen := map[string]bool{}
+	for _, row := range append(page1, page2...) {
+		if seen[row.ID] {
+			t.Fatalf("duplicate id %q across pages", row.ID)
+		}
+		seen[row.ID] = true
+	}
+}
+
 func TestMigrateV3OnExistingDB(t *testing.T) {
 	s := openTestDB(t)
 	if _, err := s.db.Exec(`INSERT INTO approvals (id, source, client, command, cwd, status, created_at)

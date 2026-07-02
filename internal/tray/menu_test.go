@@ -102,6 +102,40 @@ func TestFormatPendingCount(t *testing.T) {
 	}
 }
 
+func TestVisibleSystrayHistory(t *testing.T) {
+	t.Parallel()
+
+	row := func(id string) TrayRow {
+		return TrayRow{Kind: TrayRowHistory, ID: id, Label: id}
+	}
+
+	rows := make([]TrayRow, 20)
+	for i := range rows {
+		rows[i] = row("evt")
+	}
+
+	visible, showSection, showLoadMore := visibleSystrayHistory(rows, true, maxVisibleHistory)
+	if !showSection {
+		t.Fatal("expected history section visible")
+	}
+	if len(visible) != maxVisibleHistory {
+		t.Fatalf("visible = %d, want %d", len(visible), maxVisibleHistory)
+	}
+	if !showLoadMore {
+		t.Fatal("expected load-more visible when hasMore")
+	}
+
+	visible, showSection, showLoadMore = visibleSystrayHistory(rows[:3], false, maxVisibleHistory)
+	if !showSection || len(visible) != 3 || showLoadMore {
+		t.Fatalf("small history: section=%v visible=%d loadMore=%v", showSection, len(visible), showLoadMore)
+	}
+
+	_, showSection, showLoadMore = visibleSystrayHistory(nil, false, maxVisibleHistory)
+	if showSection || showLoadMore {
+		t.Fatalf("empty history: section=%v loadMore=%v", showSection, showLoadMore)
+	}
+}
+
 func errDaemonUnreachable() error {
 	return &daemonUnreachableErr{}
 }

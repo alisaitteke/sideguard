@@ -15,9 +15,11 @@ import (
 
 var llmCmd = &cobra.Command{
 	Use:   "llm",
-	Short: "LLM auto-triage diagnostics",
-	Long: `Dry-run YAML + optional LLM classification without the daemon.
-See docs/plans/2026-07-01-0318-llm-auto-triage/ (lat-phase-5.0-cli-config.md).`,
+	Short: "LLM diagnostics and provider settings",
+	Long: `Dry-run YAML + optional LLM classification without the daemon,
+and manage multi-provider LLM settings in ~/.vibeguard.
+
+See docs/plans/2026-07-02-1521-llm-settings-analyse/ (lsa-phase-4.0-cli.md).`,
 }
 
 var (
@@ -69,7 +71,7 @@ func runLLMTest(w io.Writer, opts llmTestOptions) error {
 		cwd, _ = os.Getwd()
 	}
 
-	cfg, err := config.Load(cwd)
+	cfg, err := config.LoadLLMSettings(cwd)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "config load error: %v\n", err)
 		return err
@@ -93,12 +95,12 @@ func runLLMTest(w io.Writer, opts llmTestOptions) error {
 	return nil
 }
 
-func evaluateLLMTest(ctx context.Context, cwd string, input policy.Input, cfg config.LLMConfig) llmTestResult {
+func evaluateLLMTest(ctx context.Context, cwd string, input policy.Input, cfg config.LLMSettings) llmTestResult {
 	yamlResult := policy.Evaluate(cwd, input)
 	out := llmTestResult{
 		YAMLAction: string(yamlResult.Action),
 		LLMEnabled: cfg.Enabled,
-		Provider:   cfg.Provider,
+		Provider:   cfg.DefaultProvider,
 		LoadError:  yamlResult.LoadError,
 	}
 

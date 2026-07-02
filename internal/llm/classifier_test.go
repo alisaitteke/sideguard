@@ -203,15 +203,18 @@ func TestNewClassifierLoadsSignature(t *testing.T) {
 		t.Fatalf("EnsureDefaultSignature: %v", err)
 	}
 
-	cfg := config.LLMConfig{
-		Enabled:   true,
-		Provider:  "openai",
-		Model:     "gpt-4o-mini",
-		TimeoutMS: 3000,
-		BaseURL:   "http://127.0.0.1:9", // unused — we only test construction
-		Signature: "default",
+	settings := config.LLMSettings{
+		Enabled:         true,
+		DefaultProvider: "my-openai",
+		TimeoutMS:       3000,
+		Providers: []config.ProviderInstance{
+			{ID: "my-openai", Driver: "openai", Model: "gpt-4o-mini", AuthMode: "api_key"},
+		},
 	}
-	_, err := NewClassifier(cfg, config.Credentials{})
+	creds := map[string]config.ProviderCredential{
+		"my-openai": {APIKey: "sk-test"},
+	}
+	_, err := NewClassifier(settings, creds)
 	if err != nil {
 		t.Fatalf("NewClassifier() error: %v", err)
 	}

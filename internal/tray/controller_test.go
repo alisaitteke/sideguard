@@ -66,7 +66,7 @@ func TestSessionPollInvokesOnUpdate(t *testing.T) {
 	var gotMode approvalmode.Mode
 	var gotErr error
 
-	ctrl.OnUpdate = func(items []api.PendingApproval, mode approvalmode.Mode, err error) {
+	ctrl.OnUpdate = func(items []api.PendingApproval, history []api.CommandEvent, mode approvalmode.Mode, historyHasMore bool, err error) {
 		gotItems = items
 		gotMode = mode
 		gotErr = err
@@ -110,7 +110,7 @@ func TestSessionPollDaemonDown(t *testing.T) {
 
 	done := make(chan struct{}, 1)
 	var gotErr error
-	ctrl.OnUpdate = func(_ []api.PendingApproval, _ approvalmode.Mode, err error) {
+	ctrl.OnUpdate = func(_ []api.PendingApproval, _ []api.CommandEvent, _ approvalmode.Mode, _ bool, err error) {
 		gotErr = err
 		done <- struct{}{}
 	}

@@ -23,6 +23,8 @@ const (
 	menuBarIconSize = 32
 	// menuBarIconSize1x is the 1× companion size for completeness and tests.
 	menuBarIconSize1x = 16
+	// popoverHeaderLogoSize is the raster size for the popover header logo (24 pt @2x).
+	popoverHeaderLogoSize = 48
 
 	// countCenterX and countCenterY locate the pending-count overlay in normalized
 	// viewBox coordinates (512×512). Anchored to the green check badge in logo-check.svg.
@@ -136,4 +138,42 @@ func menuBarIconCacheKey(pending int, healthOK bool, size int) string {
 		return fmt.Sprintf("check:%d", size)
 	}
 	return fmt.Sprintf("pending:%d:%d", pending, size)
+}
+
+// renderPopoverHeaderLogoPNG rasterizes logo-check.svg for the popover header.
+// Light mode keeps the natural brand fill (black); dark mode tints opaque pixels white.
+func renderPopoverHeaderLogoPNG(dark bool) ([]byte, error) {
+	key := "header:light"
+	if dark {
+		key = "header:dark"
+	}
+	if cached, ok := iconPNGCache.Load(key); ok {
+		return cached.([]byte), nil
+	}
+	img, err := rasterizeSVG(assets.LogoCheckSVG, popoverHeaderLogoSize)
+	if err != nil {
+		return nil, err
+	}
+	if dark {
+		replaceOpaquePixels(img, color.White)
+	}
+	pngBytes, err := encodePNG(img)
+	if err != nil {
+		return nil, err
+	}
+	iconPNGCache.Store(key, pngBytes)
+	return pngBytes, nil
+}
+
+// replaceOpaquePixels recolors every non-transparent pixel in img.
+func replaceOpaquePixels(img *image.RGBA, replacement color.Color) {
+	bounds := img.Bounds()
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			_, _, _, a := img.At(x, y).RGBA()
+			if a > 0 {
+				img.Set(x, y, replacement)
+			}
+		}
+	}
 }

@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -298,6 +299,65 @@ func TestQueryEventsRoute(t *testing.T) {
 	}
 	if out[0].FinalAction != "deny" || out[0].CWD != "/tmp/work" {
 		t.Fatalf("unexpected event: %+v", out[0])
+	}
+}
+
+func TestQueryEventsBeforeRoute(t *testing.T) {
+	st := testStore(t)
+	srv := NewServer("test", st)
+
+	base := time.Now().UTC().Truncate(time.Second)
+	for i := 0; i < 4; i++ {
+		if err := st.IngestEvent(store.CommandEvent{
+			ID:          fmt.Sprintf("evt-%d", i),
+			CreatedAt:   base.Add(time.Duration(i) * time.Second),
+			Source:      "shell",
+			Client:      "cursor",
+			CWD:         "/tmp",
+			FinalAction: "allow",
+			DecisionBy:  "detect",
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/events?limit=2", nil)
+	rec := httptest.NewRecorder()
+	srv.http.Handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("page1 status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	var page1 []CommandEvent
+	if err := json.NewDecoder(rec.Body).Decode(&page1); err != nil {
+		t.Fatal(err)
+	}
+	if len(page1) != 2 {
+		t.Fatalf("page1 events = %d, want 2", len(page1))
+	}
+
+	before := page1[1].CreatedAt
+	req2 := httptest.NewRequest(http.MethodGet, "/v1/events?limit=2&before="+before, nil)
+	rec2 := httptest.NewRecorder()
+	srv.http.Handler.ServeHTTP(rec2, req2)
+	if rec2.Code != http.StatusOK {
+		t.Fatalf("page2 status = %d body=%s", rec2.Code, rec2.Body.String())
+	}
+	var page2 []CommandEvent
+	if err := json.NewDecoder(rec2.Body).Decode(&page2); err != nil {
+		t.Fatal(err)
+	}
+	if len(page2) != 2 {
+		t.Fatalf("page2 events = %d, want 2", len(page2))
+	}
+	if page2[0].ID == page1[0].ID || page2[0].ID == page1[1].ID {
+		t.Fatalf("page2 overlaps page1: page1=%v page2=%v", page1, page2)
+	}
+
+	reqBad := httptest.NewRequest(http.MethodGet, "/v1/events?before=not-a-date", nil)
+	recBad := httptest.NewRecorder()
+	srv.http.Handler.ServeHTTP(recBad, reqBad)
+	if recBad.Code != http.StatusBadRequest {
+		t.Fatalf("bad before status = %d, want 400", recBad.Code)
 	}
 }
 

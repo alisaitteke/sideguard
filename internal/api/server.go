@@ -48,6 +48,7 @@ func NewServer(version string, st *store.Store) *Server {
 	mux.HandleFunc("POST /v1/approval/{id}/decide", h.DecideApproval)
 	mux.HandleFunc("POST /v1/events", h.IngestEvent)
 	mux.HandleFunc("GET /v1/events", h.QueryEvents)
+	mux.HandleFunc("POST /v1/analyze", h.AnalyzeCommand)
 
 	addr := fmt.Sprintf("%s:%d", DefaultHost, DefaultPort)
 	return &Server{

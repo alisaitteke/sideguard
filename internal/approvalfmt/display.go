@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/alisaitteke/vibeguard/internal/api"
 )
@@ -94,6 +95,16 @@ func FormatSummary(item api.PendingApproval) string {
 	return "(no command detail)"
 }
 
+// FormatTrayRowLabel returns command-only text for tray list rows (no id/client/age).
+func FormatTrayRowLabel(item api.PendingApproval) string {
+	return FormatSummary(item)
+}
+
+// FormatTrayEventLabel returns command-only text for tray history rows.
+func FormatTrayEventLabel(ev api.CommandEvent) string {
+	return FormatEventSummary(ev)
+}
+
 // FormatListLine builds the main UI row: "#id · client · age · summary".
 func FormatListLine(item api.PendingApproval, home string) string {
 	_ = home
@@ -102,6 +113,75 @@ func FormatListLine(item api.PendingApproval, home string) string {
 		FormatClientLabel(item.Client),
 		FormatAgeShort(item.AgeSeconds),
 		FormatSummary(item),
+	)
+}
+
+// FormatTrayPendingLine builds a compact tray row without the approval id prefix.
+func FormatTrayPendingLine(item api.PendingApproval, home string) string {
+	_ = home
+	return fmt.Sprintf("%s · %s · %s",
+		FormatClientLabel(item.Client),
+		FormatAgeShort(item.AgeSeconds),
+		FormatSummary(item),
+	)
+}
+
+// FormatEventSummary returns command or tool summary for a history event.
+func FormatEventSummary(ev api.CommandEvent) string {
+	if strings.TrimSpace(ev.CommandRedacted) != "" {
+		return ev.CommandRedacted
+	}
+	if strings.TrimSpace(ev.ToolName) != "" {
+		if ev.Source == "mcp" {
+			return "mcp:" + ev.ToolName
+		}
+		return ev.ToolName
+	}
+	return "(no command detail)"
+}
+
+// FormatEventAge returns a compact age string from an RFC3339 created_at timestamp.
+func FormatEventAge(createdAt string) string {
+	t, err := time.Parse(time.RFC3339, createdAt)
+	if err != nil {
+		return "?"
+	}
+	secs := int64(time.Since(t).Seconds())
+	if secs < 0 {
+		secs = 0
+	}
+	return FormatAgeShort(secs)
+}
+
+// FormatEventLine builds a read-only history row:
+// "#id · client · age · action · summary".
+// See docs/plans/2026-07-02-1226-tray-ui-polish/ (tup-phase-2.0-tray-core.md).
+func FormatEventLine(ev api.CommandEvent, home string) string {
+	_ = home
+	id := ShortApprovalID(ev.ApprovalID)
+	if strings.TrimSpace(ev.ApprovalID) == "" {
+		id = ShortApprovalID(ev.ID)
+	}
+	action := strings.TrimSpace(ev.FinalAction)
+	if action == "" {
+		action = "?"
+	}
+	return fmt.Sprintf("%s · %s · %s · %s · %s",
+		id,
+		FormatClientLabel(ev.Client),
+		FormatEventAge(ev.CreatedAt),
+		action,
+		FormatEventSummary(ev),
+	)
+}
+
+// FormatTrayHistoryLine builds a compact tray history row without id or action text.
+func FormatTrayHistoryLine(ev api.CommandEvent, home string) string {
+	_ = home
+	return fmt.Sprintf("%s · %s · %s",
+		FormatClientLabel(ev.Client),
+		FormatEventAge(ev.CreatedAt),
+		FormatEventSummary(ev),
 	)
 }
 

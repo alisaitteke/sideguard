@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/alisaitteke/vibeguard/internal/config"
 	"github.com/alisaitteke/vibeguard/internal/policy"
@@ -43,13 +44,15 @@ func TestOpenAIProviderClassify(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	cfg := config.LLMConfig{
-		Provider:  "openai",
-		Model:     "gpt-4o-mini",
-		TimeoutMS: 5000,
-		BaseURL:   srv.URL,
+	driver, err := newOpenAIChatDriver(driverConfig{
+		instance: config.ProviderInstance{Model: "gpt-4o-mini", BaseURL: srv.URL},
+		apiKey:   "sk-test-key",
+		timeout:  5 * time.Second,
+	})
+	if err != nil {
+		t.Fatalf("newOpenAIChatDriver: %v", err)
 	}
-	p := newOpenAIProvider(cfg, "sk-test-key")
+	p := &chatProvider{driver: driver}
 
 	req := ClassifyRequest{
 		Input: policy.Input{
@@ -101,15 +104,18 @@ func TestOpenAIProviderHTTP401(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	cfg := config.LLMConfig{
-		Model:     "gpt-4o-mini",
-		TimeoutMS: 3000,
-		BaseURL:   srv.URL,
+	driver, err := newOpenAIChatDriver(driverConfig{
+		instance: config.ProviderInstance{Model: "gpt-4o-mini", BaseURL: srv.URL},
+		apiKey:   "bad-key",
+		timeout:  3 * time.Second,
+	})
+	if err != nil {
+		t.Fatalf("newOpenAIChatDriver: %v", err)
 	}
-	p := newOpenAIProvider(cfg, "bad-key")
+	p := &chatProvider{driver: driver}
 
-	_, err := p.Classify(context.Background(), ClassifyRequest{
-		Signature: "sys",
+	_, err = p.Classify(context.Background(), ClassifyRequest{
+		Signature:  "sys",
 		YAMLAction: policy.ActionAsk,
 	})
 	if err == nil {
@@ -130,10 +136,17 @@ func TestOpenAIProviderEmptyResponse(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	cfg := config.LLMConfig{Model: "m", TimeoutMS: 3000, BaseURL: srv.URL}
-	p := newOpenAIProvider(cfg, "key")
+	driver, err := newOpenAIChatDriver(driverConfig{
+		instance: config.ProviderInstance{Model: "m", BaseURL: srv.URL},
+		apiKey:   "key",
+		timeout:  3 * time.Second,
+	})
+	if err != nil {
+		t.Fatalf("newOpenAIChatDriver: %v", err)
+	}
+	p := &chatProvider{driver: driver}
 
-	_, err := p.Classify(context.Background(), ClassifyRequest{Signature: "sys", YAMLAction: policy.ActionAsk})
+	_, err = p.Classify(context.Background(), ClassifyRequest{Signature: "sys", YAMLAction: policy.ActionAsk})
 	if err == nil {
 		t.Fatal("expected error on empty response")
 	}

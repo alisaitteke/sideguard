@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/alisaitteke/vibeguard/internal/config"
 	"github.com/alisaitteke/vibeguard/internal/policy"
@@ -39,12 +40,14 @@ func TestOllamaProviderClassify(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	cfg := config.LLMConfig{
-		Model:     "llama3.2",
-		TimeoutMS: 5000,
-		BaseURL:   srv.URL,
+	driver, err := newOllamaChatDriver(driverConfig{
+		instance: config.ProviderInstance{Model: "llama3.2", BaseURL: srv.URL},
+		timeout:  5 * time.Second,
+	})
+	if err != nil {
+		t.Fatalf("newOllamaChatDriver: %v", err)
 	}
-	p := newOllamaProvider(cfg, "")
+	p := &chatProvider{driver: driver}
 
 	req := ClassifyRequest{
 		Input: policy.Input{
@@ -88,14 +91,16 @@ func TestOllamaProviderClassify(t *testing.T) {
 func TestOllamaProviderConnectionError(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.LLMConfig{
-		Model:     "llama3.2",
-		TimeoutMS: 500,
-		BaseURL:   "http://127.0.0.1:1", // nothing listening
+	driver, err := newOllamaChatDriver(driverConfig{
+		instance: config.ProviderInstance{Model: "llama3.2", BaseURL: "http://127.0.0.1:1"},
+		timeout:  500 * time.Millisecond,
+	})
+	if err != nil {
+		t.Fatalf("newOllamaChatDriver: %v", err)
 	}
-	p := newOllamaProvider(cfg, "")
+	p := &chatProvider{driver: driver}
 
-	_, err := p.Classify(context.Background(), ClassifyRequest{
+	_, err = p.Classify(context.Background(), ClassifyRequest{
 		Signature:  "sys",
 		YAMLAction: policy.ActionAsk,
 	})

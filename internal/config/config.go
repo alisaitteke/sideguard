@@ -1,6 +1,6 @@
 // Package config loads ~/.vibeguard/config.yaml and resolves LLM settings
 // with optional workspace policy overrides.
-// See docs/plans/2026-07-01-0318-llm-auto-triage/ (lat-phase-1.0-contracts.md).
+// See docs/plans/2026-07-02-1521-llm-settings-analyse/ (lsa-phase-1.0-config.md).
 package config
 
 import (
@@ -15,14 +15,28 @@ import (
 	"github.com/alisaitteke/vibeguard/internal/policy"
 )
 
-// LLMConfig holds resolved LLM classification settings.
-type LLMConfig struct {
-	Enabled   bool
-	Provider  string
-	Model     string
-	TimeoutMS int
-	BaseURL   string
-	Signature string
+// ProviderInstance is a named LLM provider configuration (secrets live in credentials.yaml).
+type ProviderInstance struct {
+	ID       string `yaml:"id"`
+	Driver   string `yaml:"driver"` // openai | anthropic | ollama | openai-compatible
+	Model    string `yaml:"model"`
+	BaseURL  string `yaml:"base_url,omitempty"`
+	AuthMode string `yaml:"auth_mode"` // api_key | subscription
+}
+
+// AnalysisSettings configures on-demand command analysis.
+type AnalysisSettings struct {
+	Signature string `yaml:"signature"`
+	Provider  string `yaml:"provider,omitempty"` // optional override; empty = default_provider
+}
+
+// LLMSettings holds resolved multi-provider LLM configuration.
+type LLMSettings struct {
+	Enabled         bool
+	DefaultProvider string
+	TimeoutMS       int
+	Providers       []ProviderInstance
+	Analysis        AnalysisSettings
 }
 
 // HistoryConfig holds command history retention settings for the local audit DB.
@@ -47,12 +61,16 @@ type fileDoc struct {
 }
 
 type llmFileBlock struct {
-	Enabled   *bool  `yaml:"enabled,omitempty"`
-	Provider  string `yaml:"provider,omitempty"`
-	Model     string `yaml:"model,omitempty"`
-	TimeoutMS int    `yaml:"timeout_ms,omitempty"`
-	BaseURL   string `yaml:"base_url,omitempty"`
+	Enabled         *bool                  `yaml:"enabled,omitempty"`
+	DefaultProvider string                 `yaml:"default_provider,omitempty"`
+	TimeoutMS       int                    `yaml:"timeout_ms,omitempty"`
+	Providers       []ProviderInstance     `yaml:"providers,omitempty"`
+	Analysis        analysisSettingsBlock  `yaml:"analysis,omitempty"`
+}
+
+type analysisSettingsBlock struct {
 	Signature string `yaml:"signature,omitempty"`
+	Provider  string `yaml:"provider,omitempty"`
 }
 
 type historyFileBlock struct {
@@ -66,13 +84,16 @@ type updateFileBlock struct {
 	Channel       string `yaml:"channel,omitempty"`
 }
 
-func defaultLLMConfig() LLMConfig {
-	return LLMConfig{
-		Enabled:   false,
-		Provider:  "openai",
-		Model:     "gpt-4o-mini",
-		TimeoutMS: 3000,
-		Signature: "default",
+func defaultLLMSettings() LLMSettings {
+	return LLMSettings{
+		Enabled:         false,
+		DefaultProvider: "",
+		TimeoutMS:       3000,
+		Providers:       nil,
+		Analysis: AnalysisSettings{
+			Signature: "analysis",
+			Provider:  "",
+		},
 	}
 }
 
@@ -159,10 +180,10 @@ func LoadHistory() (HistoryConfig, error) {
 	return cfg, nil
 }
 
-// Load reads global config.yaml and merges optional workspace policy llm.enabled.
+// LoadLLMSettings reads global config.yaml and merges optional workspace policy llm.enabled.
 // Missing config.yaml leaves LLM disabled (same as enabled: false).
-func Load(cwd string) (LLMConfig, error) {
-	cfg := defaultLLMConfig()
+func LoadLLMSettings(cwd string) (LLMSettings, error) {
+	cfg := defaultLLMSettings()
 
 	configPath, err := paths.ConfigPath()
 	if err != nil {
@@ -186,29 +207,43 @@ func Load(cwd string) (LLMConfig, error) {
 	return mergeWorkspaceLLM(cfg, cwd)
 }
 
-func applyFileBlock(cfg LLMConfig, block llmFileBlock) LLMConfig {
+func applyFileBlock(cfg LLMSettings, block llmFileBlock) LLMSettings {
 	if block.Enabled != nil {
 		cfg.Enabled = *block.Enabled
 	}
-	if block.Provider != "" {
-		cfg.Provider = block.Provider
-	}
-	if block.Model != "" {
-		cfg.Model = block.Model
+	if block.DefaultProvider != "" {
+		cfg.DefaultProvider = block.DefaultProvider
 	}
 	if block.TimeoutMS > 0 {
 		cfg.TimeoutMS = block.TimeoutMS
 	}
-	if block.BaseURL != "" {
-		cfg.BaseURL = block.BaseURL
+	if len(block.Providers) > 0 {
+		cfg.Providers = append([]ProviderInstance(nil), block.Providers...)
 	}
-	if block.Signature != "" {
-		cfg.Signature = block.Signature
+	if block.Analysis.Signature != "" {
+		cfg.Analysis.Signature = block.Analysis.Signature
+	}
+	if block.Analysis.Provider != "" {
+		cfg.Analysis.Provider = block.Analysis.Provider
 	}
 	return cfg
 }
 
-func mergeWorkspaceLLM(cfg LLMConfig, cwd string) (LLMConfig, error) {
+func settingsToFileBlock(settings LLMSettings) llmFileBlock {
+	block := llmFileBlock{
+		Enabled:         &settings.Enabled,
+		DefaultProvider: settings.DefaultProvider,
+		TimeoutMS:       settings.TimeoutMS,
+		Providers:       append([]ProviderInstance(nil), settings.Providers...),
+		Analysis: analysisSettingsBlock{
+			Signature: settings.Analysis.Signature,
+			Provider:  settings.Analysis.Provider,
+		},
+	}
+	return block
+}
+
+func mergeWorkspaceLLM(cfg LLMSettings, cwd string) (LLMSettings, error) {
 	if cwd == "" {
 		return cfg, nil
 	}
@@ -235,11 +270,19 @@ func mergeWorkspaceLLM(cfg LLMConfig, cwd string) (LLMConfig, error) {
 // DefaultConfigTemplate is written on install when no config file exists.
 const DefaultConfigTemplate = `llm:
   enabled: false
-  provider: openai
-  model: gpt-4o-mini
+  default_provider: ""
   timeout_ms: 3000
-  base_url: ""
-  signature: default
+  providers: []
+  # Example provider (uncomment and set default_provider after adding credentials):
+  # providers:
+  #   - id: my-openai
+  #     driver: openai
+  #     model: gpt-4o-mini
+  #     base_url: ""
+  #     auth_mode: api_key
+  analysis:
+    signature: analysis
+    provider: ""
 
 history:
   retention_days: 30

@@ -8,6 +8,7 @@ import (
 
 	"github.com/getlantern/systray"
 	"github.com/alisaitteke/vibeguard/internal/api"
+	"github.com/alisaitteke/vibeguard/internal/approvalfmt"
 	"github.com/alisaitteke/vibeguard/internal/approvalmode"
 )
 
@@ -57,11 +58,23 @@ func (s *systraySession) onReady() {
 	s.pollSession.Start(ctx)
 }
 
-func (s *systraySession) onSessionUpdate(items []api.PendingApproval, mode approvalmode.Mode, err error) {
+func (s *systraySession) onSessionUpdate(items []api.PendingApproval, history []api.CommandEvent, mode approvalmode.Mode, historyHasMore bool, err error) {
 	healthOK := err == nil
 	pending := pendingCountForTitle(items, err)
 
-	s.menu.Rebuild(items, mode, healthOK, err)
+	snapshot := PanelSnapshot{
+		Items:          items,
+		History:        history,
+		HistoryHasMore: historyHasMore,
+		Mode:           mode,
+		HealthOK:       healthOK,
+		Err:            err,
+		Home:           approvalfmt.HomeDir(),
+		Update:         s.updateState.Get(),
+	}
+	content := BuildTrayContent(snapshot)
+
+	s.menu.Rebuild(content, mode, healthOK, err)
 	s.setTooltip(tooltipForUpdate(items, mode, err))
 	s.setTitle(0)
 	s.setIcon(pending, healthOK)

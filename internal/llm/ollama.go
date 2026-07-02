@@ -1,5 +1,5 @@
 // Ollama local chat API provider.
-// See docs/plans/2026-07-01-0318-llm-auto-triage/ (lat-phase-2.0-providers.md).
+// See docs/plans/2026-07-02-1521-llm-settings-analyse/ (lsa-phase-2.0-llm.md).
 package llm
 
 import (
@@ -11,14 +11,11 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/alisaitteke/vibeguard/internal/config"
-	"github.com/alisaitteke/vibeguard/internal/policy"
 )
 
 const defaultOllamaBaseURL = "http://127.0.0.1:11434"
 
-type ollamaProvider struct {
+type ollamaChatDriver struct {
 	model   string
 	apiKey  string
 	baseURL string
@@ -26,69 +23,69 @@ type ollamaProvider struct {
 	client  *http.Client
 }
 
-func newOllamaProvider(cfg config.LLMConfig, apiKey string) *ollamaProvider {
-	baseURL := cfg.BaseURL
+func newOllamaChatDriver(cfg driverConfig) (ChatDriver, error) {
+	baseURL := cfg.instance.BaseURL
 	if baseURL == "" {
 		baseURL = defaultOllamaBaseURL
 	}
-	return &ollamaProvider{
-		model:   cfg.Model,
-		apiKey:  apiKey,
+	return &ollamaChatDriver{
+		model:   cfg.instance.Model,
+		apiKey:  cfg.apiKey,
 		baseURL: strings.TrimRight(baseURL, "/"),
-		timeout: time.Duration(cfg.TimeoutMS) * time.Millisecond,
+		timeout: cfg.timeout,
 		client:  &http.Client{},
-	}
+	}, nil
 }
 
-func (p *ollamaProvider) Classify(ctx context.Context, req ClassifyRequest) (policy.Result, error) {
-	ctx, cancel := context.WithTimeout(ctx, p.timeout)
+func (d *ollamaChatDriver) Chat(ctx context.Context, req ChatRequest) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, d.timeout)
 	defer cancel()
 
 	body, err := json.Marshal(ollamaRequest{
-		Model: p.model,
+		Model: d.model,
 		Messages: []ollamaMessage{
-			{Role: "system", Content: req.Signature},
-			{Role: "user", Content: buildUserMessage(req)},
+			{Role: "system", Content: req.SystemPrompt},
+			{Role: "user", Content: req.UserPrompt},
 		},
 		Stream: false,
 	})
 	if err != nil {
-		return policy.Result{}, fmt.Errorf("marshal ollama request: %w", err)
+		return "", fmt.Errorf("marshal ollama request: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, p.baseURL+"/api/chat", bytes.NewReader(body))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, d.baseURL+"/api/chat", bytes.NewReader(body))
 	if err != nil {
-		return policy.Result{}, fmt.Errorf("build ollama request: %w", err)
+		return "", fmt.Errorf("build ollama request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
-	if p.apiKey != "" {
-		httpReq.Header.Set("Authorization", "Bearer "+p.apiKey)
+	if d.apiKey != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+d.apiKey)
 	}
 
-	resp, err := p.client.Do(httpReq)
+	resp, err := d.client.Do(httpReq)
 	if err != nil {
-		return policy.Result{}, fmt.Errorf("ollama request: %w", err)
+		return "", fmt.Errorf("ollama request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
-		return policy.Result{}, fmt.Errorf("read ollama response: %w", err)
+		return "", fmt.Errorf("read ollama response: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return policy.Result{}, fmt.Errorf("ollama API %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
+		return "", fmt.Errorf("ollama API %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
 	}
 
 	var parsed ollamaResponse
 	if err := json.Unmarshal(respBody, &parsed); err != nil {
-		return policy.Result{}, fmt.Errorf("decode ollama response: %w", err)
+		return "", fmt.Errorf("decode ollama response: %w", err)
 	}
 	if strings.TrimSpace(parsed.Message.Content) == "" {
-		return policy.Result{}, fmt.Errorf("empty ollama response")
+		return "", fmt.Errorf("empty ollama response")
 	}
 
-	return parseClassifyResponse(parsed.Message.Content)
+	return parsed.Message.Content, nil
 }
 
 type ollamaRequest struct {

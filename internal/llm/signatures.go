@@ -22,6 +22,14 @@ type rubricEntry struct {
 	Guidance string `yaml:"guidance"`
 }
 
+// DefaultAnalysisSignatureTemplate is the starter prompt for on-demand command analysis.
+// See docs/plans/2026-07-02-1521-llm-settings-analyse/ (lsa-phase-1.0-config.md).
+const DefaultAnalysisSignatureTemplate = `name: analysis
+system: |
+  You explain shell commands for a security-conscious user.
+  Respond with JSON only: {"verdict":"safe|caution|dangerous|unknown","summary":"...","explanation":"..."}
+`
+
 // DefaultSignatureTemplate is the starter signature written on install.
 const DefaultSignatureTemplate = `name: default
 system: |
@@ -63,6 +71,28 @@ func loadSignatureFromDir(dir, name string) (string, error) {
 		return "", fmt.Errorf("signature %s: missing system field", path)
 	}
 	return doc.System, nil
+}
+
+// EnsureAnalysisSignature writes signatures/analysis.yaml when missing.
+func EnsureAnalysisSignature() (string, error) {
+	dir, err := paths.SignaturesDir()
+	if err != nil {
+		return "", err
+	}
+	path := filepath.Join(dir, "analysis.yaml")
+	if _, err := os.Stat(path); err == nil {
+		return path, nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return "", err
+	}
+
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(path, []byte(DefaultAnalysisSignatureTemplate), 0o600); err != nil {
+		return "", err
+	}
+	return path, nil
 }
 
 // EnsureDefaultSignature writes signatures/default.yaml when missing.

@@ -22,21 +22,21 @@ type classifier struct {
 	signature string
 }
 
-// NewClassifier loads the configured signature, constructs a provider, and returns a Classifier.
-func NewClassifier(cfg config.LLMConfig, creds config.Credentials) (Classifier, error) {
-	sig, err := LoadSignature(cfg.Signature)
+// NewClassifier loads the triage signature, constructs a provider, and returns a Classifier.
+func NewClassifier(settings config.LLMSettings, creds map[string]config.ProviderCredential) (Classifier, error) {
+	sig, err := LoadSignature(defaultClassifySignature)
 	if err != nil {
-		return nil, fmt.Errorf("load signature %q: %w", cfg.Signature, err)
+		return nil, fmt.Errorf("load signature %q: %w", defaultClassifySignature, err)
 	}
 
-	provider, err := NewProvider(cfg, creds)
+	provider, err := NewProvider(settings, creds)
 	if err != nil {
 		return nil, err
 	}
 
 	return &classifier{
 		provider:  provider,
-		timeout:   time.Duration(cfg.TimeoutMS) * time.Millisecond,
+		timeout:   time.Duration(settings.TimeoutMS) * time.Millisecond,
 		signature: sig,
 	}, nil
 }
