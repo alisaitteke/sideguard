@@ -56,7 +56,7 @@ normalize_tag() {
 resolve_latest_tag() {
   url_effective=$(curl -fsSL -o /dev/null -w '%{url_effective}' \
     "https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest") \
-    || die "could not resolve latest release (check network and repository URL)"
+    || die "no GitHub releases found for ${GITHUB_OWNER}/${GITHUB_REPO} — publish a release or run: SIDEGUARD_INSTALL_MODE=source curl -fsSL https://sideguard.io/setup.sh | sh"
   tag="${url_effective##*/}"
   if [ -z "$tag" ] || [ "$tag" = "latest" ]; then
     die "could not parse latest release tag from GitHub redirect"
@@ -327,6 +327,7 @@ install_from_github() {
 
   version="${tag#v}"
   archive="sideguard_${version}_${os}_${arch}.tar.gz"
+  legacy_archive="vibeguard_${version}_${os}_${arch}.tar.gz"
   base_url="https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/${tag}"
 
   info "Platform: ${os}/${arch}"
@@ -342,8 +343,16 @@ install_from_github() {
     || die "failed to download checksums.txt for ${tag}"
 
   info "Downloading ${archive}..."
-  curl -fsSL -o "${tmpdir}/${archive}" "${base_url}/${archive}" \
-    || die "failed to download ${archive} (is this platform published for ${tag}?)"
+  if ! curl -fsSL -o "${tmpdir}/${archive}" "${base_url}/${archive}"; then
+    if [ "$archive" != "$legacy_archive" ]; then
+      info "Archive not found; trying legacy name ${legacy_archive}..."
+      archive="$legacy_archive"
+      curl -fsSL -o "${tmpdir}/${archive}" "${base_url}/${archive}" \
+        || die "failed to download ${archive} (is this platform published for ${tag}?)"
+    else
+      die "failed to download ${archive} (is this platform published for ${tag}?)"
+    fi
+  fi
 
   info "Verifying SHA256 checksum..."
   verify_checksum "$archive" "${tmpdir}/${archive}" "${tmpdir}/checksums.txt"
@@ -352,12 +361,17 @@ install_from_github() {
   tar -xzf "${tmpdir}/${archive}" -C "$tmpdir" \
     || die "failed to extract ${archive}"
 
-  if [ ! -f "${tmpdir}/sideguard" ]; then
-    die "archive did not contain a sideguard binary"
+  binary_path=""
+  if [ -f "${tmpdir}/sideguard" ]; then
+    binary_path="${tmpdir}/sideguard"
+  elif [ -f "${tmpdir}/vibeguard" ]; then
+    binary_path="${tmpdir}/vibeguard"
+  else
+    die "archive did not contain a sideguard or vibeguard binary"
   fi
 
   info "Installing binary..."
-  installed_path=$(install_binary "${tmpdir}/sideguard" "$install_dir")
+  installed_path=$(install_binary "$binary_path" "$install_dir")
   post_install "$installed_path"
 }
 
