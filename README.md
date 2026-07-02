@@ -1,12 +1,11 @@
 <p align="center">
-  <img src="assets/logo.svg" alt="SideGuard logo" width="88" height="88" />
-</p>
-
-<h1 align="center">SideGuard</h1>
-
-<p align="center">
-  <strong>Vibe Coding Security Tool</strong><br />
-  MCP guard with human-in-the-loop approval for Cursor and Claude Code
+  <a href="https://sideguard.io/">
+    <img
+      src="assets/readme-hero.png"
+      alt="SideGuard — Vibe Coding Security Tool. MCP guard with human-in-the-loop approval for Cursor and Claude Code."
+      width="100%"
+    />
+  </a>
 </p>
 
 <p align="center">
@@ -232,6 +231,8 @@ npm run preview  # local production preview
 ```
 
 Production deploys `site/dist/` to GitHub Pages via [`.github/workflows/pages.yml`](.github/workflows/pages.yml). For DNS and operator steps, see [docs/runbooks/sideguard-io-github-pages.md](docs/runbooks/sideguard-io-github-pages.md).
+
+Regenerate README / OG brand images: `cd site && npm run render:social-card` (writes `assets/readme-hero.png`, `site/public/assets/og-card.png`, `.github/social-preview.png`).
 
 Shortcut: `make site-dev` (same as `cd site && npm run dev`).
 
