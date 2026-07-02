@@ -1,2 +1,0 @@
-1407f58980e101ee9b11393acbfaeb3d7d059203135f494a4234a441533934e6  vibeguard_0.1.2_darwin_arm64.tar.gz
-7098d40f3aaf628c40b075b0ccaebc1597e6c7956fe1a89301e33b4906ccd4c1  vibeguard_0.1.2_windows_amd64.zip

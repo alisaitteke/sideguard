@@ -36,3 +36,5 @@ Thumbs.db
 
 # Internal docs (local only — not published to GitHub)
 docs/
+.cursor/
+.tmp-dist-test/
