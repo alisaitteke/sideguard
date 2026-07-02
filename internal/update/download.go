@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -54,6 +55,9 @@ func (d *Downloader) Download(ctx context.Context, rawURL, destDir, name string)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
 		return "", err
+	}
+	if strings.Contains(rawURL, "api.github.com") && strings.Contains(rawURL, "/releases/assets/") {
+		req.Header.Set("Accept", "application/octet-stream")
 	}
 
 	var offset int64

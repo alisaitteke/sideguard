@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 )
@@ -12,13 +13,57 @@ import (
 const defaultHTTPTimeout = 60 * time.Second
 
 // newHTTPClient returns an HTTP client that only follows HTTPS redirects to GitHub hosts.
+// When GITHUB_TOKEN or GH_TOKEN is set, requests to GitHub hosts include Authorization.
+// See https://docs.github.com/en/rest/authentication/authenticating-to-the-rest-api
 func newHTTPClient(timeout time.Duration) *http.Client {
 	if timeout <= 0 {
 		timeout = defaultHTTPTimeout
 	}
+	transport := http.RoundTripper(http.DefaultTransport)
+	if token := githubTokenFromEnv(); token != "" {
+		transport = &authTransport{base: transport, token: token}
+	}
 	return &http.Client{
 		Timeout:       timeout,
 		CheckRedirect: secureRedirect,
+		Transport:     transport,
+	}
+}
+
+func githubTokenFromEnv() string {
+	for _, key := range []string{"GITHUB_TOKEN", "GH_TOKEN"} {
+		if v := strings.TrimSpace(os.Getenv(key)); v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+type authTransport struct {
+	base  http.RoundTripper
+	token string
+}
+
+func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	base := t.base
+	if base == nil {
+		base = http.DefaultTransport
+	}
+	if t.token == "" || !isGitHubAPIHost(strings.ToLower(req.URL.Hostname())) {
+		return base.RoundTrip(req)
+	}
+	cloned := req.Clone(req.Context())
+	cloned.Header = req.Header.Clone()
+	cloned.Header.Set("Authorization", "Bearer "+t.token)
+	return base.RoundTrip(cloned)
+}
+
+func isGitHubAPIHost(host string) bool {
+	switch host {
+	case "github.com", "api.github.com":
+		return true
+	default:
+		return strings.HasSuffix(host, ".githubusercontent.com")
 	}
 }
 

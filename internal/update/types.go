@@ -14,11 +14,12 @@ const (
 
 // ReleaseInfo describes a GitHub release asset matching the current platform.
 type ReleaseInfo struct {
-	Tag         string    `json:"tag"`
-	Version     string    `json:"version"`
-	AssetName   string    `json:"asset_name"`
-	DownloadURL string    `json:"download_url"`
-	PublishedAt time.Time `json:"published_at"`
+	Tag          string    `json:"tag"`
+	Version      string    `json:"version"`
+	AssetName    string    `json:"asset_name"`
+	DownloadURL  string    `json:"download_url"`
+	ChecksumsURL string    `json:"checksums_url,omitempty"`
+	PublishedAt  time.Time `json:"published_at"`
 }
 
 // CheckResult is returned by Checker.Check after comparing semver versions.

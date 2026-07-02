@@ -181,7 +181,7 @@ func runUpdateApply(_ *cobra.Command, _ []string) error {
 
 	err = applier.Apply(ctx, rel, update.ApplyOptions{
 		Platform:     platform,
-		ChecksumsURL: update.ChecksumsURLForRelease(rel.Tag),
+		ChecksumsURL: checksumsURLForApply(rel),
 	})
 	if err != nil {
 		return fmt.Errorf("update apply: %w", err)
@@ -279,6 +279,13 @@ func newUpdateStateStore() (update.StateStore, error) {
 		return updateStateStoreHook()
 	}
 	return update.NewFileStateStore()
+}
+
+func checksumsURLForApply(rel update.ReleaseInfo) string {
+	if rel.ChecksumsURL != "" {
+		return rel.ChecksumsURL
+	}
+	return update.ChecksumsURLForRelease(rel.Tag)
 }
 
 func confirmUpdateApply(version string, yes bool) error {

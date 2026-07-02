@@ -57,6 +57,7 @@ type ghRelease struct {
 
 type ghAsset struct {
 	Name               string `json:"name"`
+	URL                string `json:"url"`
 	BrowserDownloadURL string `json:"browser_download_url"`
 }
 
@@ -90,23 +91,30 @@ func (c *GitHubClient) LatestRelease(ctx context.Context) (*ReleaseInfo, error) 
 	if err != nil {
 		return nil, err
 	}
+	checksumsURL, _ := findAssetURL(release.Assets, "checksums.txt")
 
 	return &ReleaseInfo{
-		Tag:         release.TagName,
-		Version:     version,
-		AssetName:   assetName,
-		DownloadURL: downloadURL,
-		PublishedAt: release.PublishedAt,
+		Tag:          release.TagName,
+		Version:      version,
+		AssetName:    assetName,
+		DownloadURL:  downloadURL,
+		ChecksumsURL: checksumsURL,
+		PublishedAt:  release.PublishedAt,
 	}, nil
 }
 
 func findAssetURL(assets []ghAsset, name string) (string, error) {
 	for _, a := range assets {
 		if a.Name == name {
-			if a.BrowserDownloadURL == "" {
-				break
+			// Prefer API asset URL: browser_download_url ignores Bearer tokens on private repos.
+			// https://stackoverflow.com/questions/77593100/github-private-release-asset-browser-download-url-returns-http-404-when-accessed
+			if a.URL != "" {
+				return a.URL, nil
 			}
-			return a.BrowserDownloadURL, nil
+			if a.BrowserDownloadURL != "" {
+				return a.BrowserDownloadURL, nil
+			}
+			break
 		}
 	}
 	return "", fmt.Errorf("unsupported platform: no release asset %q", name)
