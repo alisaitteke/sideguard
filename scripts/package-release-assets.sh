@@ -11,6 +11,7 @@ out_dir="${dist_root}/release"
 
 rm -rf "${out_dir}"
 mkdir -p "${out_dir}"
+out_dir_abs="$(cd "${out_dir}" && pwd)"
 
 shopt -s nullglob
 for dir in "${dist_root}"/*_*; do
@@ -25,7 +26,7 @@ for dir in "${dist_root}"/*_*; do
 
   archive_base="vibeguard_${version}_${target}"
   if [[ "${target}" == windows_* ]]; then
-    (cd "${dir}" && zip -q "${PWD}/${out_dir}/${archive_base}.zip" vibeguard.exe)
+    (cd "${dir}" && zip -q "${out_dir_abs}/${archive_base}.zip" vibeguard.exe)
   else
     tar -czf "${out_dir}/${archive_base}.tar.gz" -C "${dir}" vibeguard
   fi
