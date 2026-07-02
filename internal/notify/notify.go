@@ -80,3 +80,14 @@ func commandSummary(command, toolName, source string) string {
 	}
 	return "approval required"
 }
+
+func truncate(s string, max int) string {
+	s = strings.TrimSpace(s)
+	if len(s) <= max {
+		return s
+	}
+	if max <= 3 {
+		return s[:max]
+	}
+	return s[:max-3] + "..."
+}

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 )
 
 // sendMacOS delivers an alert-only notification on macOS.
@@ -49,15 +48,4 @@ func findTerminalNotifier() (string, error) {
 		}
 	}
 	return exec.LookPath("terminal-notifier")
-}
-
-func truncate(s string, max int) string {
-	s = strings.TrimSpace(s)
-	if len(s) <= max {
-		return s
-	}
-	if max <= 3 {
-		return s[:max]
-	}
-	return s[:max-3] + "..."
 }
