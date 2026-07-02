@@ -1,0 +1,2 @@
+# expect: /etc/passwd
+bash -c 'eval "$(echo Y2F0IC9ldGMvcGFzc3dk | base64 -d)"'

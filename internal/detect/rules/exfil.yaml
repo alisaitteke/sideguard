@@ -1,0 +1,12 @@
+# Exfil: fetching remote payloads into a shell, or shipping data out.
+# Category default: critical -> deny.
+rules:
+  - id: exfil-download-pipe-shell
+    category: exfil
+    reason: 'piping downloaded/decoded content straight into a shell'
+    text: '(curl|wget|fetch|base64|xxd)\b[\s\S]{0,400}\|\s*(bash|sh|zsh|dash|ksh|ash)\b'
+  - id: exfil-curl-upload
+    category: exfil
+    reason: 'uploading local data to a remote endpoint (curl --data/--upload-file)'
+    argv0: '^(curl|wget)$'
+    args: '(--data(-binary|-raw)?|(^|\s)-d(\s|$)|--upload-file|(^|\s)-T(\s|$))'

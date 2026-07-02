@@ -12,8 +12,19 @@ func TestGetApprovalModeDefault(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if mode != approvalmode.Ask {
-		t.Fatalf("mode = %q, want ask", mode)
+	if mode != approvalmode.Auto {
+		t.Fatalf("mode = %q, want auto", mode)
+	}
+}
+
+func TestSetGetApprovalModeAuto(t *testing.T) {
+	s := openTestDB(t)
+	if err := s.SetApprovalMode(approvalmode.Auto); err != nil {
+		t.Fatal(err)
+	}
+	mode, err := s.GetApprovalMode()
+	if err != nil || mode != approvalmode.Auto {
+		t.Fatalf("got %q err=%v", mode, err)
 	}
 }
 

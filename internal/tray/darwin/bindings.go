@@ -38,10 +38,11 @@ func init() {
 }
 
 var (
-	trayReady     func()
-	decideHandler func(id, decision string)
-	modeHandler   func(modeIndex int)
-	quitHandler   func()
+	trayReady       func()
+	decideHandler   func(id, decision string)
+	modeHandler     func(modeIndex int)
+	quitHandler     func()
+	installHandler  func()
 )
 
 // PanelJSONRow is one Allow/Deny row in the popover JSON payload.
@@ -52,13 +53,16 @@ type PanelJSONRow struct {
 
 // PanelJSON is the ObjC bridge payload for darwin_update_panel.
 type PanelJSON struct {
-	DaemonStatus string         `json:"daemon_status"`
-	PendingCount string         `json:"pending_count"`
-	ModeIndex    int            `json:"mode_index"`
-	ModeEnabled  bool           `json:"mode_enabled"`
-	Rows         []PanelJSONRow `json:"rows"`
-	OverflowHint string         `json:"overflow_hint"`
-	EmptyMessage string         `json:"empty_message"`
+	DaemonStatus  string         `json:"daemon_status"`
+	PendingCount  string         `json:"pending_count"`
+	ModeIndex     int            `json:"mode_index"`
+	ModeEnabled   bool           `json:"mode_enabled"`
+	Rows          []PanelJSONRow `json:"rows"`
+	OverflowHint  string         `json:"overflow_hint"`
+	EmptyMessage  string         `json:"empty_message"`
+	UpdateVisible bool           `json:"update_visible"`
+	UpdateLabel   string         `json:"update_label"`
+	UpdateEnabled bool           `json:"update_enabled"`
 }
 
 // SetReadyHandler registers the callback invoked on the main thread once AppKit setup completes.
@@ -80,6 +84,11 @@ func SetModeHandler(fn func(modeIndex int)) {
 // SetQuitHandler registers the popover Quit button callback.
 func SetQuitHandler(fn func()) {
 	quitHandler = fn
+}
+
+// SetInstallHandler registers the popover Install update button callback.
+func SetInstallHandler(fn func()) {
+	installHandler = fn
 }
 
 //export goTrayReady
@@ -112,6 +121,13 @@ func goSetMode(modeIndex C.int) {
 func goQuitTray() {
 	if quitHandler != nil {
 		quitHandler()
+	}
+}
+
+//export goInstallUpdate
+func goInstallUpdate() {
+	if installHandler != nil {
+		installHandler()
 	}
 }
 

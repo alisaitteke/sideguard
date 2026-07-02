@@ -11,10 +11,15 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/alisaitteke/vibeguard/internal/api"
+	"github.com/alisaitteke/vibeguard/internal/approvalmode"
 	"github.com/alisaitteke/vibeguard/internal/llm"
 	"github.com/alisaitteke/vibeguard/internal/policy"
+
+	_ "github.com/alisaitteke/vibeguard/internal/detect"
 )
 
 const (
@@ -106,6 +111,7 @@ func RunMCP(stdin io.Reader, stdout io.Writer, client DaemonClient) int {
 }
 
 func runApproval(stdout io.Writer, client DaemonClient, claude bool, build func() (api.ApprovalRequest, error)) int {
+	start := time.Now()
 	req, err := build()
 	if err != nil {
 		if claude {
@@ -116,10 +122,27 @@ func runApproval(stdout io.Writer, client DaemonClient, claude bool, build func(
 		return ExitDeny
 	}
 
+	// Ingest runs in a goroutine so the hook response is written first, but the
+	// hook binary exits via os.Exit as soon as runApproval returns — wait for
+	// in-flight ingest before returning so events are not dropped with the
+	// process. The wait is bounded: IngestEvent enforces a 2s timeout and
+	// swallows errors. See sdh-phase-10.0-fix-hook.md.
+	var ingestWG sync.WaitGroup
+	defer ingestWG.Wait()
+	fireIngest := func(ev api.CommandEvent) {
+		ingestWG.Add(1)
+		go func() {
+			defer ingestWG.Done()
+			_ = client.IngestEvent(context.Background(), ev)
+		}()
+	}
+
 	if devBypassEnabled() {
+		fireIngest(api.BuildCommandEvent(req, policy.FullResult{}, "allow", "dev_bypass", "dev bypass enabled", "", time.Since(start)))
 		return respondAllow(stdout, claude)
 	}
 	if req.Source == "shell" && policy.IsControlPlaneCommand(req.Command) {
+		fireIngest(api.BuildCommandEvent(req, policy.FullResult{}, "allow", "control_plane", "control plane command", "", time.Since(start)))
 		return respondAllow(stdout, claude)
 	}
 
@@ -133,15 +156,26 @@ func runApproval(stdout io.Writer, client DaemonClient, claude bool, build func(
 	if clfErr != nil {
 		log.Printf("vibeguard llm: classifier init failed (fail-safe ask): %v", clfErr)
 	}
-	policyResult := policy.EvaluateWithLLM(context.Background(), req.CWD, policyInput, clf, llmEnabled)
+	mode := approvalmode.Ask
+	if m, err := client.GetApprovalMode(context.Background()); err == nil {
+		mode = m
+	}
+	policyResult := policy.EvaluateFull(context.Background(), req.CWD, policyInput, policy.EvaluateOpts{
+		LLMEnabled: llmEnabled,
+		Classifier: clf,
+		Mode:       mode,
+	})
+	evalLatency := time.Since(start)
 	switch policyResult.Action {
 	case policy.ActionAllow:
+		fireIngest(api.BuildCommandEvent(req, policyResult, "allow", api.InferDecisionBy(policyResult), policyResult.Reason, "", evalLatency))
 		return respondAllow(stdout, claude)
 	case policy.ActionDeny:
 		reason := policyResult.Reason
 		if reason == "" {
 			reason = "blocked by policy"
 		}
+		fireIngest(api.BuildCommandEvent(req, policyResult, "deny", api.InferDecisionBy(policyResult), reason, "", evalLatency))
 		if claude {
 			_ = claudeDeny(stdout, reason)
 		} else {
@@ -152,7 +186,9 @@ func runApproval(stdout io.Writer, client DaemonClient, claude bool, build func(
 
 	ctx := context.Background()
 	decision, err := client.RequestAndWait(ctx, req)
+	totalLatency := time.Since(start)
 	if err != nil {
+		fireIngest(api.BuildCommandEvent(req, policyResult, "deny", "mode", "daemon unreachable", "", totalLatency))
 		if claude {
 			_ = claudeDenyUnreachable(stdout)
 		} else {
@@ -161,19 +197,26 @@ func runApproval(stdout io.Writer, client DaemonClient, claude bool, build func(
 		return ExitDeny
 	}
 
+	decisionBy := api.QueueDecisionBy(mode)
 	if decision.Permission == "allow" {
+		fireIngest(api.BuildCommandEvent(req, policyResult, "allow", decisionBy, decision.UserMessage, "", totalLatency))
 		return respondAllow(stdout, claude)
 	}
 
+	reason := decision.UserMessage
 	if claude {
-		reason := decision.AgentMessage
-		if reason == "" {
-			reason = decision.UserMessage
+		if decision.AgentMessage != "" {
+			reason = decision.AgentMessage
 		}
 		_ = claudeDeny(stdout, reason)
 	} else {
-		_ = cursorDeny(stdout, decision.UserMessage, decision.AgentMessage)
+		if decision.AgentMessage != "" {
+			_ = cursorDeny(stdout, decision.UserMessage, decision.AgentMessage)
+		} else {
+			_ = cursorDeny(stdout, decision.UserMessage, decision.UserMessage)
+		}
 	}
+	fireIngest(api.BuildCommandEvent(req, policyResult, "deny", decisionBy, reason, "", totalLatency))
 	return ExitDeny
 }
 

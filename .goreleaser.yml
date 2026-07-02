@@ -1,0 +1,84 @@
+# GoReleaser config for VibeGuard release binaries.
+# See docs/plans/2026-07-02-1102-github-update/vgu-phase-1.0-release-ci.md
+version: 2
+
+project_name: vibeguard
+
+builds:
+  - id: darwin
+    main: ./cmd/vibeguard
+    binary: vibeguard
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/alisaitteke/vibeguard/cmd/vibeguard/cmd.Version={{.Version}}
+
+  - id: linux
+    main: ./cmd/vibeguard
+    binary: vibeguard
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/alisaitteke/vibeguard/cmd/vibeguard/cmd.Version={{.Version}}
+    overrides:
+      - goos: linux
+        goarch: arm64
+        env:
+          - CGO_ENABLED=1
+          - CC=aarch64-linux-gnu-gcc
+          - CXX=aarch64-linux-gnu-g++
+
+  - id: windows
+    main: ./cmd/vibeguard
+    binary: vibeguard
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - windows
+    goarch:
+      - amd64
+    ldflags:
+      - -s -w
+      - -X github.com/alisaitteke/vibeguard/cmd/vibeguard/cmd.Version={{.Version}}
+
+archives:
+  - id: default
+    formats:
+      - tar.gz
+    name_template: "vibeguard_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    files:
+      - none*
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+release:
+  github:
+    owner: alisaitteke
+    name: vibeguard
+  draft: false
+  prerelease: auto
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"

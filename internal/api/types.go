@@ -56,3 +56,34 @@ type ApprovalModeResponse struct {
 type SetApprovalModeRequest struct {
 	Mode string `json:"mode"`
 }
+
+// CommandEvent is the payload for POST /v1/events and rows from GET /v1/events.
+// See docs/plans/2026-07-02-0001-shell-detect-history/ (sdh-phase-4.0-history-store.md).
+type CommandEvent struct {
+	ID              string   `json:"id,omitempty"`
+	CreatedAt       string   `json:"created_at,omitempty"`
+	Source          string   `json:"source"`
+	Client          string   `json:"client"`
+	CWD             string   `json:"cwd"`
+	CommandRedacted string   `json:"command_redacted"`
+	CommandNorm     string   `json:"command_norm"`
+	ToolName        string   `json:"tool_name,omitempty"`
+	YamlAction      string   `json:"yaml_action,omitempty"`
+	DetectAction    string   `json:"detect_action,omitempty"`
+	DetectRules     []string `json:"detect_rules,omitempty"`
+	DetectScore     int      `json:"detect_score,omitempty"`
+	FinalAction     string   `json:"final_action"`
+	DecisionBy      string   `json:"decision_by"`
+	Reason          string   `json:"reason,omitempty"`
+	ApprovalID      string   `json:"approval_id,omitempty"`
+	LatencyMS       int64    `json:"latency_ms,omitempty"`
+}
+
+// EventQueryParams are GET /v1/events query parameters.
+type EventQueryParams struct {
+	Since  string
+	Denied bool
+	CWD    string
+	Limit  int
+	Search string
+}

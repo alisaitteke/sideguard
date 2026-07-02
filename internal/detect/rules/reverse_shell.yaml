@@ -1,0 +1,15 @@
+# Reverse shell: callback / remote-control primitives. Category default: critical -> deny.
+rules:
+  - id: reverse-shell-nc-exec
+    category: reverse_shell
+    reason: 'netcat spawning a program on connect (nc -e)'
+    argv0: '^(nc|ncat|netcat)$'
+    args: '(^|\s)-e(\s|$)'
+  - id: reverse-shell-dev-tcp
+    category: reverse_shell
+    reason: 'bash /dev/tcp socket (reverse/bind shell)'
+    text: '/dev/(tcp|udp)/'
+  - id: reverse-shell-mkfifo-pipe
+    category: reverse_shell
+    reason: 'named-pipe reverse shell (mkfifo + interactive shell)'
+    text: 'mkfifo\b[\s\S]{0,200}\|\s*(bash|sh)\s+-i'

@@ -136,6 +136,9 @@ func Run(opts Options) (*Result, error) {
 			if err := daemon.InstallService(); err != nil {
 				return nil, fmt.Errorf("install daemon service: %w", err)
 			}
+			if err := daemon.Restart(""); err != nil {
+				result.Warnings = append(result.Warnings, fmt.Sprintf("daemon restart: %v", err))
+			}
 		}
 		if ShouldInstallTray(opts) {
 			if err := tray.InstallService(); err != nil {

@@ -49,6 +49,17 @@ const (
 
 	// SignaturesSubdir holds LLM classification prompt files.
 	SignaturesSubdir = "signatures"
+
+	// RulesSubdir holds user-supplied detect rule packs (~/.vibeguard/rules).
+	// See docs/plans/2026-07-02-0001-shell-detect-history/ (sdh-phase-2.0-detect.md).
+	RulesSubdir = "rules"
+
+	// UpdateStateFile persists background update check results.
+	// See docs/plans/2026-07-02-1102-github-update/ (vgu-phase-2.0-update-core.md).
+	UpdateStateFile = "update-state.json"
+
+	// UpdateSubdir holds downloaded release artifacts under ~/.vibeguard/run/update/.
+	UpdateSubdir = "update"
 )
 
 // Home returns the VibeGuard base directory (~/.vibeguard).
@@ -144,6 +155,17 @@ func SignaturesDir() (string, error) {
 	return filepath.Join(base, SignaturesSubdir), nil
 }
 
+// RulesDir returns the user detect-rules directory (~/.vibeguard/rules), where
+// the detect engine loads optional user rule packs merged after embedded rules.
+// See docs/plans/2026-07-02-0001-shell-detect-history/ (sdh-phase-2.0-detect.md).
+func RulesDir() (string, error) {
+	base, err := Home()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(base, RulesSubdir), nil
+}
+
 // LaunchAgentPath returns the LaunchAgent plist path
 // (~/Library/LaunchAgents/com.vibeguard.daemon.plist).
 func LaunchAgentPath() (string, error) {
@@ -162,4 +184,24 @@ func TrayLaunchAgentPath() (string, error) {
 		return "", err
 	}
 	return filepath.Join(home, "Library", "LaunchAgents", TrayLaunchAgentFile), nil
+}
+
+// UpdateStatePath returns the update checker state file (~/.vibeguard/update-state.json).
+// See docs/plans/2026-07-02-1102-github-update/ (vgu-phase-2.0-update-core.md).
+func UpdateStatePath() (string, error) {
+	base, err := Home()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(base, UpdateStateFile), nil
+}
+
+// UpdateRunDir returns the per-version download staging directory
+// (~/.vibeguard/run/update/<version>/).
+func UpdateRunDir(version string) (string, error) {
+	dir, err := RunDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, UpdateSubdir, version), nil
 }

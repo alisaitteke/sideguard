@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
-	"github.com/spf13/cobra"
+	"github.com/alisaitteke/vibeguard/internal/approvalmode"
 	"github.com/alisaitteke/vibeguard/internal/llm"
 	"github.com/alisaitteke/vibeguard/internal/policy"
+	"github.com/spf13/cobra"
 )
 
 var policyCmd = &cobra.Command{
@@ -55,10 +57,11 @@ var policyValidateCmd = &cobra.Command{
 }
 
 var (
-	policyTestCommand  string
-	policyTestTool     string
-	policyTestCWD      string
-	policyTestWithLLM  bool
+	policyTestCommand    string
+	policyTestTool       string
+	policyTestCWD        string
+	policyTestWithLLM    bool
+	policyTestWithDetect bool
 )
 
 var policyTestCmd = &cobra.Command{
@@ -78,6 +81,40 @@ var policyTestCmd = &cobra.Command{
 			Command:  policyTestCommand,
 			ToolName: policyTestTool,
 			CWD:      cwd,
+		}
+
+		if policyTestWithDetect {
+			opts := policy.EvaluateOpts{Mode: approvalmode.Ask}
+			if policyTestWithLLM {
+				opts.Mode = approvalmode.Auto
+				opts.LLMEnabled = llm.Enabled(cwd)
+				clf, clfErr := llm.ClassifierFor(cwd)
+				if clfErr != nil {
+					fmt.Fprintf(os.Stderr, "classifier init error: %v\n", clfErr)
+				} else {
+					opts.Classifier = clf
+				}
+			}
+			full := policy.EvaluateFull(context.Background(), cwd, input, opts)
+			if full.LoadError != nil {
+				fmt.Fprintf(os.Stderr, "policy load error: %v\n", full.LoadError)
+			}
+			fmt.Printf("yaml_action: %s\n", full.YamlAction)
+			fmt.Printf("detect_action: %s\n", full.DetectAction)
+			fmt.Printf("detect_score: %d\n", full.DetectScore)
+			if len(full.DetectRules) > 0 {
+				fmt.Printf("matched_rules: %s\n", strings.Join(full.DetectRules, ", "))
+			} else {
+				fmt.Println("matched_rules:")
+			}
+			fmt.Printf("action: %s\n", full.Action)
+			if full.Reason != "" {
+				fmt.Printf("reason: %s\n", full.Reason)
+			}
+			if full.LoadError != nil {
+				return full.LoadError
+			}
+			return nil
 		}
 
 		var result policy.Result
@@ -135,6 +172,7 @@ func init() {
 	policyTestCmd.Flags().StringVar(&policyTestTool, "tool", "", "MCP tool name to evaluate")
 	policyTestCmd.Flags().StringVar(&policyTestCWD, "cwd", "", "Workspace directory for policy override lookup")
 	policyTestCmd.Flags().BoolVar(&policyTestWithLLM, "with-llm", false, "Run LLM triage after YAML returns ask (requires llm.enabled)")
+	policyTestCmd.Flags().BoolVar(&policyTestWithDetect, "with-detect", false, "Run YAML then detect engine (optional --with-llm for LLM layer)")
 
 	policyCmd.AddCommand(policyValidateCmd, policyTestCmd, policyInitDevCmd)
 	rootCmd.AddCommand(policyCmd)

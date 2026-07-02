@@ -14,6 +14,8 @@ func TestIsControlPlaneCommand(t *testing.T) {
 		"vibeguard approve abc-123",
 		"vibeguard deny x --reason no",
 		"vibeguard status",
+		"vibeguard mode",
+		"vibeguard mode set auto",
 		"vibeguard daemon start",
 		"vibeguard uninstall",
 		"vibeguard doctor",

@@ -6,14 +6,17 @@ package daemon
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/alisaitteke/vibeguard/internal/api"
+	"github.com/alisaitteke/vibeguard/internal/config"
 	"github.com/alisaitteke/vibeguard/internal/paths"
 	"github.com/alisaitteke/vibeguard/internal/store"
 )
@@ -75,6 +78,12 @@ func Run(version string) error {
 	}
 	defer st.Close()
 
+	if histCfg, err := config.LoadHistory(); err != nil {
+		log.Printf("vibeguard history: load retention config: %v", err)
+	} else if err := st.PruneEvents(histCfg.RetentionDays, histCfg.MaxEvents); err != nil {
+		log.Printf("vibeguard history: prune on start: %v", err)
+	}
+
 	socketPath, err := paths.SocketPath()
 	if err != nil {
 		return err
@@ -101,6 +110,30 @@ func Run(version string) error {
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
 	return srv.Shutdown(shutdownCtx)
+}
+
+// Restart stops a running daemon (if any) and starts a fresh process with the
+// current binary. No-op when the daemon is not running.
+func Restart(version string) error {
+	if running, _ := IsRunning(); !running {
+		return nil
+	}
+	if err := Stop(); err != nil {
+		return err
+	}
+	return Start(version)
+}
+
+// StopBestEffort stops the daemon when running and ignores not-running errors.
+// Used by update apply before swapping the binary (vgu-phase-5.0-update-platform.md).
+func StopBestEffort() error {
+	if err := Stop(); err != nil {
+		if strings.Contains(err.Error(), "not running") {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 // Stop sends SIGTERM to the running daemon.

@@ -15,7 +15,10 @@ import (
 	"time"
 
 	"github.com/alisaitteke/vibeguard/internal/api"
+	"github.com/alisaitteke/vibeguard/internal/approvalmode"
 	"github.com/alisaitteke/vibeguard/internal/store"
+
+	_ "github.com/alisaitteke/vibeguard/internal/detect"
 )
 
 func newProxyPipes() (*io.PipeWriter, *io.PipeReader, *io.PipeReader, *io.PipeWriter) {
@@ -297,12 +300,20 @@ func TestProxyDaemonDownFailClosed(t *testing.T) {
 
 type noopApprovalClient struct{}
 
+func (n *noopApprovalClient) GetApprovalMode(context.Context) (approvalmode.Mode, error) {
+	return approvalmode.Ask, nil
+}
+
 func (n *noopApprovalClient) RequestApproval(context.Context, api.ApprovalRequest) (*api.ApprovalRequestResponse, error) {
 	return &api.ApprovalRequestResponse{ID: "noop", Status: "pending"}, nil
 }
 
 func (n *noopApprovalClient) WaitApproval(context.Context, string) (*api.ApprovalDecisionResponse, error) {
 	return &api.ApprovalDecisionResponse{Permission: "allow"}, nil
+}
+
+func (n *noopApprovalClient) IngestEvent(context.Context, api.CommandEvent) error {
+	return nil
 }
 
 func startTestDaemon(t *testing.T) *httptest.Server {

@@ -12,11 +12,14 @@ import (
 )
 
 type systraySession struct {
-	baseURL     string
-	pollSession *Session
-	menu        *MenuBuilder
-	pollCancel  context.CancelFunc
-	tooltipMu   sync.Mutex
+	baseURL       string
+	version       string
+	pollSession   *Session
+	menu          *MenuBuilder
+	updateChecker *UpdateChecker
+	updateState   *UpdateState
+	pollCancel    context.CancelFunc
+	tooltipMu     sync.Mutex
 }
 
 func (s *systraySession) onReady() {
@@ -25,13 +28,32 @@ func (s *systraySession) onReady() {
 
 	client := api.NewClientWithBaseURL(s.baseURL)
 	s.pollSession = NewSession(client)
-	s.menu = NewMenuBuilder(s.pollSession)
+	s.updateState = NewUpdateState()
+
+	quit := func() {
+		s.stop()
+		systray.Quit()
+	}
+
+	s.menu = NewMenuBuilder(s.pollSession, s.updateState, func() {
+		s.menu.SetUpdateUI(s.updateState.Get())
+		HandleInstallUpdate(s.updateState, quit)
+	}, quit)
 	s.menu.Init()
 
 	s.pollSession.OnUpdate = s.onSessionUpdate
 
 	ctx, cancel := context.WithCancel(context.Background())
 	s.pollCancel = cancel
+
+	checker, err := NewUpdateChecker(s.version, s.updateState, func(ui UpdateUIState) {
+		s.menu.SetUpdateUI(ui)
+	})
+	if err == nil {
+		s.updateChecker = checker
+		s.updateChecker.Start(ctx)
+	}
+
 	s.pollSession.Start(ctx)
 }
 
@@ -46,12 +68,10 @@ func (s *systraySession) onSessionUpdate(items []api.PendingApproval, mode appro
 }
 
 func (s *systraySession) setIcon(pending int, healthOK bool) {
-	// getlantern/systray documents SetIcon as safe from any goroutine (same as menu rebuild).
 	systray.SetIcon(menuBarIconForState(pending, healthOK))
 }
 
 func (s *systraySession) setTitle(_ int) {
-	// Count is rendered inside the menu-bar icon; keep title empty.
 	systray.SetTitle("")
 }
 
@@ -61,11 +81,18 @@ func (s *systraySession) setTooltip(text string) {
 	systray.SetTooltip(text)
 }
 
-func (s *systraySession) onExit() {
+func (s *systraySession) stop() {
 	if s.pollCancel != nil {
 		s.pollCancel()
+	}
+	if s.updateChecker != nil {
+		s.updateChecker.Stop()
 	}
 	if s.pollSession != nil {
 		s.pollSession.Stop()
 	}
+}
+
+func (s *systraySession) onExit() {
+	s.stop()
 }

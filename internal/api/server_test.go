@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/alisaitteke/vibeguard/internal/store"
 )
@@ -128,8 +129,8 @@ func TestGetApprovalModeDefault(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatal(err)
 	}
-	if resp.Mode != "ask" {
-		t.Fatalf("mode = %q, want ask", resp.Mode)
+	if resp.Mode != "auto" {
+		t.Fatalf("mode = %q, want auto", resp.Mode)
 	}
 }
 
@@ -191,5 +192,122 @@ func TestServerBindsLoopback(t *testing.T) {
 	srv := NewServer("test", testStore(t))
 	if !IsLoopback(srv.Addr()) {
 		t.Fatalf("expected loopback bind, got %q", srv.Addr())
+	}
+}
+
+func TestIngestEventRoute(t *testing.T) {
+	st := testStore(t)
+	srv := NewServer("test", st)
+
+	body := strings.NewReader(`{
+		"source":"shell",
+		"client":"cursor",
+		"cwd":"/tmp",
+		"command_redacted":"git status",
+		"command_norm":"git status",
+		"final_action":"allow",
+		"decision_by":"detect"
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/v1/events", body)
+	rec := httptest.NewRecorder()
+	srv.http.Handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status = %d, want %d body=%s", rec.Code, http.StatusAccepted, rec.Body.String())
+	}
+
+	time.Sleep(100 * time.Millisecond)
+	rows, err := st.QueryEvents(store.EventQuery{Limit: 5})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("rows = %d, want 1", len(rows))
+	}
+	if rows[0].FinalAction != "allow" {
+		t.Fatalf("final_action = %q, want allow", rows[0].FinalAction)
+	}
+}
+
+func TestIngestEventRedactsSecret(t *testing.T) {
+	st := testStore(t)
+	srv := NewServer("test", st)
+
+	body := strings.NewReader(`{
+		"source":"shell",
+		"client":"cursor",
+		"cwd":"/tmp",
+		"command_redacted":"export KEY=sk-abcdefghijklmnopqrstuvwxyz123456",
+		"command_norm":"export KEY=sk-abcdefghijklmnopqrstuvwxyz123456",
+		"final_action":"deny",
+		"decision_by":"detect"
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/v1/events", body)
+	rec := httptest.NewRecorder()
+	srv.http.Handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status = %d", rec.Code)
+	}
+
+	time.Sleep(100 * time.Millisecond)
+	rows, err := st.QueryEvents(store.EventQuery{Limit: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, field := range []struct {
+		name, value string
+	}{
+		{"command_redacted", rows[0].CommandRedacted},
+		{"command_norm", rows[0].CommandNorm},
+	} {
+		if strings.Contains(field.value, "sk-abcdefghijklmnopqrstuvwxyz123456") {
+			t.Fatalf("secret leaked in %s: %q", field.name, field.value)
+		}
+	}
+}
+
+func TestQueryEventsRoute(t *testing.T) {
+	st := testStore(t)
+	srv := NewServer("test", st)
+
+	for _, action := range []string{"allow", "deny"} {
+		if err := st.IngestEvent(store.CommandEvent{
+			Source:      "shell",
+			Client:      "cursor",
+			CWD:         "/tmp/work",
+			FinalAction: action,
+			DecisionBy:  "detect",
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/events?denied=true&cwd=/tmp/work&limit=5", nil)
+	rec := httptest.NewRecorder()
+	srv.http.Handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	var out []CommandEvent
+	if err := json.NewDecoder(rec.Body).Decode(&out); err != nil {
+		t.Fatal(err)
+	}
+	if len(out) != 1 {
+		t.Fatalf("events = %d, want 1", len(out))
+	}
+	if out[0].FinalAction != "deny" || out[0].CWD != "/tmp/work" {
+		t.Fatalf("unexpected event: %+v", out[0])
+	}
+}
+
+func TestIngestEventMissingFields(t *testing.T) {
+	srv := NewServer("test", testStore(t))
+	body := strings.NewReader(`{"source":"shell"}`)
+	req := httptest.NewRequest(http.MethodPost, "/v1/events", body)
+	rec := httptest.NewRecorder()
+	srv.http.Handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
 	}
 }

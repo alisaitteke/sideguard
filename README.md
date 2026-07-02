@@ -4,7 +4,7 @@ Local security layer for AI coding agents (Cursor, Claude Code). VibeGuard inter
 
 ## Status
 
-**MVP complete (vgf Phases 1–8):** shell/MCP intercept → YAML policy (auto-allow/deny) → macOS notify → terminal approvals → `vibeguard doctor` bypass detection → HTTP Stream MCP proxy library. **Tier 2 interactive UI** (`vibeguard ui`) is built into the binary. **Recent:** global approval mode (`vibeguard mode`), experimental macOS menu-bar tray (`vibeguard tray`), surgical `vibeguard uninstall`, client reload hints (`vibeguard clients reload`), and repo-scoped dev workspace policy (`vibeguard policy init-dev` / `install --dev`). HTTP URL install wrap remains future work per [roadmap](docs/roadmap.md).
+**MVP complete (vgf Phases 1–8):** shell/MCP intercept → YAML policy (auto-allow/deny) → macOS notify → terminal approvals → `vibeguard doctor` bypass detection → HTTP Stream MCP proxy library. **Tier 2 interactive UI** (`vibeguard ui`) is built into the binary. **Recent:** global approval mode (`vibeguard mode`), experimental macOS menu-bar tray (`vibeguard tray`), surgical `vibeguard uninstall`, client reload hints (`vibeguard clients reload`), and repo-scoped dev workspace policy (`vibeguard policy init-dev` / `install --dev`). **New:** local obfuscation-resistant shell auto-detect engine with smart-triage `auto` mode (`vibeguard mode set auto`) and persisted command history (`vibeguard history`). **GitHub Releases self-update** — tray background checks plus `vibeguard update` CLI (see [Updating](#updating)). HTTP URL install wrap remains future work per [roadmap](docs/roadmap.md).
 
 ## Quick start
 
@@ -56,7 +56,7 @@ The `.app` bundle sets `LSUIElement` so the tray appears in the menu bar only (n
 
 **Popover panel (macOS)**
 
-Click the menu-bar icon to open a **popover panel** below the icon (not a context menu). Each pending row has flat **Allow** and **Deny** buttons — no submenus. The panel shows daemon health, pending count, **Mode** (Ask / Auto-allow / Auto-deny segmented control), and up to **10** pending rows; use `vibeguard ui` for more. When new pending approvals arrive, the panel **auto-opens** if hidden. Click the icon again to dismiss.
+Click the menu-bar icon to open a **popover panel** below the icon (not a context menu). Each pending row has flat **Allow** and **Deny** buttons — no submenus. The panel shows daemon health, pending count, **Mode** (Ask / Auto / Auto-allow / Auto-deny segmented control), and up to **10** pending rows; use `vibeguard ui` for more. When new pending approvals arrive, the panel **auto-opens** if hidden. Click the icon again to dismiss.
 
 On non-macOS builds, the tray uses a classic systray context menu instead.
 
@@ -74,14 +74,17 @@ vibeguard ui
 - **a** — approve · **d** — deny · **r** — refresh · **g** — cycle approval mode · **q** — quit
 - Auto-refreshes every ~2s while running
 
-Global approval mode (`ask` / `auto-allow` / `auto-deny`) is persisted by the daemon and shared with the menu-bar tray:
+Global approval mode (`ask` / `auto` / `auto-allow` / `auto-deny`) is persisted by the daemon and shared with the menu-bar tray:
 
 ```bash
 vibeguard mode                    # show current mode
+vibeguard mode set auto           # smart triage: safe pass, risky blocked, uncertain queue (default on new installs)
 vibeguard mode set auto-allow     # hands-off local dev (audit logged)
 vibeguard mode set auto-deny      # reject queued items (audit logged)
 vibeguard mode set ask            # back to manual approvals
 ```
+
+Every intercept decision is persisted locally — query it with `vibeguard history [--since 7d] [--denied] [--json] [search TERM]`.
 
 Press **g** in `vibeguard ui` to cycle modes. Auto modes decide queued requests server-side (existing pending included). YAML policy deny rules still block at the hook before items reach the queue.
 
@@ -114,6 +117,87 @@ vibeguard approve <id>
 vibeguard deny             # auto-picks when one pending
 vibeguard deny <id> --reason "too risky"
 ```
+
+## Installing from GitHub Releases
+
+Pre-built binaries are published on [GitHub Releases](https://github.com/alisaitteke/vibeguard/releases) with a `checksums.txt` (SHA256) for each tag. Pick the archive for your platform:
+
+| Platform | Archive name pattern |
+| --- | --- |
+| macOS Apple Silicon | `vibeguard_<version>_darwin_arm64.tar.gz` |
+| macOS Intel | `vibeguard_<version>_darwin_amd64.tar.gz` |
+| Linux amd64 | `vibeguard_<version>_linux_amd64.tar.gz` |
+| Linux arm64 | `vibeguard_<version>_linux_arm64.tar.gz` |
+| Windows amd64 | `vibeguard_<version>_windows_amd64.zip` |
+
+```bash
+# Example (macOS arm64) — replace <version> with the release tag without "v"
+VERSION=0.1.0
+curl -fsSL -O "https://github.com/alisaitteke/vibeguard/releases/download/v${VERSION}/checksums.txt"
+curl -fsSL -O "https://github.com/alisaitteke/vibeguard/releases/download/v${VERSION}/vibeguard_${VERSION}_darwin_arm64.tar.gz"
+shasum -a 256 -c checksums.txt   # Linux: sha256sum -c checksums.txt
+tar -xzf "vibeguard_${VERSION}_darwin_arm64.tar.gz"
+sudo install -m 755 vibeguard /usr/local/bin/vibeguard   # or any directory on your PATH
+vibeguard --version
+vibeguard install
+```
+
+Release builds are **unsigned**. On macOS, Gatekeeper may quarantine the binary after download — see [macOS Gatekeeper](#macos-gatekeeper-unsigned-releases) below.
+
+## Updating
+
+VibeGuard checks [GitHub Releases](https://github.com/alisaitteke/vibeguard/releases) for newer versions, verifies SHA256 checksums before replacing the running binary, and keeps `~/.vibeguard` state (hooks, policy, audit DB) unchanged.
+
+### Tray (background check)
+
+When the menu-bar tray is running (`vibeguard install` on macOS, or `vibeguard tray` / systray on Linux/Windows), a **separate** background loop (default every **6 hours**) compares your binary version against the latest release. When an update is available:
+
+- **macOS popover** — footer shows **Install update vX.Y.Z**; click to apply.
+- **Linux / Windows systray** — **Install update vX.Y.Z…** menu item appears above Quit.
+
+Install is **one-click and user-initiated** — nothing auto-applies without your action. The tray spawns `vibeguard update apply --restart --yes`, exits so the binary can be swapped, then the daemon and tray are restarted.
+
+### CLI
+
+```bash
+vibeguard update check              # compare running version vs latest release
+vibeguard update check --json       # machine-readable output
+vibeguard update status             # last check time, latest known, background check state
+vibeguard update apply              # download, verify checksum, replace current binary
+vibeguard update apply --restart    # also restart daemon + tray after swap
+vibeguard update apply --yes        # skip confirmation (scripts / tray)
+vibeguard update apply --version 1.2.3   # install a specific release
+```
+
+Update metadata is stored in `~/.vibeguard/update-state.json`.
+
+### Configuration
+
+In `~/.vibeguard/config.yaml`:
+
+```yaml
+update:
+  enabled: true          # false disables background tray checks and is reflected in update status
+  check_interval: 6h     # tray poll interval (Go duration string)
+  channel: stable        # reserved for future use; no effect in v1
+```
+
+### Dev builds
+
+Local `make build` binaries embed `Version=dev` (or a `snapshot` tag). Background update checks are **skipped** for dev/snapshot builds so local development is not interrupted. Use `make build` / `go build` for hacking; use [GitHub Releases](#installing-from-github-releases) or `vibeguard update apply` for production installs.
+
+### macOS Gatekeeper (unsigned releases)
+
+Release binaries are not Apple-notarized. After download, macOS may block execution or show **“cannot be opened because the developer cannot be verified.”** Options:
+
+1. **First launch** — right-click the binary (or `VibeGuard Tray.app`) → **Open** → confirm once.
+2. **Remove quarantine** (if downloaded via browser):
+
+```bash
+xattr -dr com.apple.quarantine /path/to/vibeguard
+```
+
+Self-update (`vibeguard update apply`) downloads over HTTPS and verifies SHA256 against the release `checksums.txt` before replacing the binary.
 
 ## Optional polish (gum / fzf)
 
@@ -149,6 +233,7 @@ macOS notifications are **alert-only** — decisions always happen in the termin
 | --- | --- |
 | `~/.vibeguard/run/vibeguard.sock` | Unix socket |
 | `~/.vibeguard/audit.db` | SQLite audit log |
+| `~/.vibeguard/update-state.json` | Last update check + latest known release |
 | `http://127.0.0.1:9477/v1/health` | Daemon HTTP health |
 
 ## License

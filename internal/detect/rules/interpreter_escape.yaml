@@ -1,0 +1,13 @@
+# Interpreter escape: one-liners that hide a nested command in a -c/-e payload.
+# On match the engine re-evaluates the IR's NestedCommands. Default: medium.
+rules:
+  - id: interpreter-shell-dashc
+    category: interpreter_escape
+    reason: 'shell one-liner carrying a nested script (sh -c)'
+    argv0: '^(sh|bash|zsh|dash|ksh|ash)$'
+    args: '(^|\s)-c(\s|$)'
+  - id: interpreter-lang-eval
+    category: interpreter_escape
+    reason: 'language interpreter evaluating an inline script (-c/-e)'
+    argv0: '^(python|python3|perl|ruby|php|node)$'
+    args: '(^|\s)-(c|e)(\s|$)|--eval'

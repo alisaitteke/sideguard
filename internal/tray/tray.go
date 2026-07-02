@@ -15,6 +15,8 @@ import (
 type Options struct {
 	// BaseURL overrides the daemon HTTP API base URL (default api.BaseURL()).
 	BaseURL string
+	// Version is the running binary version (ldflags); empty or "dev" disables update checks.
+	Version string
 }
 
 // resolveBaseURL returns the effective daemon API base URL for this tray session.
@@ -41,6 +43,8 @@ func tooltipForUpdate(items []api.PendingApproval, mode approvalmode.Mode, err e
 	}
 	suffix := ""
 	switch mode {
+	case approvalmode.Auto:
+		suffix = " — auto"
 	case approvalmode.AutoAllow:
 		suffix = " — auto-allow"
 	case approvalmode.AutoDeny:

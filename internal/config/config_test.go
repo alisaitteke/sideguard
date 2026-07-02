@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -209,6 +210,90 @@ func TestEnsureDefaultWritesConfig(t *testing.T) {
 	}
 	if info.Mode().Perm() != 0o600 {
 		t.Fatalf("expected mode 0600, got %o", info.Mode().Perm())
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(data)
+	if !strings.Contains(content, "history:") || !strings.Contains(content, "retention_days: 30") {
+		t.Fatalf("config missing history defaults:\n%s", data)
+	}
+	if !strings.Contains(content, "update:") || !strings.Contains(content, "check_interval: 6h") {
+		t.Fatalf("config missing update defaults:\n%s", data)
+	}
+}
+
+func TestLoadHistoryDefaults(t *testing.T) {
+	setupHome(t)
+
+	cfg, err := LoadHistory()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.RetentionDays != 30 || cfg.MaxEvents != 50000 {
+		t.Fatalf("defaults = %+v", cfg)
+	}
+}
+
+func TestLoadHistoryFromFile(t *testing.T) {
+	home := setupHome(t)
+	writeConfig(t, home, `history:
+  retention_days: 7
+  max_events: 1000
+`)
+
+	cfg, err := LoadHistory()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.RetentionDays != 7 || cfg.MaxEvents != 1000 {
+		t.Fatalf("cfg = %+v", cfg)
+	}
+}
+
+func TestLoadHistoryZeroRetention(t *testing.T) {
+	home := setupHome(t)
+	writeConfig(t, home, `history:
+  retention_days: 0
+  max_events: 100
+`)
+
+	cfg, err := LoadHistory()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.RetentionDays != 0 || cfg.MaxEvents != 100 {
+		t.Fatalf("cfg = %+v", cfg)
+	}
+}
+
+func TestLoadUpdateDefaults(t *testing.T) {
+	setupHome(t)
+
+	cfg, err := LoadUpdate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.Enabled || cfg.CheckInterval != "6h" || cfg.Channel != "stable" {
+		t.Fatalf("defaults = %+v", cfg)
+	}
+}
+
+func TestLoadUpdateFromFile(t *testing.T) {
+	home := setupHome(t)
+	writeConfig(t, home, `update:
+  enabled: false
+  check_interval: 12h
+  channel: beta
+`)
+
+	cfg, err := LoadUpdate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Enabled || cfg.CheckInterval != "12h" || cfg.Channel != "beta" {
+		t.Fatalf("cfg = %+v", cfg)
 	}
 }
 

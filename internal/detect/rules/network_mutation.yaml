@@ -1,0 +1,10 @@
+# Network mutation: changing host firewall/routing state. Category default: medium -> ask.
+rules:
+  - id: network-firewall-tools
+    category: network_mutation
+    reason: 'mutating host firewall rules'
+    argv0: '^(iptables|ip6tables|nft|pfctl|ufw|firewall-cmd)$'
+  - id: network-route-change
+    category: network_mutation
+    reason: 'changing host routing table'
+    text: '(^|\s|;)(route\s+(add|del|delete)|ip\s+route\s+(add|del|change))\b'

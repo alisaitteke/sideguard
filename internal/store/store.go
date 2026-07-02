@@ -81,6 +81,9 @@ func (s *Store) Migrate() error {
 	if _, err := s.db.Exec(schemaV2); err != nil {
 		return fmt.Errorf("migrate v2: %w", err)
 	}
+	if _, err := s.db.Exec(schemaV3); err != nil {
+		return fmt.Errorf("migrate v3: %w", err)
+	}
 	return nil
 }
 

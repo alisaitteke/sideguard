@@ -1,0 +1,128 @@
+# Release workflow: CGO-enabled binaries on v* tags, merged into one GitHub release.
+# GoReleaser OSS builds per OS; package-release-assets.sh names archives for internal/update.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - runs-on: macos-latest
+            platform_id: darwin
+          - runs-on: ubuntu-latest
+            platform_id: linux
+          - runs-on: windows-latest
+            platform_id: windows
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install Linux cross-compilers
+        if: matrix.platform_id == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Setup MSYS2 (Windows)
+        if: matrix.platform_id == 'windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: mingw-w64-x86_64-gcc
+
+      - name: Build binaries
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: build --clean --id ${{ matrix.platform_id }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.platform_id }}
+          path: dist/
+          retention-days: 1
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Merge dist folders
+        shell: bash
+        run: |
+          mkdir -p dist
+          for dir in artifacts/dist-*; do
+            cp -R "${dir}/." dist/
+          done
+          ls -la dist/
+
+      - name: Package release archives
+        shell: bash
+        run: |
+          chmod +x scripts/package-release-assets.sh
+          ./scripts/package-release-assets.sh "${GITHUB_REF_NAME}"
+
+      - name: Create or update GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+          assets=(dist/release/*)
+
+          prerelease_flag=()
+          if [[ "${tag}" =~ -(alpha|beta|rc|test) ]]; then
+            prerelease_flag=(--prerelease)
+          fi
+
+          if gh release view "${tag}" >/dev/null 2>&1; then
+            echo "Release ${tag} exists; uploading assets"
+            gh release upload "${tag}" "${assets[@]}" --clobber
+          else
+            args=(release create "${tag}" "${assets[@]}" --title "v${version}")
+            args+=("${prerelease_flag[@]}")
+            if git rev-parse "${tag}^" >/dev/null 2>&1; then
+              args+=(--generate-notes)
+            else
+              args+=(--notes "Release ${tag}")
+            fi
+            gh "${args[@]}"
+          fi

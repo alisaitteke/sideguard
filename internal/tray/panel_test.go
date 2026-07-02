@@ -10,13 +10,16 @@ import (
 
 // panelJSON mirrors darwin.PanelJSON for contract tests (no CGO required).
 type panelJSON struct {
-	DaemonStatus string          `json:"daemon_status"`
-	PendingCount string          `json:"pending_count"`
-	ModeIndex    int             `json:"mode_index"`
-	ModeEnabled  bool            `json:"mode_enabled"`
-	Rows         []panelJSONRow  `json:"rows"`
-	OverflowHint string          `json:"overflow_hint"`
-	EmptyMessage string          `json:"empty_message"`
+	DaemonStatus  string         `json:"daemon_status"`
+	PendingCount  string         `json:"pending_count"`
+	ModeIndex     int            `json:"mode_index"`
+	ModeEnabled   bool           `json:"mode_enabled"`
+	Rows          []panelJSONRow `json:"rows"`
+	OverflowHint  string         `json:"overflow_hint"`
+	EmptyMessage  string         `json:"empty_message"`
+	UpdateVisible bool           `json:"update_visible"`
+	UpdateLabel   string         `json:"update_label"`
+	UpdateEnabled bool           `json:"update_enabled"`
 }
 
 type panelJSONRow struct {
@@ -96,6 +99,49 @@ func TestBuildPanelRows_PendingItemsProduceRows(t *testing.T) {
 	}
 }
 
+func TestBuildPanelRows_UpdateFooter(t *testing.T) {
+	t.Parallel()
+
+	content := BuildPanelRows(PanelSnapshot{
+		Items:    nil,
+		Mode:     approvalmode.Ask,
+		HealthOK: true,
+		Update: UpdateUIState{
+			Available: true,
+			Version:   "2.0.0",
+			Label:     "Update available: v2.0.0",
+		},
+	})
+
+	if !content.UpdateVisible {
+		t.Fatal("expected update footer visible")
+	}
+	if content.UpdateLabel != "Update available: v2.0.0" {
+		t.Fatalf("label = %q", content.UpdateLabel)
+	}
+	if !content.UpdateEnabled {
+		t.Fatal("expected install enabled")
+	}
+}
+
+func TestBuildPanelRows_UpdateInstallingDisabled(t *testing.T) {
+	t.Parallel()
+
+	content := BuildPanelRows(PanelSnapshot{
+		HealthOK: true,
+		Update: UpdateUIState{
+			Available:  true,
+			Version:    "2.0.0",
+			Label:      "Update available: v2.0.0",
+			Installing: true,
+		},
+	})
+
+	if content.UpdateEnabled {
+		t.Fatal("expected install disabled while installing")
+	}
+}
+
 func TestBuildPanelRows_JSONPayloadMatchesObjCContract(t *testing.T) {
 	t.Parallel()
 
@@ -115,13 +161,16 @@ func TestBuildPanelRows_JSONPayloadMatchesObjCContract(t *testing.T) {
 		rows = append(rows, panelJSONRow{ID: row.ID, Label: row.Label})
 	}
 	payload := panelJSON{
-		DaemonStatus: content.DaemonStatus,
-		PendingCount: content.PendingCount,
-		ModeIndex:    content.ModeIndex,
-		ModeEnabled:  content.ModeEnabled,
-		Rows:         rows,
-		OverflowHint: content.OverflowHint,
-		EmptyMessage: content.EmptyMessage,
+		DaemonStatus:  content.DaemonStatus,
+		PendingCount:  content.PendingCount,
+		ModeIndex:     content.ModeIndex,
+		ModeEnabled:   content.ModeEnabled,
+		Rows:          rows,
+		OverflowHint:  content.OverflowHint,
+		EmptyMessage:  content.EmptyMessage,
+		UpdateVisible: content.UpdateVisible,
+		UpdateLabel:   content.UpdateLabel,
+		UpdateEnabled: content.UpdateEnabled,
 	}
 
 	data, err := json.Marshal(payload)
@@ -196,10 +245,19 @@ func TestModeFromSegmentIndex(t *testing.T) {
 	if got := ModeFromSegmentIndex(0); got != approvalmode.Ask {
 		t.Fatalf("0: %v", got)
 	}
-	if got := ModeFromSegmentIndex(1); got != approvalmode.AutoAllow {
+	if got := ModeFromSegmentIndex(1); got != approvalmode.Auto {
 		t.Fatalf("1: %v", got)
 	}
-	if got := ModeFromSegmentIndex(2); got != approvalmode.AutoDeny {
+	if got := ModeFromSegmentIndex(2); got != approvalmode.AutoAllow {
 		t.Fatalf("2: %v", got)
+	}
+	if got := ModeFromSegmentIndex(3); got != approvalmode.AutoDeny {
+		t.Fatalf("3: %v", got)
+	}
+	if got := modeSegmentIndex(approvalmode.Auto); got != 1 {
+		t.Fatalf("auto segment = %d, want 1", got)
+	}
+	if got := modeSegmentIndex(approvalmode.AutoDeny); got != 3 {
+		t.Fatalf("auto_deny segment = %d, want 3", got)
 	}
 }

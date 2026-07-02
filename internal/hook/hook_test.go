@@ -16,6 +16,8 @@ import (
 	"github.com/alisaitteke/vibeguard/internal/api"
 	"github.com/alisaitteke/vibeguard/internal/policy"
 	"github.com/alisaitteke/vibeguard/internal/store"
+
+	_ "github.com/alisaitteke/vibeguard/internal/detect"
 )
 
 func startTestDaemon(t *testing.T) *httptest.Server {
@@ -45,11 +47,14 @@ func waitHook(t *testing.T, wg *sync.WaitGroup) {
 	}
 }
 
+// queueTriggerCmd is a non-safe argv0 that detect returns ask for, exercising the daemon queue.
+const queueTriggerCmd = "custom_unknown_cmd arg"
+
 func TestRunShellCursorAllow(t *testing.T) {
 	daemon := startTestDaemon(t)
 	client := NewClientWithBaseURL(daemon.URL)
 
-	input := `{"command":"echo hello","cwd":"/tmp"}`
+	input := `{"command":"` + queueTriggerCmd + `","cwd":"/tmp"}`
 	stdin := strings.NewReader(input)
 	var stdout bytes.Buffer
 
@@ -69,7 +74,7 @@ func TestRunShellCursorAllow(t *testing.T) {
 	if err != nil || len(pending) != 1 {
 		t.Fatalf("pending: %+v err=%v", pending, err)
 	}
-	if pending[0].Source != "shell" || pending[0].Command != "echo hello" {
+	if pending[0].Source != "shell" || pending[0].Command != queueTriggerCmd {
 		t.Fatalf("unexpected pending: %+v", pending[0])
 	}
 
@@ -91,7 +96,7 @@ func TestRunShellCursorWithHookEventName(t *testing.T) {
 
 	input := `{
 		"hook_event_name": "beforeShellExecution",
-		"command": "echo hello",
+		"command": "` + queueTriggerCmd + `",
 		"cwd": "/tmp",
 		"sandbox": false,
 		"conversation_id": "test-conv",
@@ -115,7 +120,7 @@ func TestRunShellCursorWithHookEventName(t *testing.T) {
 	if err != nil || len(pending) != 1 {
 		t.Fatalf("pending: %+v err=%v", pending, err)
 	}
-	if pending[0].Command != "echo hello" {
+	if pending[0].Command != queueTriggerCmd {
 		t.Fatalf("unexpected pending command: %+v", pending[0])
 	}
 	_, _ = apiClient.Decide(context.Background(), pending[0].ID, "allow", "")
@@ -147,20 +152,20 @@ func TestRunShellCursorToolInputCommand(t *testing.T) {
 			input: `{
 				"hook_event_name": "preToolUse",
 				"tool_name": "Shell",
-				"tool_input": {"command": "echo hello", "working_directory": "/tmp"},
+				"tool_input": {"command": "` + queueTriggerCmd + `", "working_directory": "/tmp"},
 				"cwd": "/tmp"
 			}`,
-			want: "echo hello",
+			want: queueTriggerCmd,
 		},
 		{
 			name: "beforeShellExecution nested command",
 			input: `{
 				"hook_event_name": "beforeShellExecution",
 				"tool_name": "Shell",
-				"tool_input": {"command": "echo nested"},
+				"tool_input": {"command": "` + queueTriggerCmd + `"},
 				"cwd": "/tmp"
 			}`,
-			want: "echo nested",
+			want: queueTriggerCmd,
 		},
 	}
 
@@ -204,7 +209,7 @@ func TestRunShellCursorDeny(t *testing.T) {
 	daemon := startTestDaemon(t)
 	client := NewClientWithBaseURL(daemon.URL)
 
-	input := `{"command":"curl example.com","cwd":"."}`
+	input := `{"command":"` + queueTriggerCmd + `","cwd":"."}`
 	stdin := strings.NewReader(input)
 	var stdout bytes.Buffer
 
@@ -233,7 +238,7 @@ func TestRunShellCursorDeny(t *testing.T) {
 
 func TestRunShellDaemonUnreachable(t *testing.T) {
 	client := NewClientWithBaseURL("http://127.0.0.1:1")
-	input := `{"command":"echo test","cwd":"."}`
+	input := `{"command":"` + queueTriggerCmd + `","cwd":"."}`
 	var stdout bytes.Buffer
 
 	code := RunShell(strings.NewReader(input), &stdout, client)
@@ -260,24 +265,15 @@ func TestRunShellClaudeAllow(t *testing.T) {
 	}`
 	var stdout bytes.Buffer
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		code := RunShell(strings.NewReader(input), &stdout, client)
-		if code != ExitAllow {
-			t.Errorf("exit code = %d, want %d", code, ExitAllow)
-		}
-	}()
-
-	time.Sleep(150 * time.Millisecond)
-	apiClient := api.NewClientWithBaseURL(daemon.URL)
-	pending, _ := apiClient.ListPending(context.Background())
-	if pending[0].Client != "claude" {
-		t.Fatalf("client = %q, want claude", pending[0].Client)
+	code := RunShell(strings.NewReader(input), &stdout, client)
+	if code != ExitAllow {
+		t.Fatalf("exit code = %d, want allow for safe npm test", code)
 	}
-	_, _ = apiClient.Decide(context.Background(), pending[0].ID, "allow", "")
-	waitHook(t, &wg)
+
+	pending, _ := api.NewClientWithBaseURL(daemon.URL).ListPending(context.Background())
+	if len(pending) != 0 {
+		t.Fatalf("safe npm test should auto-allow via detect, got %d pending", len(pending))
+	}
 
 	var resp ClaudeHookResponse
 	_ = json.Unmarshal(stdout.Bytes(), &resp)
@@ -444,6 +440,71 @@ func writeTestPolicy(t *testing.T, content string) {
 		t.Fatal(err)
 	}
 	t.Setenv("HOME", home)
+}
+
+func TestRunShellDetectAutoAllow(t *testing.T) {
+	daemon := startTestDaemon(t)
+	client := NewClientWithBaseURL(daemon.URL)
+
+	input := `{"command":"git status","cwd":"/tmp"}`
+	var stdout bytes.Buffer
+	code := RunShell(strings.NewReader(input), &stdout, client)
+	if code != ExitAllow {
+		t.Fatalf("exit code = %d, want allow for git status", code)
+	}
+
+	pending, _ := api.NewClientWithBaseURL(daemon.URL).ListPending(context.Background())
+	if len(pending) != 0 {
+		t.Fatalf("git status should auto-allow via detect, got %d pending", len(pending))
+	}
+}
+
+func TestRunShellDetectAutoDeny(t *testing.T) {
+	daemon := startTestDaemon(t)
+	client := NewClientWithBaseURL(daemon.URL)
+
+	input := `{"command":"rm -rf /","cwd":"/tmp"}`
+	var stdout bytes.Buffer
+	code := RunShell(strings.NewReader(input), &stdout, client)
+	if code != ExitDeny {
+		t.Fatalf("exit code = %d, want deny for rm -rf /", code)
+	}
+
+	pending, _ := api.NewClientWithBaseURL(daemon.URL).ListPending(context.Background())
+	if len(pending) != 0 {
+		t.Fatalf("destructive command should deny at detect, got %d pending", len(pending))
+	}
+}
+
+// TestRunShellIngestsEventBeforeReturn guards the Phase 10 fix: RunShell must
+// not return until the ingest POST completed, because the hook binary exits
+// immediately afterwards (os.Exit) and would otherwise drop the event.
+func TestRunShellIngestsEventBeforeReturn(t *testing.T) {
+	daemon := startTestDaemon(t)
+	client := NewClientWithBaseURL(daemon.URL)
+
+	input := `{"command":"git status","cwd":"/tmp"}`
+	var stdout bytes.Buffer
+	if code := RunShell(strings.NewReader(input), &stdout, client); code != ExitAllow {
+		t.Fatalf("exit code = %d, want allow", code)
+	}
+
+	// The daemon inserts asynchronously after responding 202 — poll briefly.
+	apiClient := api.NewClientWithBaseURL(daemon.URL)
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		events, err := apiClient.QueryEvents(context.Background(), api.EventQueryParams{Limit: 10})
+		if err == nil && len(events) == 1 {
+			if events[0].CommandRedacted != "git status" || events[0].FinalAction != "allow" {
+				t.Fatalf("unexpected event: %+v", events[0])
+			}
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("event not ingested before deadline: events=%+v err=%v", events, err)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
 }
 
 func TestRunShellControlPlaneAutoAllow(t *testing.T) {

@@ -4,7 +4,7 @@ import "testing"
 
 func TestModeValid(t *testing.T) {
 	t.Parallel()
-	for _, m := range []Mode{Ask, AutoAllow, AutoDeny} {
+	for _, m := range []Mode{Ask, Auto, AutoAllow, AutoDeny} {
 		if !m.Valid() {
 			t.Fatalf("%q should be valid", m)
 		}
@@ -30,6 +30,9 @@ func TestDecisionAndReason(t *testing.T) {
 	if Ask.Decision() != "" || Ask.AutoReason() != "" {
 		t.Fatal("ask should not auto-decide")
 	}
+	if Auto.Decision() != "" || Auto.AutoReason() != "" {
+		t.Fatal("auto should not blind auto-decide at daemon level")
+	}
 	if AutoAllow.Decision() != "allow" || AutoAllow.AutoReason() != "auto-approved by mode" {
 		t.Fatal("auto_allow mismatch")
 	}
@@ -44,6 +47,10 @@ func TestParseCLI(t *testing.T) {
 	if err != nil || m != AutoAllow {
 		t.Fatalf("ParseCLI: got %q err=%v", m, err)
 	}
+	m, err = ParseCLI("auto")
+	if err != nil || m != Auto {
+		t.Fatalf("ParseCLI auto: got %q err=%v", m, err)
+	}
 	m, err = ParseCLI("auto_deny")
 	if err != nil || m != AutoDeny {
 		t.Fatalf("ParseCLI deny: got %q err=%v", m, err)
@@ -52,7 +59,7 @@ func TestParseCLI(t *testing.T) {
 
 func TestLabel(t *testing.T) {
 	t.Parallel()
-	if Ask.Label() != "Ask" || AutoAllow.Label() != "Auto-allow" || AutoDeny.Label() != "Auto-deny" {
+	if Ask.Label() != "Ask" || Auto.Label() != "Auto" || AutoAllow.Label() != "Auto-allow" || AutoDeny.Label() != "Auto-deny" {
 		t.Fatal("unexpected labels")
 	}
 }

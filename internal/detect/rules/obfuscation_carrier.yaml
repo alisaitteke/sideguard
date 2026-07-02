@@ -1,0 +1,19 @@
+# Obfuscation carrier: encoding/decoding tools that hide payloads. Score boost only
+# (low severity). These never decide on their own; they raise the aggregate score
+# alongside the real payload surfaced by the deobfuscator.
+rules:
+  - id: obfuscation-base64-decode
+    category: obfuscation_carrier
+    reason: 'base64 decode of an inline payload'
+    argv0: '^base64$'
+    args: '(^|\s)(-d|-D|--decode)(\s|$)'
+  - id: obfuscation-xxd-revert
+    category: obfuscation_carrier
+    reason: 'hex decode of an inline payload (xxd -r)'
+    argv0: '^xxd$'
+    args: '(^|\s)-r(\s|$)'
+  - id: obfuscation-openssl-decode
+    category: obfuscation_carrier
+    reason: 'openssl base64/enc decode of an inline payload'
+    argv0: '^openssl$'
+    args: '(enc\b[\s\S]{0,40}-d|(^|\s)base64\b[\s\S]{0,40}-d)'

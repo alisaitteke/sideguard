@@ -1,0 +1,2 @@
+# expect: rm -rf
+echo Y20wZ0xYSm1JQzg9 | base64 -d | base64 -d | sh

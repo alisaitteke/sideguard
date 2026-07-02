@@ -2,7 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -182,6 +184,70 @@ func (h *Handler) ListPending(w http.ResponseWriter, _ *http.Request) {
 			CreatedAt:  rec.CreatedAt.UTC().Format(time.RFC3339),
 			AgeSeconds: int64(now.Sub(rec.CreatedAt).Seconds()),
 		})
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+func (h *Handler) IngestEvent(w http.ResponseWriter, r *http.Request) {
+	var req CommandEvent
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.Source == "" || req.Client == "" || req.FinalAction == "" || req.DecisionBy == "" {
+		writeError(w, http.StatusBadRequest, "source, client, final_action, and decision_by are required")
+		return
+	}
+
+	writeJSON(w, http.StatusAccepted, map[string]string{"status": "accepted"})
+
+	go func() {
+		if err := h.Store.IngestEvent(ToStoreEvent(req)); err != nil {
+			log.Printf("vibeguard events: ingest failed: %v", err)
+		}
+	}()
+}
+
+func (h *Handler) QueryEvents(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	params := EventQueryParams{
+		Since:  q.Get("since"),
+		CWD:    q.Get("cwd"),
+		Search: q.Get("search"),
+	}
+	if denied := q.Get("denied"); denied == "true" || denied == "1" {
+		params.Denied = true
+	}
+	if limitStr := q.Get("limit"); limitStr != "" {
+		if n, err := strconv.Atoi(limitStr); err == nil {
+			params.Limit = n
+		}
+	}
+
+	storeQuery := store.EventQuery{
+		Denied: params.Denied,
+		CWD:    params.CWD,
+		Limit:  params.Limit,
+		Search: params.Search,
+	}
+	if params.Since != "" {
+		t, err := time.Parse(time.RFC3339, params.Since)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid since timestamp")
+			return
+		}
+		storeQuery.Since = t
+	}
+
+	rows, err := h.Store.QueryEvents(storeQuery)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "query events failed")
+		return
+	}
+
+	out := make([]CommandEvent, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, FromStoreEvent(row))
 	}
 	writeJSON(w, http.StatusOK, out)
 }

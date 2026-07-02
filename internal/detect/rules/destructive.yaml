@@ -1,0 +1,20 @@
+# Destructive: irreversible data/disk destruction. Category default: critical -> deny.
+rules:
+  - id: destructive-rm-recursive
+    category: destructive
+    reason: 'recursive filesystem delete (rm -r)'
+    argv0: '^rm$'
+    args: '(^|\s)-r(\s|$)'
+  - id: destructive-dd-to-disk
+    category: destructive
+    reason: 'raw write to a block device (dd of=/dev/...)'
+    argv0: '^dd$'
+    args: 'of=/dev/'
+  - id: destructive-mkfs
+    category: destructive
+    reason: 'filesystem creation over an existing device (mkfs)'
+    argv0: '^mkfs(\.[a-z0-9]+)?$'
+  - id: destructive-overwrite-block-device
+    category: destructive
+    reason: 'redirecting output onto a raw block device'
+    text: '>\s*/dev/(sd|nvme|disk|hd)'

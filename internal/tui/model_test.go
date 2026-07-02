@@ -11,8 +11,11 @@ import (
 
 func TestNextModeCycles(t *testing.T) {
 	t.Parallel()
-	if got := nextMode(approvalmode.Ask); got != approvalmode.AutoAllow {
+	if got := nextMode(approvalmode.Ask); got != approvalmode.Auto {
 		t.Fatalf("ask -> %q", got)
+	}
+	if got := nextMode(approvalmode.Auto); got != approvalmode.AutoAllow {
+		t.Fatalf("auto -> %q", got)
 	}
 	if got := nextMode(approvalmode.AutoAllow); got != approvalmode.AutoDeny {
 		t.Fatalf("auto_allow -> %q", got)
@@ -26,6 +29,9 @@ func TestModeBanner(t *testing.T) {
 	t.Parallel()
 	if modeBanner(approvalmode.Ask) != "" {
 		t.Fatal("ask should have no banner")
+	}
+	if modeBanner(approvalmode.Auto) != "" {
+		t.Fatal("auto (smart triage) should have no banner")
 	}
 	if !strings.Contains(modeBanner(approvalmode.AutoAllow), "AUTO-ALLOW") {
 		t.Fatal("auto-allow banner missing")
@@ -62,7 +68,7 @@ func TestUpdateGKeyQueuesSetMode(t *testing.T) {
 		t.Fatal("expected set mode command")
 	}
 	um := updated.(model)
-	if !strings.Contains(um.flash, "Auto-allow") {
+	if !strings.Contains(um.flash, "Auto") {
 		t.Fatalf("flash = %q", um.flash)
 	}
 }

@@ -60,5 +60,5 @@ func init() {
 }
 
 func runTray(_ *cobra.Command, _ []string) error {
-	return tray.Run(tray.Options{})
+	return tray.Run(tray.Options{Version: Version})
 }

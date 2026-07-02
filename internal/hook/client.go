@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/alisaitteke/vibeguard/internal/api"
+	"github.com/alisaitteke/vibeguard/internal/approvalmode"
 )
 
 // DefaultApprovalTimeout matches Cursor/Claude hook timeout (600s).
@@ -13,6 +14,8 @@ const DefaultApprovalTimeout = 600 * time.Second
 // DaemonClient submits approval requests and blocks until a decision.
 type DaemonClient interface {
 	RequestAndWait(ctx context.Context, req api.ApprovalRequest) (*api.ApprovalDecisionResponse, error)
+	GetApprovalMode(ctx context.Context) (approvalmode.Mode, error)
+	IngestEvent(ctx context.Context, e api.CommandEvent) error
 }
 
 // Client talks to the local VibeGuard daemon with hook-sized long-poll timeouts.
@@ -35,6 +38,11 @@ func NewClientWithBaseURL(baseURL string) *Client {
 	}
 }
 
+// GetApprovalMode returns the daemon's global approval mode (defaults to Ask on error).
+func (c *Client) GetApprovalMode(ctx context.Context) (approvalmode.Mode, error) {
+	return c.api.GetApprovalMode(ctx)
+}
+
 // RequestAndWait queues an approval and long-polls until allow/deny or timeout.
 func (c *Client) RequestAndWait(ctx context.Context, req api.ApprovalRequest) (*api.ApprovalDecisionResponse, error) {
 	created, err := c.api.RequestApproval(ctx, req)
@@ -46,4 +54,9 @@ func (c *Client) RequestAndWait(ctx context.Context, req api.ApprovalRequest) (*
 	defer cancel()
 
 	return c.api.WaitApproval(waitCtx, created.ID)
+}
+
+// IngestEvent posts a command event without blocking the hook on failures.
+func (c *Client) IngestEvent(ctx context.Context, e api.CommandEvent) error {
+	return c.api.IngestEvent(ctx, e)
 }

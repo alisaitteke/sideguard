@@ -11,7 +11,11 @@ import (
 // The tray stays visible even when the daemon is unreachable; tooltip reflects poll state.
 func Run(opts Options) error {
 	baseURL := resolveBaseURL(opts)
-	session := &systraySession{baseURL: baseURL}
+	version := opts.Version
+	if version == "" {
+		version = "dev"
+	}
+	session := &systraySession{baseURL: baseURL, version: version}
 
 	systray.Run(session.onReady, session.onExit)
 	return nil

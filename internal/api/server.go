@@ -46,6 +46,8 @@ func NewServer(version string, st *store.Store) *Server {
 	mux.HandleFunc("PUT /v1/approval/mode", h.SetApprovalMode)
 	mux.HandleFunc("GET /v1/approval/{id}/wait", h.WaitApproval)
 	mux.HandleFunc("POST /v1/approval/{id}/decide", h.DecideApproval)
+	mux.HandleFunc("POST /v1/events", h.IngestEvent)
+	mux.HandleFunc("GET /v1/events", h.QueryEvents)
 
 	addr := fmt.Sprintf("%s:%d", DefaultHost, DefaultPort)
 	return &Server{

@@ -29,6 +29,44 @@ func Run(opts Options) error {
 	var deciding sync.Map
 
 	home := approvalfmt.HomeDir()
+	version := opts.Version
+	if version == "" {
+		version = "dev"
+	}
+
+	updateUIState := NewUpdateState()
+	var panelMu sync.Mutex
+	var lastSnapshot PanelSnapshot
+
+	refreshPanel := func() {
+		panelMu.Lock()
+		snapshot := lastSnapshot
+		snapshot.Update = updateUIState.Get()
+		panelMu.Unlock()
+
+		content := BuildPanelRows(snapshot)
+
+		rows := make([]darwin.PanelJSONRow, 0, len(content.Rows))
+		for _, row := range content.Rows {
+			rows = append(rows, darwin.PanelJSONRow{
+				ID:    row.ID,
+				Label: row.Label,
+			})
+		}
+
+		darwin.UpdatePanel(darwin.PanelJSON{
+			DaemonStatus:  content.DaemonStatus,
+			PendingCount:  content.PendingCount,
+			ModeIndex:     content.ModeIndex,
+			ModeEnabled:   content.ModeEnabled,
+			Rows:          rows,
+			OverflowHint:  content.OverflowHint,
+			EmptyMessage:  content.EmptyMessage,
+			UpdateVisible: content.UpdateVisible,
+			UpdateLabel:   content.UpdateLabel,
+			UpdateEnabled: content.UpdateEnabled,
+		})
+	}
 
 	var prevPending []api.PendingApproval
 
@@ -40,31 +78,17 @@ func Run(opts Options) error {
 			darwin.ShowPopover()
 		}
 
-		content := BuildPanelRows(PanelSnapshot{
+		panelMu.Lock()
+		lastSnapshot = PanelSnapshot{
 			Items:    items,
 			Mode:     mode,
 			HealthOK: healthOK,
 			Err:      err,
 			Home:     home,
-		})
-
-		rows := make([]darwin.PanelJSONRow, 0, len(content.Rows))
-		for _, row := range content.Rows {
-			rows = append(rows, darwin.PanelJSONRow{
-				ID:    row.ID,
-				Label: row.Label,
-			})
 		}
+		panelMu.Unlock()
 
-		darwin.UpdatePanel(darwin.PanelJSON{
-			DaemonStatus: content.DaemonStatus,
-			PendingCount: content.PendingCount,
-			ModeIndex:    content.ModeIndex,
-			ModeEnabled:  content.ModeEnabled,
-			Rows:         rows,
-			OverflowHint: content.OverflowHint,
-			EmptyMessage: content.EmptyMessage,
-		})
+		refreshPanel()
 
 		darwin.SetIcon(menuBarIconForState(pending, healthOK))
 		darwin.SetTitle("")
@@ -74,6 +98,20 @@ func Run(opts Options) error {
 			prevPending = make([]api.PendingApproval, len(items))
 			copy(prevPending, items)
 		}
+	}
+
+	updateChecker, err := NewUpdateChecker(version, updateUIState, func(UpdateUIState) {
+		refreshPanel()
+	})
+	if err != nil {
+		return err
+	}
+
+	quitTray := func() {
+		cancel()
+		updateChecker.Stop()
+		pollSession.Stop()
+		darwin.Quit()
 	}
 
 	onDecide := func(id, decision string) {
@@ -98,6 +136,7 @@ func Run(opts Options) error {
 		defer callCancel()
 
 		if err := pollSession.SetMode(callCtx, mode); err != nil {
+			darwin.SetTooltip("VibeGuard — mode change failed: " + err.Error())
 			return
 		}
 		pollSession.RefreshNow()
@@ -105,11 +144,11 @@ func Run(opts Options) error {
 
 	darwin.SetDecideHandler(onDecide)
 	darwin.SetModeHandler(onSetMode)
-	darwin.SetQuitHandler(func() {
-		cancel()
-		pollSession.Stop()
-		darwin.Quit()
+	darwin.SetInstallHandler(func() {
+		refreshPanel()
+		HandleInstallUpdate(updateUIState, quitTray)
 	})
+	darwin.SetQuitHandler(quitTray)
 
 	readyCh := make(chan struct{})
 	darwin.SetReadyHandler(func() {
@@ -120,15 +159,13 @@ func Run(opts Options) error {
 		darwin.SetIcon(menuBarIcon())
 		darwin.SetTooltip("VibeGuard — no pending")
 		pollSession.Start(ctx)
+		updateChecker.Start(ctx)
 
-		// Register after AppKit is running: Go's signal.Notify before [NSApp run] breaks Cocoa.
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 		go func() {
 			<-sigCh
-			cancel()
-			pollSession.Stop()
-			darwin.Quit()
+			quitTray()
 		}()
 	}()
 
@@ -136,6 +173,7 @@ func Run(opts Options) error {
 	runDarwinAppKitLoop()
 
 	cancel()
+	updateChecker.Stop()
 	pollSession.Stop()
 	return nil
 }

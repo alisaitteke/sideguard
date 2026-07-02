@@ -93,8 +93,9 @@ func TestSessionPollInvokesOnUpdate(t *testing.T) {
 	if gotItems[0].ID != id {
 		t.Fatalf("got id %q, want %q", gotItems[0].ID, id)
 	}
-	if gotMode != approvalmode.Ask {
-		t.Fatalf("got mode %q, want ask", gotMode)
+	// Fresh stores default to auto (smart triage) since sdh Phase 3.
+	if gotMode != approvalmode.Auto {
+		t.Fatalf("got mode %q, want auto", gotMode)
 	}
 	if !ctrl.Healthy() {
 		t.Fatal("expected session healthy after successful poll")

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/alisaitteke/vibeguard/internal/api"
+	"github.com/alisaitteke/vibeguard/internal/approvalmode"
 )
 
 func TestIsAllowedOrigin(t *testing.T) {
@@ -48,6 +49,14 @@ func (s stubApprovalClient) WaitApproval(_ context.Context, _ string) (*api.Appr
 		perm = "allow"
 	}
 	return &api.ApprovalDecisionResponse{Permission: perm}, nil
+}
+
+func (s stubApprovalClient) GetApprovalMode(context.Context) (approvalmode.Mode, error) {
+	return approvalmode.Ask, nil
+}
+
+func (s stubApprovalClient) IngestEvent(context.Context, api.CommandEvent) error {
+	return nil
 }
 
 func TestHTTPProxyToolsCallDenied(t *testing.T) {

@@ -1,0 +1,19 @@
+# Persistence: establishing durable footholds (cron, launchd, shell rc files).
+# Category default: high -> ask.
+rules:
+  - id: persistence-crontab
+    category: persistence
+    reason: 'installing a crontab entry'
+    argv0: '^crontab$'
+  - id: persistence-cron-dirs
+    category: persistence
+    reason: 'writing into system cron directories'
+    text: '/(etc/cron|var/spool/cron)'
+  - id: persistence-launch-agents
+    category: persistence
+    reason: 'installing a macOS launch agent/daemon'
+    text: '(Library/)?Launch(Agents|Daemons)/'
+  - id: persistence-shell-rc
+    category: persistence
+    reason: 'writing to a shell startup file'
+    text: '>>?\s*[^\s]*\.(bashrc|zshrc|bash_profile|profile|zprofile)\b'

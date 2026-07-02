@@ -9,6 +9,7 @@
 extern void goDecide(char *id, char *decision);
 extern void goSetMode(int mode_index);
 extern void goQuitTray(void);
+extern void goInstallUpdate(void);
 
 static char *copyCString(NSString *s) {
     if (s == nil) {
@@ -34,6 +35,9 @@ static NSSegmentedControl *gModeControl = nil;
 static NSStackView *gBodyStack = nil;
 static NSScrollView *gBodyScroll = nil;
 static NSView *gPanelRoot = nil;
+static NSStackView *gUpdateFooter = nil;
+static NSTextField *gUpdateLabel = nil;
+static NSButton *gInstallBtn = nil;
 
 static NSString *jsonString(id dict, NSString *key);
 static BOOL jsonBool(id dict, NSString *key);
@@ -91,7 +95,7 @@ static void rebuildBodyFromJSON(NSDictionary *payload, id target);
     [rootStack addArrangedSubview:gDaemonLabel];
     [rootStack addArrangedSubview:gPendingLabel];
 
-    gModeControl = [NSSegmentedControl segmentedControlWithLabels:@[@"Ask", @"Auto-allow", @"Auto-deny"]
+    gModeControl = [NSSegmentedControl segmentedControlWithLabels:@[@"Ask", @"Auto", @"Auto-allow", @"Auto-deny"]
                                                          trackingMode:NSSegmentSwitchTrackingSelectOne
                                                                target:self
                                                                action:@selector(modeChanged:)];
@@ -122,6 +126,24 @@ static void rebuildBodyFromJSON(NSDictionary *payload, id target);
     [rootStack addArrangedSubview:gBodyScroll];
     [gBodyScroll.heightAnchor constraintGreaterThanOrEqualToConstant:80.0].active = YES;
     [gBodyScroll setContentHuggingPriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationVertical];
+
+    gUpdateFooter = [[NSStackView alloc] init];
+    gUpdateFooter.translatesAutoresizingMaskIntoConstraints = NO;
+    gUpdateFooter.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    gUpdateFooter.alignment = NSLayoutAttributeCenterY;
+    gUpdateFooter.spacing = 8.0;
+    gUpdateFooter.hidden = YES;
+
+    gUpdateLabel = [self makeStatusLabel:@""];
+    [gUpdateFooter addArrangedSubview:gUpdateLabel];
+
+    gInstallBtn = [NSButton buttonWithTitle:@"Install" target:self action:@selector(installClicked:)];
+    gInstallBtn.bezelStyle = NSBezelStyleRounded;
+    [gUpdateFooter addArrangedSubview:gInstallBtn];
+    [gInstallBtn setContentHuggingPriority:NSLayoutPriorityRequired forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+    [rootStack addArrangedSubview:gUpdateFooter];
+    [gUpdateFooter.widthAnchor constraintEqualToConstant:kPanelWidth - (kPadding * 2)].active = YES;
 
     NSButton *quitBtn = [NSButton buttonWithTitle:@"Quit" target:self action:@selector(quitClicked:)];
     quitBtn.bezelStyle = NSBezelStyleRounded;
@@ -187,6 +209,11 @@ static void rebuildBodyFromJSON(NSDictionary *payload, id target);
     goQuitTray();
 }
 
+- (void)installClicked:(id)sender {
+    (void)sender;
+    goInstallUpdate();
+}
+
 - (void)setTrayIcon:(NSImage *)image {
     if (gStatusItem == nil || image == nil) {
         return;
@@ -241,6 +268,19 @@ static void rebuildBodyFromJSON(NSDictionary *payload, id target);
         gModeControl.selectedSegment = modeIndex;
     }
     gModeControl.enabled = jsonBool(payload, @"mode_enabled");
+
+    BOOL updateVisible = jsonBool(payload, @"update_visible");
+    if (gUpdateFooter != nil) {
+        gUpdateFooter.hidden = !updateVisible;
+    }
+    if (updateVisible) {
+        if (gUpdateLabel != nil) {
+            gUpdateLabel.stringValue = jsonString(payload, @"update_label");
+        }
+        if (gInstallBtn != nil) {
+            gInstallBtn.enabled = jsonBool(payload, @"update_enabled");
+        }
+    }
 
     rebuildBodyFromJSON(payload, self);
 }

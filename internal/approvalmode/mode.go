@@ -11,8 +11,10 @@ import (
 type Mode string
 
 const (
-	// Ask queues requests for manual Allow/Deny (default).
+	// Ask queues requests for manual Allow/Deny.
 	Ask Mode = "ask"
+	// Auto applies smart triage: detect allow/deny at hook level; uncertain → LLM or queue.
+	Auto Mode = "auto"
 	// AutoAllow auto-allows every queued request (audit logged).
 	AutoAllow Mode = "auto_allow"
 	// AutoDeny auto-denies every queued request (audit logged).
@@ -25,7 +27,7 @@ const SettingKey = "approval_mode"
 // Valid reports whether m is a known mode value.
 func (m Mode) Valid() bool {
 	switch m {
-	case Ask, AutoAllow, AutoDeny:
+	case Ask, Auto, AutoAllow, AutoDeny:
 		return true
 	default:
 		return false
@@ -44,6 +46,8 @@ func Parse(s string) (Mode, error) {
 // Label returns a short human-readable label for UI surfaces.
 func (m Mode) Label() string {
 	switch m {
+	case Auto:
+		return "Auto"
 	case AutoAllow:
 		return "Auto-allow"
 	case AutoDeny:
@@ -82,11 +86,13 @@ func ParseCLI(s string) (Mode, error) {
 	switch strings.ToLower(strings.TrimSpace(s)) {
 	case "ask":
 		return Ask, nil
+	case "auto":
+		return Auto, nil
 	case "auto-allow", "auto_allow":
 		return AutoAllow, nil
 	case "auto-deny", "auto_deny":
 		return AutoDeny, nil
 	default:
-		return "", fmt.Errorf("invalid approval mode %q (use ask, auto-allow, or auto-deny)", s)
+		return "", fmt.Errorf("invalid approval mode %q (use ask, auto, auto-allow, or auto-deny)", s)
 	}
 }

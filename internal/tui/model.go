@@ -107,9 +107,14 @@ func setModeCmd(client *api.Client, mode approvalmode.Mode) tea.Cmd {
 	}
 }
 
+// nextMode cycles ask → auto → auto_allow → auto_deny → ask. Auto (smart
+// triage) needs no warning banner: uncertain commands still queue for review.
+// See docs/plans/2026-07-02-0001-shell-detect-history/ (sdh-phase-11.0-tray-tui.md).
 func nextMode(m approvalmode.Mode) approvalmode.Mode {
 	switch m {
 	case approvalmode.Ask:
+		return approvalmode.Auto
+	case approvalmode.Auto:
 		return approvalmode.AutoAllow
 	case approvalmode.AutoAllow:
 		return approvalmode.AutoDeny

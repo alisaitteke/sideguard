@@ -7,7 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/alisaitteke/vibeguard/internal/approvalmode"
@@ -120,6 +123,84 @@ func (c *Client) Decide(ctx context.Context, id, decision, reason string) (*Appr
 		return nil, err
 	}
 	return &out, nil
+}
+
+// IngestEvent posts a command event fire-and-forget. Errors are logged and swallowed
+// so hook/proxy paths never block on history persistence.
+func (c *Client) IngestEvent(ctx context.Context, e CommandEvent) error {
+	body, err := json.Marshal(e)
+	if err != nil {
+		return nil
+	}
+
+	ingestCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ingestCtx, http.MethodPost, c.baseURL+"/v1/events", bytes.NewReader(body))
+	if err != nil {
+		return nil
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	ingestClient := &http.Client{Timeout: 2 * time.Second}
+	resp, err := ingestClient.Do(req)
+	if err != nil {
+		log.Printf("vibeguard events: ingest unreachable: %v", err)
+		return nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusAccepted {
+		raw, _ := io.ReadAll(resp.Body)
+		log.Printf("vibeguard events: ingest failed: status %d: %s", resp.StatusCode, string(raw))
+	}
+	return nil
+}
+
+// QueryEvents lists command history rows from GET /v1/events.
+func (c *Client) QueryEvents(ctx context.Context, q EventQueryParams) ([]CommandEvent, error) {
+	u, err := url.Parse(c.baseURL + "/v1/events")
+	if err != nil {
+		return nil, err
+	}
+	vals := u.Query()
+	if q.Since != "" {
+		vals.Set("since", q.Since)
+	}
+	if q.Denied {
+		vals.Set("denied", "true")
+	}
+	if q.CWD != "" {
+		vals.Set("cwd", q.CWD)
+	}
+	if q.Limit > 0 {
+		vals.Set("limit", strconv.Itoa(q.Limit))
+	}
+	if q.Search != "" {
+		vals.Set("search", q.Search)
+	}
+	u.RawQuery = vals.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("daemon unreachable: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		raw, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("query events failed: status %d: %s", resp.StatusCode, string(raw))
+	}
+
+	var out []CommandEvent
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 // RequestApproval queues a new approval and returns its id.

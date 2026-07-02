@@ -1,0 +1,2 @@
+# expect: rm -rf
+echo 726d202d7266202f746d702f78 | xxd -r -p | sh

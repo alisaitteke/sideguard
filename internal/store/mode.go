@@ -15,10 +15,10 @@ CREATE TABLE IF NOT EXISTS daemon_settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
-INSERT OR IGNORE INTO daemon_settings (key, value) VALUES ('approval_mode', 'ask');
+INSERT OR IGNORE INTO daemon_settings (key, value) VALUES ('approval_mode', 'auto');
 `
 
-// GetApprovalMode returns the persisted global approval mode (default ask).
+// GetApprovalMode returns the persisted global approval mode (default auto for new installs).
 func (s *Store) GetApprovalMode() (approvalmode.Mode, error) {
 	var value string
 	err := s.db.QueryRow(`

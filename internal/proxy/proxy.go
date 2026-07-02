@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/alisaitteke/vibeguard/internal/api"
+	"github.com/alisaitteke/vibeguard/internal/approvalmode"
 )
 
 // RunOptions configures the STDIO MCP proxy loop.
@@ -45,6 +46,14 @@ func (defaultAPIClient) RequestApproval(ctx context.Context, req api.ApprovalReq
 
 func (defaultAPIClient) WaitApproval(ctx context.Context, id string) (*api.ApprovalDecisionResponse, error) {
 	return api.NewClient().WaitApproval(ctx, id)
+}
+
+func (defaultAPIClient) GetApprovalMode(ctx context.Context) (approvalmode.Mode, error) {
+	return api.NewClient().GetApprovalMode(ctx)
+}
+
+func (defaultAPIClient) IngestEvent(ctx context.Context, e api.CommandEvent) error {
+	return api.NewClient().IngestEvent(ctx, e)
 }
 
 // Run starts the transparent STDIO proxy until a pipe closes or an error occurs.
