@@ -3,7 +3,9 @@
 package tray
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"os/signal"
 	"sync"
@@ -30,6 +32,7 @@ func Run(opts Options) error {
 
 	var deciding sync.Map
 	var loadMoreLoading sync.Mutex
+	var lastRenderedPanel []byte
 
 	home := approvalfmt.HomeDir()
 	version := opts.Version
@@ -49,31 +52,11 @@ func Run(opts Options) error {
 
 		content := BuildTrayContent(snapshot)
 
-		pendingRows := make([]darwin.PanelJSONRow, 0, len(content.PendingRows))
-		for _, row := range content.PendingRows {
-			pendingRows = append(pendingRows, darwin.PanelJSONRow{
-				Kind:   string(row.Kind),
-				ID:     row.ID,
-				Label:  row.Label,
-				Detail: row.Detail,
-			})
-		}
-
-		historyRows := make([]darwin.PanelJSONRow, 0, len(content.HistoryRows))
-		for _, row := range content.HistoryRows {
-			historyRows = append(historyRows, darwin.PanelJSONRow{
-				Kind:   string(row.Kind),
-				ID:     row.ID,
-				Label:  row.Label,
-				Detail: row.Detail,
-			})
-		}
-
-		darwin.UpdatePanel(darwin.PanelJSON{
+		payload := darwin.PanelJSON{
 			ModeIndex:       content.ModeIndex,
 			ModeEnabled:     content.ModeEnabled,
-			PendingRows:     pendingRows,
-			HistoryRows:     historyRows,
+			PendingRows:     trayRowsToPanelJSON(content.PendingRows),
+			HistoryRows:     trayRowsToPanelJSON(content.HistoryRows),
 			HistoryHasMore:  content.HistoryHasMore,
 			PendingOverflow: content.PendingOverflow,
 			EmptyMessage:    content.EmptyMessage,
@@ -82,7 +65,18 @@ func Run(opts Options) error {
 			UpdateVisible:   content.UpdateVisible,
 			UpdateLabel:     content.UpdateLabel,
 			UpdateEnabled:   content.UpdateEnabled,
-		})
+		}
+
+		encoded, err := json.Marshal(payload)
+		if err != nil {
+			return
+		}
+		if bytes.Equal(encoded, lastRenderedPanel) {
+			return
+		}
+		lastRenderedPanel = encoded
+
+		darwin.UpdatePanel(payload)
 	}
 
 	var prevPending []api.PendingApproval
@@ -238,4 +232,17 @@ func Run(opts Options) error {
 	updateChecker.Stop()
 	pollSession.Stop()
 	return nil
+}
+
+func trayRowsToPanelJSON(rows []TrayRow) []darwin.PanelJSONRow {
+	out := make([]darwin.PanelJSONRow, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, darwin.PanelJSONRow{
+			Kind:   string(row.Kind),
+			ID:     row.ID,
+			Label:  row.Label,
+			Detail: row.Detail,
+		})
+	}
+	return out
 }

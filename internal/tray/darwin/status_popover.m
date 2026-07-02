@@ -69,6 +69,9 @@ static NSView *gSettingsContainer = nil;
 static NSScrollView *gSettingsScroll = nil;
 static NSStackView *gSettingsRowsStack = nil;
 static BOOL gShowingSettings = NO;
+static NSString *gLastBodyFingerprint = nil;
+static BOOL gHasSavedListScroll = NO;
+static NSPoint gSavedListScrollOrigin = {0, 0};
 static char kRowDetailTextKey;
 static char kRowDetailIDKey;
 static char kRowDetailUseEventIDKey;
@@ -77,6 +80,8 @@ static NSString *jsonString(id dict, NSString *key);
 static BOOL jsonBool(id dict, NSString *key);
 static NSInteger jsonInt(id dict, NSString *key);
 static void rebuildBodyFromJSON(NSDictionary *payload, id target);
+static NSString *bodyPayloadFingerprint(NSDictionary *payload);
+static void restoreBodyScrollOrigin(NSClipView *clipView, NSPoint origin);
 static void addRowsFromJSONArray(NSArray *rows, NSString *kind, id target, NSMutableArray *outViews);
 static NSView *makeHistoryRow(NSString *label, NSString *detail, NSString *rowID, id target);
 static NSView *makeApprovalRow(NSString *label, NSString *detail, NSString *approvalID, id target);
@@ -954,10 +959,24 @@ static NSColor *verdictBadgeColor(NSString *verdict);
     }
     NSDictionary *payload = (NSDictionary *)parsed;
 
+    gHasSavedListScroll = gPopover != nil && gPopover.isShown && !gShowingDetail && !gShowingSettings;
+    if (gHasSavedListScroll && gBodyScroll != nil) {
+        NSClipView *clip = gBodyScroll.contentView;
+        if (clip != nil) {
+            gSavedListScrollOrigin = clip.bounds.origin;
+        }
+    }
+
     gHistoryHasMore = jsonBool(payload, @"history_has_more");
 
-    gFooterDaemonLabel.stringValue = jsonString(payload, @"footer_daemon");
-    gFooterPendingLabel.stringValue = jsonString(payload, @"footer_pending");
+    NSString *footerDaemon = jsonString(payload, @"footer_daemon");
+    if (![footerDaemon isEqualToString:gFooterDaemonLabel.stringValue ?: @""]) {
+        gFooterDaemonLabel.stringValue = footerDaemon;
+    }
+    NSString *footerPending = jsonString(payload, @"footer_pending");
+    if (![footerPending isEqualToString:gFooterPendingLabel.stringValue ?: @""]) {
+        gFooterPendingLabel.stringValue = footerPending;
+    }
 
     NSInteger modeIndex = jsonInt(payload, @"mode_index");
     BOOL modeEnabled = jsonBool(payload, @"mode_enabled");
@@ -1589,18 +1608,72 @@ static NSDictionary *collectSettingsSavePayload(void) {
     };
 }
 
+static NSString *bodyPayloadFingerprint(NSDictionary *payload) {
+    if (payload == nil) {
+        return @"";
+    }
+    NSDictionary *body = @{
+        @"pending_rows": payload[@"pending_rows"] ?: @[],
+        @"history_rows": payload[@"history_rows"] ?: @[],
+        @"history_has_more": payload[@"history_has_more"] ?: @NO,
+        @"pending_overflow": payload[@"pending_overflow"] ?: @"",
+        @"empty_message": payload[@"empty_message"] ?: @"",
+    };
+    NSData *data = [NSJSONSerialization dataWithJSONObject:body options:NSJSONWritingSortedKeys error:nil];
+    if (data == nil) {
+        return @"";
+    }
+    return [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] ?: @"";
+}
+
+static void restoreBodyScrollOrigin(NSClipView *clipView, NSPoint origin) {
+    if (clipView == nil || gBodyScroll == nil) {
+        return;
+    }
+    [clipView scrollToPoint:origin];
+    [gBodyScroll reflectScrolledClipView:clipView];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [clipView scrollToPoint:origin];
+        [gBodyScroll reflectScrolledClipView:clipView];
+    });
+}
+
+static void refreshDetailFromPayload(NSDictionary *payload, NSString *detailRowID, BOOL detailUseEventID) {
+    if (gDetailTextView == nil || detailRowID.length == 0) {
+        return;
+    }
+    NSString *updated = detailTextForRowID(payload, detailRowID);
+    if (updated.length > 0) {
+        gDetailTextView.string = updated;
+    }
+    updateDetailActionButtons(detailRowID, detailUseEventID, payload);
+}
+
 static void rebuildBodyFromJSON(NSDictionary *payload, id target) {
     BOOL wasShowingDetail = gShowingDetail;
     BOOL wasShowingSettings = gShowingSettings;
     NSString *detailRowID = wasShowingDetail ? [gDetailRowID copy] : nil;
     BOOL detailUseEventID = wasShowingDetail ? gDetailUseEventID : NO;
 
+    NSString *fingerprint = bodyPayloadFingerprint(payload);
+    BOOL fingerprintMatch = gLastBodyFingerprint != nil && [fingerprint isEqualToString:gLastBodyFingerprint];
+    NSClipView *clipViewBefore = gBodyScroll ? gBodyScroll.contentView : nil;
+    if (fingerprintMatch) {
+        if (wasShowingDetail) {
+            refreshDetailFromPayload(payload, detailRowID, detailUseEventID);
+        } else if (gHasSavedListScroll && clipViewBefore != nil) {
+            restoreBodyScrollOrigin(clipViewBefore, gSavedListScrollOrigin);
+        }
+        return;
+    }
+    gLastBodyFingerprint = [fingerprint copy];
+
     NSClipView *clipView = gBodyScroll ? gBodyScroll.contentView : nil;
     NSPoint savedOrigin = NSZeroPoint;
     CGFloat docHeightBefore = 0;
     BOOL preserveScroll = clipView != nil && !wasShowingDetail;
     if (preserveScroll) {
-        savedOrigin = clipView.bounds.origin;
+        savedOrigin = gHasSavedListScroll ? gSavedListScrollOrigin : clipView.bounds.origin;
         if (clipView.documentView != nil) {
             docHeightBefore = NSHeight(clipView.documentView.bounds);
         }
@@ -1661,8 +1734,7 @@ static void rebuildBodyFromJSON(NSDictionary *payload, id target) {
         NSRect docBounds = clipView.documentView.bounds;
         CGFloat maxY = MAX(0, NSMaxY(docBounds) - NSHeight(clipView.bounds));
         savedOrigin.y = MIN(MAX(0, savedOrigin.y), maxY);
-        [clipView scrollToPoint:savedOrigin];
-        [gBodyScroll reflectScrolledClipView:clipView];
+        restoreBodyScrollOrigin(clipView, savedOrigin);
     }
 
     if (wasShowingDetail) {
