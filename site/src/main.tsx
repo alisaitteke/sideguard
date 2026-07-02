@@ -11,7 +11,7 @@ initPostHog()
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ThemeProvider defaultTheme="dark">
+    <ThemeProvider>
       <AppRouter />
       <Toaster />
     </ThemeProvider>

@@ -10,12 +10,9 @@ export function NotFoundPage() {
       <header className="py-16 text-center sm:py-24">
         <div className="mx-auto max-w-[52rem] px-4">
           <div className="mb-6 flex justify-center">
-            <img
-              src="/assets/logo.svg"
-              alt="SideGuard"
-              width={48}
-              height={48}
-              className="brightness-0 invert"
+            <span
+              aria-hidden
+              className="size-12 bg-hero-glow mask-[url(/assets/logo.svg)] mask-contain mask-center mask-no-repeat"
             />
           </div>
           <h1 className="text-2xl font-semibold sm:text-3xl">Page not found</h1>

@@ -1,0 +1,203 @@
+/* YouTube-style player chrome (pattern from Web Dev Simplified player clone). */
+
+.prompt-injection-content.paused .yt-paused-overlay,
+.prompt-injection-content:hover .yt-video-controls-container,
+.prompt-injection-content:focus-within .yt-video-controls-container,
+.prompt-injection-content.scrubbing .yt-video-controls-container,
+.yt-video-controls-container.paused,
+.yt-video-controls-container.scrubbing {
+  opacity: 1;
+}
+
+.yt-paused-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: rgb(1 4 9 / 0.55);
+  cursor: pointer;
+  transition: opacity 150ms ease-in-out;
+}
+
+.yt-paused-overlay:focus-visible {
+  outline: none;
+}
+
+.yt-paused-overlay:focus-visible .yt-big-play {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.yt-paused-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.875rem;
+  pointer-events: none;
+}
+
+.yt-big-play {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.25rem;
+  height: 3rem;
+  border-radius: 0.875rem;
+  background: #f03;
+  color: #fff;
+  box-shadow: 0 0 1.25rem rgb(0 0 0 / 0.45);
+  transition:
+    background-color 150ms ease-in-out,
+    transform 150ms ease-in-out;
+}
+
+.yt-paused-overlay:hover .yt-big-play {
+  background: #ff1a1a;
+  transform: scale(1.04);
+}
+
+.yt-paused-caption {
+  margin: 0;
+  max-width: 14rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  color: #e6edf3;
+  text-align: center;
+  text-shadow: 0 1px 10px rgb(0 0 0 / 0.65);
+  user-select: none;
+}
+
+.yt-video-controls-container {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 150ms ease-in-out;
+}
+
+.yt-video-controls-container::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: -1;
+  width: 100%;
+  aspect-ratio: 6 / 1;
+  background: linear-gradient(to top, rgb(0 0 0 / 0.75), transparent);
+  pointer-events: none;
+}
+
+.yt-timeline-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 0.4375rem;
+  margin-inline: 0.5rem;
+  cursor: pointer;
+}
+
+.yt-timeline {
+  position: relative;
+  width: 100%;
+  height: 3px;
+  background-color: rgb(100 100 100 / 0.5);
+  transition: height 150ms ease-in-out;
+}
+
+.yt-timeline::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: calc(100% - var(--progress-position, 0) * 100%);
+  background-color: #f03;
+}
+
+.yt-thumb-indicator {
+  --scale: 0;
+  position: absolute;
+  top: -50%;
+  left: calc(var(--progress-position, 0) * 100%);
+  aspect-ratio: 1 / 1;
+  height: 200%;
+  border-radius: 50%;
+  background-color: #f03;
+  transform: translateX(-50%) scale(var(--scale));
+  transition: transform 150ms ease-in-out;
+}
+
+.yt-timeline-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.yt-timeline-container:hover .yt-timeline,
+.prompt-injection-content.scrubbing .yt-timeline,
+.yt-video-controls-container.scrubbing .yt-timeline {
+  height: 100%;
+}
+
+.yt-timeline-container:hover .yt-thumb-indicator,
+.prompt-injection-content.scrubbing .yt-thumb-indicator,
+.yt-video-controls-container.scrubbing .yt-thumb-indicator {
+  --scale: 1;
+}
+
+.yt-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.25rem 0.5rem 0.375rem;
+}
+
+.yt-control-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 150ms ease-in-out;
+}
+
+.yt-control-btn:hover {
+  opacity: 1;
+}
+
+.yt-control-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+.yt-duration-container {
+  display: flex;
+  flex-grow: 1;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+.yt-duration-sep {
+  opacity: 0.85;
+}

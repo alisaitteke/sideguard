@@ -1,0 +1,186 @@
+/* Prompt-injection scenario: GitHub issue mock + camera animation (WAAPI). */
+
+.prompt-injection-scene {
+  --gh-bg: #0d1117;
+  --gh-canvas: #010409;
+  --gh-border: #30363d;
+  --gh-muted: #8b949e;
+  --gh-text: #e6edf3;
+  --gh-link: #4493f8;
+  --gh-code-bg: #161b22;
+  /* Fixed GitHub-issue canvas — does not reflow on viewport resize */
+  --gh-issue-width: 56rem;
+}
+
+.prompt-injection-viewport {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: clamp(18rem, 62vh, 40rem);
+  overflow: hidden;
+  border: 1px solid var(--gh-border);
+  border-radius: 0.75rem;
+  background: var(--gh-canvas);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.04),
+    0 24px 48px rgb(0 0 0 / 0.35);
+}
+
+.prompt-injection-content {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--gh-bg);
+}
+
+.prompt-injection-camera {
+  width: var(--gh-issue-width);
+  min-width: var(--gh-issue-width);
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.prompt-injection-github {
+  width: var(--gh-issue-width);
+  min-width: var(--gh-issue-width);
+  background: var(--gh-bg);
+  color: var(--gh-text);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.prompt-injection-github a {
+  color: var(--gh-link);
+  text-decoration: none;
+}
+
+.prompt-injection-github a:hover {
+  text-decoration: underline;
+}
+
+.prompt-injection-topbar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--gh-border);
+  background: #010409;
+  padding: 0.625rem 1rem;
+  font-size: 0.8125rem;
+  color: var(--gh-muted);
+}
+
+.prompt-injection-topbar-dots {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.prompt-injection-topbar-dots span {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 9999px;
+  background: #484f58;
+}
+
+.prompt-injection-issue-header {
+  border-bottom: 1px solid var(--gh-border);
+  padding: 1.25rem 1.5rem 1rem;
+}
+
+.prompt-injection-issue-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.625rem;
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.prompt-injection-badge-open {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgb(35 134 54 / 0.4);
+  border-radius: 9999px;
+  background: rgb(35 134 54 / 0.15);
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #3fb950;
+}
+
+.prompt-injection-meta {
+  margin-top: 0.625rem;
+  font-size: 0.875rem;
+  color: var(--gh-muted);
+}
+
+.prompt-injection-comment {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--gh-border);
+  padding: 1rem 1.5rem 1.25rem;
+}
+
+.prompt-injection-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #6e40c9, #1f6feb);
+}
+
+.prompt-injection-comment-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.375rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.prompt-injection-comment-header strong {
+  color: var(--gh-text);
+}
+
+.prompt-injection-comment-header span {
+  color: var(--gh-muted);
+}
+
+.prompt-injection-body p {
+  margin: 0 0 0.875rem;
+  color: #c9d1d9;
+}
+
+.prompt-injection-body p:last-child {
+  margin-bottom: 0;
+}
+
+.prompt-injection-body h3 {
+  margin: 1.25rem 0 0.625rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.prompt-injection-body ul,
+.prompt-injection-body ol {
+  margin: 0 0 0.875rem;
+  padding-left: 1.25rem;
+  color: #c9d1d9;
+}
+
+.prompt-injection-body li {
+  margin-bottom: 0.375rem;
+}
+
+.prompt-injection-body code {
+  border-radius: 0.375rem;
+  background: var(--gh-code-bg);
+  padding: 0.125rem 0.375rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8125rem;
+  word-break: break-word;
+}
