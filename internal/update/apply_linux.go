@@ -9,7 +9,7 @@ import (
 	"os/exec"
 
 	"github.com/alisaitteke/vibeguard/internal/daemon"
-	"github.com/alisaitteke/vibeguard/internal/install"
+	"github.com/alisaitteke/vibeguard/internal/paths"
 )
 
 const systemdDaemonUnit = "vibeguard-daemon.service"
@@ -51,7 +51,7 @@ func (linuxApplier) Start(ctx context.Context) error {
 }
 
 func hasSystemdDaemonUnit() bool {
-	path, err := install.SystemdUnitPath()
+	path, err := paths.SystemdUnitPath()
 	if err != nil {
 		return false
 	}

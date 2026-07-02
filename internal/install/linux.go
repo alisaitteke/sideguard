@@ -10,15 +10,9 @@ import (
 	"github.com/alisaitteke/vibeguard/internal/paths"
 )
 
-const systemdUnitName = "vibeguard-daemon.service"
-
 // SystemdUnitPath returns the user systemd unit file path.
 func SystemdUnitPath() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(home, ".config", "systemd", "user", systemdUnitName), nil
+	return paths.SystemdUnitPath()
 }
 
 // RenderSystemdUnit returns a user-level systemd unit for the VibeGuard daemon.
