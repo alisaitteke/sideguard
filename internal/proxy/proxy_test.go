@@ -14,11 +14,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/api"
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
-	"github.com/alisaitteke/vibeguard/internal/store"
+	"github.com/alisaitteke/sideguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/store"
 
-	_ "github.com/alisaitteke/vibeguard/internal/detect"
+	_ "github.com/alisaitteke/sideguard/internal/detect"
 )
 
 func newProxyPipes() (*io.PipeWriter, *io.PipeReader, *io.PipeReader, *io.PipeWriter) {
@@ -161,7 +161,7 @@ func TestProxyToolsCallDeny(t *testing.T) {
 
 func TestProxyToolsCallPolicyAutoAllow(t *testing.T) {
 	home := t.TempDir()
-	dir := filepath.Join(home, ".vibeguard")
+	dir := filepath.Join(home, ".sideguard")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -223,7 +223,7 @@ func TestProxyToolsCallPolicyAutoAllow(t *testing.T) {
 
 func TestProxyToolsCallPolicyAutoDeny(t *testing.T) {
 	home := t.TempDir()
-	dir := filepath.Join(home, ".vibeguard")
+	dir := filepath.Join(home, ".sideguard")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatal(err)
 	}

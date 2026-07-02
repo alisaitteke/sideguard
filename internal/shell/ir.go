@@ -1,4 +1,4 @@
-// Package shell is VibeGuard's static shell understanding layer. It normalizes,
+// Package shell is SideGuard's static shell understanding layer. It normalizes,
 // deobfuscates, and parses shell command strings into a structured IR that the
 // detect engine consumes. It performs pure string/AST analysis and NEVER
 // executes, evals, or spawns any command.

@@ -3,8 +3,8 @@ package detect
 import (
 	"strings"
 
-	"github.com/alisaitteke/vibeguard/internal/policy"
-	"github.com/alisaitteke/vibeguard/internal/shell"
+	"github.com/alisaitteke/sideguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/shell"
 )
 
 // maxUnwrap bounds how many levels of interpreter_escape NestedCommands the
@@ -41,9 +41,9 @@ type Engine struct {
 }
 
 // NewEngine builds an Engine from the embedded rule packs plus any user rule
-// packs in ~/.vibeguard/rules. Embedded rules load first; user rules are merged
+// packs in ~/.sideguard/rules. Embedded rules load first; user rules are merged
 // after and may add allow/deny/ask signals, but user-supplied bypass rules are
-// dropped at load (VibeGuard self-protection is non-overridable).
+// dropped at load (SideGuard self-protection is non-overridable).
 func NewEngine() (*Engine, error) {
 	embedded, err := loadEmbedded()
 	if err != nil {
@@ -57,7 +57,7 @@ func NewEngine() (*Engine, error) {
 }
 
 // NewEngineWithUserDir is NewEngine with an explicit user rules directory,
-// exposed for tests that need a controlled ~/.vibeguard/rules equivalent.
+// exposed for tests that need a controlled ~/.sideguard/rules equivalent.
 func NewEngineWithUserDir(userDir string) (*Engine, error) {
 	embedded, err := loadEmbedded()
 	if err != nil {

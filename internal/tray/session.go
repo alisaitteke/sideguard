@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/api"
-	"github.com/alisaitteke/vibeguard/internal/approvalfmt"
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/approvalfmt"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
 )
 
 // PollInterval matches the TUI auto-refresh interval (internal/tui/model.go).

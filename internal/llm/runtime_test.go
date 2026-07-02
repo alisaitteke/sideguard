@@ -8,7 +8,7 @@ import (
 
 func writeTestConfig(t *testing.T, home string, content string) {
 	t.Helper()
-	dir := filepath.Join(home, ".vibeguard")
+	dir := filepath.Join(home, ".sideguard")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func TestEnabledWorkspaceOverride(t *testing.T) {
 `)
 
 	cwd := t.TempDir()
-	workspaceDir := filepath.Join(cwd, ".vibeguard")
+	workspaceDir := filepath.Join(cwd, ".sideguard")
 	if err := os.MkdirAll(workspaceDir, 0o700); err != nil {
 		t.Fatal(err)
 	}

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/alisaitteke/vibeguard/internal/paths"
+	"github.com/alisaitteke/sideguard/internal/paths"
 )
 
 // launchctlRunner executes launchctl subcommands. Tests inject a mock implementation.
@@ -28,7 +28,7 @@ func launchctlDomain(uid string) string {
 	return fmt.Sprintf("gui/%s", uid)
 }
 
-// launchctlServiceID returns the fully qualified service id (e.g. gui/501/com.vibeguard.daemon).
+// launchctlServiceID returns the fully qualified service id (e.g. gui/501/com.sideguard.daemon).
 func launchctlServiceID(domain, label string) string {
 	return fmt.Sprintf("%s/%s", domain, label)
 }
@@ -83,7 +83,7 @@ func kickstartLaunchAgent(runner launchctlRunner, domain, label string) (string,
 func formatLaunchctlInstallError(domain, label string, bootstrapOut string, bootstrapErr error, kickstartOut string, kickstartErr error) error {
 	uid := strings.TrimPrefix(domain, "gui/")
 	manual := fmt.Sprintf("launchctl bootout gui/%s %s", uid, label)
-	hint := "the LaunchAgent may already be loaded from a prior install or `vibeguard daemon start`"
+	hint := "the LaunchAgent may already be loaded from a prior install or `sideguard daemon start`"
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "launchctl bootstrap failed: %v", bootstrapErr)

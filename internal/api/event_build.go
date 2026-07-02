@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
-	"github.com/alisaitteke/vibeguard/internal/policy"
-	"github.com/alisaitteke/vibeguard/internal/shell"
-	"github.com/alisaitteke/vibeguard/internal/store"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/shell"
+	"github.com/alisaitteke/sideguard/internal/store"
 )
 
 // BuildCommandEvent constructs an API event from an intercept decision.

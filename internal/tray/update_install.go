@@ -6,7 +6,7 @@ import (
 	"os/exec"
 )
 
-// SpawnDetachedUpdateApply starts `vibeguard update apply --restart --yes` detached from the tray.
+// SpawnDetachedUpdateApply starts `sideguard update apply --restart --yes` detached from the tray.
 // The tray process should exit immediately after a successful spawn so the binary can be replaced.
 // See docs/plans/2026-07-02-1102-github-update/ (vgu-phase-4.0-tray-update.md).
 func SpawnDetachedUpdateApply() error {

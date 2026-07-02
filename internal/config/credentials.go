@@ -9,13 +9,13 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/alisaitteke/vibeguard/internal/paths"
+	"github.com/alisaitteke/sideguard/internal/paths"
 )
 
 const (
-	envOpenAIKey    = "VIBEGUARD_OPENAI_API_KEY"
-	envAnthropicKey = "VIBEGUARD_ANTHROPIC_API_KEY"
-	envOllamaKey    = "VIBEGUARD_OLLAMA_API_KEY"
+	envOpenAIKey    = "SIDEGUARD_OPENAI_API_KEY"
+	envAnthropicKey = "SIDEGUARD_ANTHROPIC_API_KEY"
+	envOllamaKey    = "SIDEGUARD_OLLAMA_API_KEY"
 )
 
 // ProviderCredential is a single provider instance secret fields.
@@ -31,8 +31,8 @@ type credentialsFile struct {
 const DefaultCredentialsTemplate = `providers: {}
 `
 
-// ResolveProviderCredentials reads ~/.vibeguard/credentials.yaml and applies per-driver env overrides.
-// Env vars (VIBEGUARD_OPENAI_API_KEY, VIBEGUARD_ANTHROPIC_API_KEY, VIBEGUARD_OLLAMA_API_KEY) apply to
+// ResolveProviderCredentials reads ~/.sideguard/credentials.yaml and applies per-driver env overrides.
+// Env vars (SIDEGUARD_OPENAI_API_KEY, SIDEGUARD_ANTHROPIC_API_KEY, SIDEGUARD_OLLAMA_API_KEY) apply to
 // every configured provider instance with a matching driver when the env value is set.
 func ResolveProviderCredentials() (map[string]ProviderCredential, error) {
 	creds := make(map[string]ProviderCredential)

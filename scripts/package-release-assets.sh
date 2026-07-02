@@ -24,15 +24,15 @@ for dir in "${dist_root}"/*_*; do
   target="${base%_v*}"
   target="${target#*_}"
 
-  archive_base="vibeguard_${version}_${target}"
+  archive_base="sideguard_${version}_${target}"
   if [[ "${target}" == windows_* ]]; then
-    (cd "${dir}" && zip -q "${out_dir_abs}/${archive_base}.zip" vibeguard.exe)
+    (cd "${dir}" && zip -q "${out_dir_abs}/${archive_base}.zip" sideguard.exe)
   else
-    tar -czf "${out_dir}/${archive_base}.tar.gz" -C "${dir}" vibeguard
+    tar -czf "${out_dir}/${archive_base}.tar.gz" -C "${dir}" sideguard
   fi
 done
 
-if ! compgen -G "${out_dir}/vibeguard_*" > /dev/null; then
+if ! compgen -G "${out_dir}/sideguard_*" > /dev/null; then
   echo "package-release-assets: no archives created under ${dist_root}" >&2
   exit 1
 fi
@@ -40,9 +40,9 @@ fi
 (
   cd "${out_dir}"
   if command -v sha256sum >/dev/null 2>&1; then
-    sha256sum vibeguard_* > checksums.txt
+    sha256sum sideguard_* > checksums.txt
   else
-    shasum -a 256 vibeguard_* > checksums.txt
+    shasum -a 256 sideguard_* > checksums.txt
   fi
 )
 

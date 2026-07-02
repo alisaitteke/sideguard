@@ -10,7 +10,7 @@ import (
 
 // sendMacOS delivers an alert-only notification on macOS.
 // Prefers terminal-notifier when installed; falls back to osascript.
-// See docs/plans/2026-07-01-0127-vibeguard-foundation/ (vgf-phase-6.0-terminal-ui.md).
+// See docs/plans/2026-07-01-0127-sideguard-foundation/ (vgf-phase-6.0-terminal-ui.md).
 func sendMacOS(title, body string) error {
 	title = truncate(title, maxTitleLen)
 	body = truncate(body, maxBodyLen)

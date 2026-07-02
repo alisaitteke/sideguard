@@ -3,7 +3,7 @@ package detect
 import (
 	"testing"
 
-	"github.com/alisaitteke/vibeguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/policy"
 )
 
 func TestDecideNoMatchSafeArgv0Allows(t *testing.T) {
@@ -26,7 +26,7 @@ func TestDecideNoMatchUnknownArgv0Asks(t *testing.T) {
 func TestDecideBypassAlwaysDeny(t *testing.T) {
 	// Bypass is critical, but assert it denies even if flagged low severity.
 	matches := []ruleMatch{{id: "b", category: CategoryBypass, severity: SeverityLow}}
-	action, _, _ := decide(matches, "vibeguard")
+	action, _, _ := decide(matches, "sideguard")
 	if action != policy.ActionDeny {
 		t.Fatalf("bypass match: got %q, want deny", action)
 	}

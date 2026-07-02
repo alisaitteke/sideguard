@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/paths"
+	"github.com/alisaitteke/sideguard/internal/paths"
 )
 
 // Applier orchestrates download, verify, extract, and atomic binary replacement.
@@ -178,7 +178,7 @@ func assertWritable(path string) error {
 		return fmt.Errorf("target directory is not a directory: %s", dir)
 	}
 	// Create a probe file to detect write permission before stopping services.
-	probe := filepath.Join(dir, ".vibeguard-write-probe")
+	probe := filepath.Join(dir, ".sideguard-write-probe")
 	f, err := os.OpenFile(probe, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
 	if err != nil {
 		return fmt.Errorf("target not writable: %w", err)
@@ -197,16 +197,16 @@ func backupBinary(target, version string) error {
 		return err
 	}
 	ts := time.Now().UTC().Format("20060102-150405")
-	name := fmt.Sprintf("vibeguard-%s-%s", version, ts)
+	name := fmt.Sprintf("sideguard-%s-%s", version, ts)
 	dest := filepath.Join(backups, name)
 	return copyFile(target, dest)
 }
 
 func expectedBinaryName(goos string) string {
 	if goos == "windows" {
-		return "vibeguard.exe"
+		return "sideguard.exe"
 	}
-	return "vibeguard"
+	return "sideguard"
 }
 
 func extractArchive(archivePath, destDir, binaryName string) (string, error) {

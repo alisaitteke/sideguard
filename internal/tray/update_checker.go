@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/config"
-	"github.com/alisaitteke/vibeguard/internal/update"
+	"github.com/alisaitteke/sideguard/internal/config"
+	"github.com/alisaitteke/sideguard/internal/update"
 )
 
 const (
@@ -135,7 +135,7 @@ func (u *UpdateChecker) tick(ctx context.Context) {
 
 	result, err := u.checkFn(callCtx)
 	if err != nil {
-		log.Printf("vibeguard tray: update check failed: %v", err)
+		log.Printf("sideguard tray: update check failed: %v", err)
 		return
 	}
 

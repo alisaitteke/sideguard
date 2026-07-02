@@ -35,8 +35,8 @@ func TestLaunchctlDomain(t *testing.T) {
 }
 
 func TestLaunchctlServiceID(t *testing.T) {
-	got := launchctlServiceID("gui/501", "com.vibeguard.daemon")
-	if got != "gui/501/com.vibeguard.daemon" {
+	got := launchctlServiceID("gui/501", "com.sideguard.daemon")
+	if got != "gui/501/com.sideguard.daemon" {
 		t.Fatalf("got %q", got)
 	}
 }
@@ -76,7 +76,7 @@ func TestIsBootstrapAlreadyLoaded(t *testing.T) {
 
 func TestLoadLaunchAgentBootoutThenBootstrap(t *testing.T) {
 	runner := &mockLaunchctlRunner{}
-	plist := "/Users/test/Library/LaunchAgents/com.vibeguard.daemon.plist"
+	plist := "/Users/test/Library/LaunchAgents/com.sideguard.daemon.plist"
 
 	if err := loadLaunchAgent(runner, "501", plist); err != nil {
 		t.Fatal(err)
@@ -114,7 +114,7 @@ func TestLoadLaunchAgentBootstrapAlreadyLoadedKickstart(t *testing.T) {
 	for _, call := range runner.calls {
 		if len(call) > 0 && call[0] == "kickstart" {
 			sawKickstart = true
-			if call[1] != "-k" || call[2] != "gui/501/com.vibeguard.daemon" {
+			if call[1] != "-k" || call[2] != "gui/501/com.sideguard.daemon" {
 				t.Fatalf("unexpected kickstart call: %v", call)
 			}
 		}
@@ -139,7 +139,7 @@ func TestLoadLaunchAgentBootstrapFailureIncludesManualHint(t *testing.T) {
 		t.Fatal("expected error")
 	}
 	msg := err.Error()
-	if !strings.Contains(msg, "launchctl bootout gui/501 com.vibeguard.daemon") {
+	if !strings.Contains(msg, "launchctl bootout gui/501 com.sideguard.daemon") {
 		t.Fatalf("missing manual recovery hint: %s", msg)
 	}
 	if !strings.Contains(msg, "already be loaded") {
@@ -150,16 +150,16 @@ func TestLoadLaunchAgentBootstrapFailureIncludesManualHint(t *testing.T) {
 func TestBootoutIgnoresNotLoaded(t *testing.T) {
 	runner := &mockLaunchctlRunner{
 		errs: map[string]error{
-			"bootout gui/501/com.vibeguard.daemon": errors.New("exit status 3"),
+			"bootout gui/501/com.sideguard.daemon": errors.New("exit status 3"),
 			"bootout gui/501 /tmp/plist":           errors.New("exit status 3"),
 		},
 		outs: map[string]string{
-			"bootout gui/501/com.vibeguard.daemon": "Boot-out failed: 3: No such process",
+			"bootout gui/501/com.sideguard.daemon": "Boot-out failed: 3: No such process",
 			"bootout gui/501 /tmp/plist":           "Boot-out failed: 3: No such process",
 		},
 	}
 
-	bootoutLaunchAgent(runner, "gui/501", "com.vibeguard.daemon", "/tmp/plist")
+	bootoutLaunchAgent(runner, "gui/501", "com.sideguard.daemon", "/tmp/plist")
 	if len(runner.calls) != 1 {
 		t.Fatalf("expected single bootout when service not loaded, got %v", runner.calls)
 	}

@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/api"
-	"github.com/alisaitteke/vibeguard/internal/policy"
-	"github.com/alisaitteke/vibeguard/internal/store"
+	"github.com/alisaitteke/sideguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/store"
 
-	_ "github.com/alisaitteke/vibeguard/internal/detect"
+	_ "github.com/alisaitteke/sideguard/internal/detect"
 )
 
 func startTestDaemon(t *testing.T) *httptest.Server {
@@ -432,7 +432,7 @@ func TestDecodeToolInputStringJSON(t *testing.T) {
 func writeTestPolicy(t *testing.T, content string) {
 	t.Helper()
 	home := t.TempDir()
-	dir := filepath.Join(home, ".vibeguard")
+	dir := filepath.Join(home, ".sideguard")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -512,10 +512,10 @@ func TestRunShellControlPlaneAutoAllow(t *testing.T) {
 	client := NewClientWithBaseURL(daemon.URL)
 
 	for _, cmd := range []string{
-		`{"command":"vibeguard pending","cwd":"/tmp"}`,
-		`{"command":"vibeguard ui","cwd":"/tmp"}`,
-		`{"command":"vibeguard approve abc-123","cwd":"/tmp"}`,
-		`{"command":"vibeguard daemon status","cwd":"/tmp"}`,
+		`{"command":"sideguard pending","cwd":"/tmp"}`,
+		`{"command":"sideguard ui","cwd":"/tmp"}`,
+		`{"command":"sideguard approve abc-123","cwd":"/tmp"}`,
+		`{"command":"sideguard daemon status","cwd":"/tmp"}`,
 	} {
 		var stdout bytes.Buffer
 		code := RunShell(strings.NewReader(cmd), &stdout, client)
@@ -531,8 +531,8 @@ func TestRunShellControlPlaneAutoAllow(t *testing.T) {
 }
 
 func TestRunShellDevBypass(t *testing.T) {
-	t.Setenv("VIBEGUARD_DEV", "1")
-	t.Cleanup(func() { t.Setenv("VIBEGUARD_DEV", "") })
+	t.Setenv("SIDEGUARD_DEV", "1")
+	t.Cleanup(func() { t.Setenv("SIDEGUARD_DEV", "") })
 
 	// Unreachable daemon — bypass should still allow without contacting it.
 	client := NewClientWithBaseURL("http://127.0.0.1:1")
@@ -540,7 +540,7 @@ func TestRunShellDevBypass(t *testing.T) {
 	var stdout bytes.Buffer
 	code := RunShell(strings.NewReader(input), &stdout, client)
 	if code != ExitAllow {
-		t.Fatalf("exit code = %d, want allow with VIBEGUARD_DEV=1", code)
+		t.Fatalf("exit code = %d, want allow with SIDEGUARD_DEV=1", code)
 	}
 }
 
@@ -571,7 +571,7 @@ func TestRunShellWorkspaceDevPolicyAutoAllow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wsDir := filepath.Join(repo, ".vibeguard")
+	wsDir := filepath.Join(repo, ".sideguard")
 	if err := os.MkdirAll(wsDir, 0o700); err != nil {
 		t.Fatal(err)
 	}

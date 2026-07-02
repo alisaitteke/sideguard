@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/alisaitteke/vibeguard/internal/detect"
-	"github.com/alisaitteke/vibeguard/internal/policy"
-	"github.com/alisaitteke/vibeguard/internal/shell"
+	"github.com/alisaitteke/sideguard/internal/detect"
+	"github.com/alisaitteke/sideguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/shell"
 )
 
 type analyzeEnrichment struct {

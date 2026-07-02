@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/alisaitteke/vibeguard/internal/daemon"
-	"github.com/alisaitteke/vibeguard/internal/paths"
+	"github.com/alisaitteke/sideguard/internal/daemon"
+	"github.com/alisaitteke/sideguard/internal/paths"
 )
 
 type windowsApplier struct{}

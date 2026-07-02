@@ -1,4 +1,4 @@
-// Package assets holds embedded brand assets for VibeGuard.
+// Package assets holds embedded brand assets for SideGuard.
 package assets
 
 import _ "embed"

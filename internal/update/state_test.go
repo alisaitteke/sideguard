@@ -23,7 +23,7 @@ func TestStateLoadSaveAtomic(t *testing.T) {
 		LastCheckAt:      time.Date(2026, 7, 2, 11, 2, 0, 0, time.UTC),
 		LatestKnown:      "1.2.3",
 		DismissedVersion: "",
-		DownloadPath:     filepath.Join(dir, "run", "update", "1.2.3", "vibeguard"),
+		DownloadPath:     filepath.Join(dir, "run", "update", "1.2.3", "sideguard"),
 	}
 	if err := store.Save(want); err != nil {
 		t.Fatal(err)

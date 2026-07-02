@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
 )
 
 const schemaV2 = `

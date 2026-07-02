@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/config"
+	"github.com/alisaitteke/sideguard/internal/config"
 )
 
 // DriverInfo describes a registered LLM driver for settings UI dropdowns.

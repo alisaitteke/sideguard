@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/api"
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
-	"github.com/alisaitteke/vibeguard/internal/store"
+	"github.com/alisaitteke/sideguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/store"
 )
 
 func startTestDaemon(t *testing.T) (*httptest.Server, *store.Store) {

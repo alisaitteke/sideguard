@@ -9,7 +9,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/alisaitteke/vibeguard/internal/paths"
+	"github.com/alisaitteke/sideguard/internal/paths"
 )
 
 // Policy is a compiled, ready-to-evaluate policy document.
@@ -25,8 +25,8 @@ type compiledRule struct {
 	pathRe    *regexp.Regexp
 }
 
-// Load reads the global policy (~/.vibeguard/policy.yaml) and optional workspace
-// override (.vibeguard/policy.yaml under cwd). Workspace rules are appended after
+// Load reads the global policy (~/.sideguard/policy.yaml) and optional workspace
+// override (.sideguard/policy.yaml under cwd). Workspace rules are appended after
 // global rules; deny beats ask beats allow across all matches.
 func Load(cwd string) (*Policy, error) {
 	var merged File
@@ -132,7 +132,7 @@ func compileRule(rule Rule, index int) (*compiledRule, error) {
 	return cr, nil
 }
 
-// GlobalPath returns ~/.vibeguard/policy.yaml.
+// GlobalPath returns ~/.sideguard/policy.yaml.
 func GlobalPath() (string, error) {
 	home, err := paths.Home()
 	if err != nil {

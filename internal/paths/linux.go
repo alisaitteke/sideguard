@@ -9,11 +9,11 @@ import (
 
 const (
 	// SystemdDaemonUnit is the user-level systemd unit filename for the daemon.
-	SystemdDaemonUnit = "vibeguard-daemon.service"
+	SystemdDaemonUnit = "sideguard-daemon.service"
 )
 
 // SystemdUnitPath returns the user systemd unit file path
-// (~/.config/systemd/user/vibeguard-daemon.service).
+// (~/.config/systemd/user/sideguard-daemon.service).
 func SystemdUnitPath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {

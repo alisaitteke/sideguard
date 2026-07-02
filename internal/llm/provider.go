@@ -3,7 +3,7 @@ package llm
 import (
 	"context"
 
-	"github.com/alisaitteke/vibeguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/policy"
 )
 
 // Provider classifies shell commands and MCP tool calls via an LLM backend.

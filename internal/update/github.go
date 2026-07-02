@@ -123,9 +123,9 @@ func findAssetURL(assets []ghAsset, name string) (string, error) {
 // ResolveAssetName returns the expected archive filename for a platform build.
 func ResolveAssetName(goos, goarch, version string) string {
 	if goos == "windows" {
-		return fmt.Sprintf("vibeguard_%s_%s_%s.zip", version, goos, goarch)
+		return fmt.Sprintf("sideguard_%s_%s_%s.zip", version, goos, goarch)
 	}
-	return fmt.Sprintf("vibeguard_%s_%s_%s.tar.gz", version, goos, goarch)
+	return fmt.Sprintf("sideguard_%s_%s_%s.tar.gz", version, goos, goarch)
 }
 
 // ReleaseForVersion builds ReleaseInfo for a pinned version without a GitHub API call.

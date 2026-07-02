@@ -8,9 +8,9 @@ import (
 )
 
 func TestRenderWindowsApplyHelper(t *testing.T) {
-	target := `C:\Users\jo\.vibeguard\bin\vibeguard.exe`
+	target := `C:\Users\jo\.sideguard\bin\sideguard.exe`
 	newPath := target + ".new"
-	helper := `C:\Users\jo\.vibeguard\run\update\apply-helper.cmd`
+	helper := `C:\Users\jo\.sideguard\run\update\apply-helper.cmd`
 
 	script := renderWindowsApplyHelper(target, newPath, helper)
 	if !strings.Contains(script, target) {

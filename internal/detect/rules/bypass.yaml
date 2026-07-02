@@ -1,19 +1,19 @@
-# Bypass: tampering with VibeGuard's own config, hooks, or daemon. NON-OVERRIDABLE
+# Bypass: tampering with SideGuard's own config, hooks, or daemon. NON-OVERRIDABLE
 # (user rule packs tagged category: bypass are dropped at load). Default: critical -> deny.
 rules:
   - id: bypass-config-files
     category: bypass
-    reason: 'touching VibeGuard configuration/hook files'
-    text: '\.vibeguard/(hooks\.json|policy\.yaml|config\.yaml|credentials\.yaml)'
+    reason: 'touching SideGuard configuration/hook files'
+    text: '\.sideguard/(hooks\.json|policy\.yaml|config\.yaml|credentials\.yaml)'
   - id: bypass-rules-dir
     category: bypass
-    reason: 'touching VibeGuard detect rules directory'
-    text: '\.vibeguard/rules(/|\b)'
+    reason: 'touching SideGuard detect rules directory'
+    text: '\.sideguard/rules(/|\b)'
   - id: bypass-daemon-kill
     category: bypass
-    reason: 'killing the VibeGuard daemon process'
-    text: '(pkill|killall|kill)\b[\s\S]{0,60}vibeguard'
+    reason: 'killing the SideGuard daemon process'
+    text: '(pkill|killall|kill)\b[\s\S]{0,60}sideguard'
   - id: bypass-launchctl-unload
     category: bypass
-    reason: 'unloading the VibeGuard launch agent'
-    text: 'launchctl\s+(unload|remove|bootout)\b[\s\S]{0,120}vibeguard'
+    reason: 'unloading the SideGuard launch agent'
+    text: 'launchctl\s+(unload|remove|bootout)\b[\s\S]{0,120}sideguard'

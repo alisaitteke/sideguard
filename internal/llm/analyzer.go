@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/config"
+	"github.com/alisaitteke/sideguard/internal/config"
 )
 
 // AnalyzeResult is the structured output of on-demand command analysis.

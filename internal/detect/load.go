@@ -12,8 +12,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/alisaitteke/vibeguard/internal/detect/rules"
-	"github.com/alisaitteke/vibeguard/internal/paths"
+	"github.com/alisaitteke/sideguard/internal/detect/rules"
+	"github.com/alisaitteke/sideguard/internal/paths"
 )
 
 // ruleFile is the on-disk YAML shape for a detect rule pack (embedded or user).
@@ -55,9 +55,9 @@ func compileRule(spec ruleSpec, source string, allowBypass bool) (*compiledRule,
 	if !knownCategory(spec.Category) {
 		return nil, fmt.Errorf("rule %q: unknown category %q", spec.ID, spec.Category)
 	}
-	// Bypass is VibeGuard self-protection: only embedded packs may define it.
+	// Bypass is SideGuard self-protection: only embedded packs may define it.
 	if spec.Category == CategoryBypass && !allowBypass {
-		log.Printf("vibeguard detect: dropping non-overridable bypass rule %q from %s", spec.ID, source)
+		log.Printf("sideguard detect: dropping non-overridable bypass rule %q from %s", spec.ID, source)
 		return nil, nil
 	}
 
@@ -123,7 +123,7 @@ func compileFile(data []byte, source string, allowBypass bool) ([]compiledRule, 
 }
 
 // loadEmbedded compiles the embedded rule packs. Bypass rules are honored here
-// (embedded is the only trusted source for VibeGuard self-protection). An
+// (embedded is the only trusted source for SideGuard self-protection). An
 // embedded pack that fails to compile is a build-time defect and returns an error.
 func loadEmbedded() ([]compiledRule, error) {
 	entries, err := fs.ReadDir(rules.FS, ".")
@@ -148,7 +148,7 @@ func loadEmbedded() ([]compiledRule, error) {
 	return all, nil
 }
 
-// loadUserRules compiles user rule packs from ~/.vibeguard/rules/*.yaml. It is
+// loadUserRules compiles user rule packs from ~/.sideguard/rules/*.yaml. It is
 // best-effort: a missing directory is not an error, and a file that fails to
 // parse/compile is logged and skipped so the remaining embedded rules still
 // apply. User-supplied bypass rules are dropped (non-overridable).
@@ -178,12 +178,12 @@ func loadUserRulesFrom(dir string) ([]compiledRule, error) {
 		path := filepath.Join(dir, e.Name())
 		data, err := os.ReadFile(path)
 		if err != nil {
-			log.Printf("vibeguard detect: skip user rule file %s: %v", path, err)
+			log.Printf("sideguard detect: skip user rule file %s: %v", path, err)
 			continue
 		}
 		compiled, err := compileFile(data, path, false)
 		if err != nil {
-			log.Printf("vibeguard detect: skip invalid user rule file %s: %v", path, err)
+			log.Printf("sideguard detect: skip invalid user rule file %s: %v", path, err)
 			continue
 		}
 		all = append(all, compiled...)

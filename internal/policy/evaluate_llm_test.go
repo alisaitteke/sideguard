@@ -19,11 +19,11 @@ func (m *mockClassifier) Classify(ctx context.Context, input Input, yamlReason s
 
 func TestEvaluateWithLLMYAMLAllowSkipsLLM(t *testing.T) {
 	home := t.TempDir()
-	vibeguardDir := filepath.Join(home, ".vibeguard")
-	if err := os.MkdirAll(vibeguardDir, 0o700); err != nil {
+	sideguardDir := filepath.Join(home, ".sideguard")
+	if err := os.MkdirAll(sideguardDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(vibeguardDir, "policy.yaml"), []byte("rules:\n  - match: { command: \"^git status\" }\n    action: allow\n    reason: safe read\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(sideguardDir, "policy.yaml"), []byte("rules:\n  - match: { command: \"^git status\" }\n    action: allow\n    reason: safe read\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("HOME", home)
@@ -40,8 +40,8 @@ func TestEvaluateWithLLMYAMLAllowSkipsLLM(t *testing.T) {
 
 func TestEvaluateWithLLMYAMLDenySkipsLLM(t *testing.T) {
 	home := t.TempDir()
-	vibeguardDir := filepath.Join(home, ".vibeguard")
-	if err := os.MkdirAll(vibeguardDir, 0o700); err != nil {
+	sideguardDir := filepath.Join(home, ".sideguard")
+	if err := os.MkdirAll(sideguardDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
 	content := `rules:
@@ -49,7 +49,7 @@ func TestEvaluateWithLLMYAMLDenySkipsLLM(t *testing.T) {
     action: deny
     reason: blocked curl
 `
-	if err := os.WriteFile(filepath.Join(vibeguardDir, "policy.yaml"), []byte(content), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(sideguardDir, "policy.yaml"), []byte(content), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("HOME", home)
@@ -104,11 +104,11 @@ func TestEvaluateWithLLMNilClassifierSkipsLLM(t *testing.T) {
 
 func TestEvaluateWithLLMLoadErrorSkipsLLM(t *testing.T) {
 	home := t.TempDir()
-	vibeguardDir := filepath.Join(home, ".vibeguard")
-	if err := os.MkdirAll(vibeguardDir, 0o700); err != nil {
+	sideguardDir := filepath.Join(home, ".sideguard")
+	if err := os.MkdirAll(sideguardDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(vibeguardDir, "policy.yaml"), []byte("rules:\n  - match: { command: \"[\" }\n    action: allow\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(sideguardDir, "policy.yaml"), []byte("rules:\n  - match: { command: \"[\" }\n    action: allow\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("HOME", home)

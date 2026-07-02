@@ -1,6 +1,6 @@
-// Package daemon orchestrates the VibeGuard background service lifecycle:
+// Package daemon orchestrates the SideGuard background service lifecycle:
 // pid file, Unix socket + HTTP API, SQLite queue, and LaunchAgent wiring.
-// See docs/plans/2026-07-01-0127-vibeguard-foundation/ (vgf-phase-2.0-daemon-core.md).
+// See docs/plans/2026-07-01-0127-sideguard-foundation/ (vgf-phase-2.0-daemon-core.md).
 package daemon
 
 import (
@@ -14,10 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/api"
-	"github.com/alisaitteke/vibeguard/internal/config"
-	"github.com/alisaitteke/vibeguard/internal/paths"
-	"github.com/alisaitteke/vibeguard/internal/store"
+	"github.com/alisaitteke/sideguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/config"
+	"github.com/alisaitteke/sideguard/internal/paths"
+	"github.com/alisaitteke/sideguard/internal/store"
 )
 
 const healthWaitTimeout = 5 * time.Second
@@ -78,9 +78,9 @@ func Run(version string) error {
 	defer st.Close()
 
 	if histCfg, err := config.LoadHistory(); err != nil {
-		log.Printf("vibeguard history: load retention config: %v", err)
+		log.Printf("sideguard history: load retention config: %v", err)
 	} else if err := st.PruneEvents(histCfg.RetentionDays, histCfg.MaxEvents); err != nil {
-		log.Printf("vibeguard history: prune on start: %v", err)
+		log.Printf("sideguard history: prune on start: %v", err)
 	}
 
 	socketPath, err := paths.SocketPath()
@@ -219,7 +219,7 @@ func waitForHealthy(timeout time.Duration) error {
 	return fmt.Errorf("daemon failed to become healthy within %s", timeout)
 }
 
-// EnsureRunDir creates ~/.vibeguard/run with correct permissions.
+// EnsureRunDir creates ~/.sideguard/run with correct permissions.
 func EnsureRunDir() error {
 	dir, err := paths.RunDir()
 	if err != nil {

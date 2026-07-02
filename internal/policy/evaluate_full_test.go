@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
-	"github.com/alisaitteke/vibeguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/policy"
 
-	_ "github.com/alisaitteke/vibeguard/internal/detect"
+	_ "github.com/alisaitteke/sideguard/internal/detect"
 )
 
 type testClassifier struct {
@@ -78,8 +78,8 @@ func TestEvaluateFullUnknownAutoLLMOffAsk(t *testing.T) {
 
 func TestEvaluateFullYAMLDenySkipsDetect(t *testing.T) {
 	home := t.TempDir()
-	vibeguardDir := filepath.Join(home, ".vibeguard")
-	if err := os.MkdirAll(vibeguardDir, 0o700); err != nil {
+	sideguardDir := filepath.Join(home, ".sideguard")
+	if err := os.MkdirAll(sideguardDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
 	content := `rules:
@@ -87,7 +87,7 @@ func TestEvaluateFullYAMLDenySkipsDetect(t *testing.T) {
     action: deny
     reason: yaml blocked
 `
-	if err := os.WriteFile(filepath.Join(vibeguardDir, "policy.yaml"), []byte(content), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(sideguardDir, "policy.yaml"), []byte(content), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("HOME", home)

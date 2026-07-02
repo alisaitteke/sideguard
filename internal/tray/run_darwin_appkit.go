@@ -5,7 +5,7 @@ package tray
 import (
 	"runtime"
 
-	"github.com/alisaitteke/vibeguard/internal/tray/darwin"
+	"github.com/alisaitteke/sideguard/internal/tray/darwin"
 )
 
 // darwinPrepare configures NSApplication on the locked OS thread (mirrors systray Register).

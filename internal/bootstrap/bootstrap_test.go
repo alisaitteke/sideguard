@@ -21,7 +21,7 @@ func TestEnsureDefaultsWritesBothFiles(t *testing.T) {
 		t.Fatalf("EnsureDefaults() error: %v", err)
 	}
 
-	configPath := filepath.Join(home, ".vibeguard", "config.yaml")
+	configPath := filepath.Join(home, ".sideguard", "config.yaml")
 	configData, err := os.ReadFile(configPath)
 	if err != nil {
 		t.Fatalf("config.yaml missing: %v", err)
@@ -30,12 +30,12 @@ func TestEnsureDefaultsWritesBothFiles(t *testing.T) {
 		t.Fatalf("config missing update block:\n%s", configData)
 	}
 
-	sigPath := filepath.Join(home, ".vibeguard", "signatures", "default.yaml")
+	sigPath := filepath.Join(home, ".sideguard", "signatures", "default.yaml")
 	if _, err := os.Stat(sigPath); err != nil {
 		t.Fatalf("signatures/default.yaml missing: %v", err)
 	}
 
-	rulesDir := filepath.Join(home, ".vibeguard", "rules")
+	rulesDir := filepath.Join(home, ".sideguard", "rules")
 	entries, err := os.ReadDir(rulesDir)
 	if err != nil {
 		t.Fatalf("rules dir missing: %v", err)
@@ -51,7 +51,7 @@ func TestEnsureDefaultsIdempotent(t *testing.T) {
 	if err := EnsureDefaults(); err != nil {
 		t.Fatal(err)
 	}
-	data1, err := os.ReadFile(filepath.Join(os.Getenv("HOME"), ".vibeguard", "config.yaml"))
+	data1, err := os.ReadFile(filepath.Join(os.Getenv("HOME"), ".sideguard", "config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestEnsureDefaultsIdempotent(t *testing.T) {
 	if err := EnsureDefaults(); err != nil {
 		t.Fatal(err)
 	}
-	data2, err := os.ReadFile(filepath.Join(os.Getenv("HOME"), ".vibeguard", "config.yaml"))
+	data2, err := os.ReadFile(filepath.Join(os.Getenv("HOME"), ".sideguard", "config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +67,7 @@ func TestEnsureDefaultsIdempotent(t *testing.T) {
 		t.Fatal("EnsureDefaults modified existing config.yaml")
 	}
 
-	rulesDir := filepath.Join(os.Getenv("HOME"), ".vibeguard", "rules")
+	rulesDir := filepath.Join(os.Getenv("HOME"), ".sideguard", "rules")
 	custom := filepath.Join(rulesDir, "custom.yaml")
 	customContent := []byte("rules: []\n")
 	if err := os.WriteFile(custom, customContent, 0o600); err != nil {

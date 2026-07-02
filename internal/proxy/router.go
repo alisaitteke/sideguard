@@ -53,7 +53,7 @@ func ClassifyFrame(frame []byte) (Action, *JSONRPCMessage, error) {
 	case "tools/call":
 		return ActionHoldApproval, &msg, nil
 	case "tools/list":
-		log.Printf("vibeguard: tools/list pass-through")
+		log.Printf("sideguard: tools/list pass-through")
 		return ActionPassthrough, &msg, nil
 	default:
 		return ActionPassthrough, &msg, nil

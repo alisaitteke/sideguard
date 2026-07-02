@@ -1,6 +1,6 @@
 // Package notify sends macOS alert-only notifications for pending approvals.
-// Decision input stays in the terminal CLI (vibeguard ui / approve / deny).
-// See docs/plans/2026-07-01-0127-vibeguard-foundation/ (vgf-phase-6.0-terminal-ui.md).
+// Decision input stays in the terminal CLI (sideguard ui / approve / deny).
+// See docs/plans/2026-07-01-0127-sideguard-foundation/ (vgf-phase-6.0-terminal-ui.md).
 package notify
 
 import (
@@ -12,15 +12,15 @@ import (
 const (
 	maxBodyLen   = 120
 	maxTitleLen  = 64
-	notifyTitle  = "VibeGuard"
-	pendingHint  = " · Run: vibeguard ui"
+	notifyTitle  = "SideGuard"
+	pendingHint  = " · Run: sideguard ui"
 )
 
 // envNotifications is the env var that enables desktop notifications when set to a truthy value.
-// Default is disabled — set VIBEGUARD_NOTIFICATIONS=1 to enable.
-const envNotifications = "VIBEGUARD_NOTIFICATIONS"
+// Default is disabled — set SIDEGUARD_NOTIFICATIONS=1 to enable.
+const envNotifications = "SIDEGUARD_NOTIFICATIONS"
 
-// NotificationsEnabled reports whether desktop notifications are enabled via VIBEGUARD_NOTIFICATIONS.
+// NotificationsEnabled reports whether desktop notifications are enabled via SIDEGUARD_NOTIFICATIONS.
 func NotificationsEnabled() bool {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv(envNotifications))) {
 	case "1", "true", "yes", "on":
@@ -32,7 +32,7 @@ func NotificationsEnabled() bool {
 
 // PendingApproval notifies the user of a new pending approval (alert only).
 // Long commands and secrets are truncated in the notification body.
-// No-op when VIBEGUARD_NOTIFICATIONS is unset or not truthy (default: disabled).
+// No-op when SIDEGUARD_NOTIFICATIONS is unset or not truthy (default: disabled).
 func PendingApproval(id, client, command, toolName, source string) error {
 	if !NotificationsEnabled() {
 		return nil
@@ -44,7 +44,7 @@ func PendingApproval(id, client, command, toolName, source string) error {
 	return nil
 }
 
-// formatBody builds the notification line: "#shortId · Client · summary · Run: vibeguard ui".
+// formatBody builds the notification line: "#shortId · Client · summary · Run: sideguard ui".
 // The hint is always appended; summary is truncated so the full body fits maxBodyLen.
 func formatBody(id, client, command, toolName, source string) string {
 	shortID := shortApprovalID(id)

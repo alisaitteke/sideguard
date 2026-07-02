@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/alisaitteke/vibeguard/internal/paths"
+	"github.com/alisaitteke/sideguard/internal/paths"
 )
 
 // launchctlRunner executes launchctl subcommands. Tests inject a mock implementation.

@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/alisaitteke/vibeguard/internal/policy"
-	"github.com/alisaitteke/vibeguard/internal/shell"
+	"github.com/alisaitteke/sideguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/shell"
 )
 
 func TestLoadEmbeddedCompiles(t *testing.T) {

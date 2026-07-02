@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alisaitteke/vibeguard/internal/config"
-	"github.com/alisaitteke/vibeguard/internal/llm"
-	"github.com/alisaitteke/vibeguard/internal/store"
+	"github.com/alisaitteke/sideguard/internal/config"
+	"github.com/alisaitteke/sideguard/internal/llm"
+	"github.com/alisaitteke/sideguard/internal/store"
 )
 
 func TestAnalyzeCommandMissingFields(t *testing.T) {

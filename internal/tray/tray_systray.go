@@ -7,9 +7,9 @@ import (
 	"sync"
 
 	"github.com/getlantern/systray"
-	"github.com/alisaitteke/vibeguard/internal/api"
-	"github.com/alisaitteke/vibeguard/internal/approvalfmt"
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/approvalfmt"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
 )
 
 type systraySession struct {
@@ -25,7 +25,7 @@ type systraySession struct {
 
 func (s *systraySession) onReady() {
 	systray.SetIcon(menuBarIcon())
-	systray.SetTooltip("VibeGuard — no pending")
+	systray.SetTooltip("SideGuard — no pending")
 
 	client := api.NewClientWithBaseURL(s.baseURL)
 	s.pollSession = NewSession(client)

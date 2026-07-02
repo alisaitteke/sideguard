@@ -16,7 +16,7 @@ func TestCheckerUpdateAvailable(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.URL.Path == "/repos/alisaitteke/vibeguard/releases/latest":
+		case r.URL.Path == "/repos/alisaitteke/sideguard/releases/latest":
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"tag_name":     "v" + latest,
 				"published_at": time.Now().UTC(),

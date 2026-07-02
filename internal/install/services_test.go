@@ -4,7 +4,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/alisaitteke/vibeguard/internal/install"
+	"github.com/alisaitteke/sideguard/internal/install"
 )
 
 func TestShouldInstallTray(t *testing.T) {

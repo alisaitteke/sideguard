@@ -1,5 +1,5 @@
-// Package api provides the local HTTP API for the VibeGuard daemon.
-// Routes bind to 127.0.0.1 only. See docs/plans/2026-07-01-0127-vibeguard-foundation/
+// Package api provides the local HTTP API for the SideGuard daemon.
+// Routes bind to 127.0.0.1 only. See docs/plans/2026-07-01-0127-sideguard-foundation/
 // (vgf-phase-2.0-daemon-core.md).
 package api
 
@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/store"
+	"github.com/alisaitteke/sideguard/internal/store"
 )
 
 const (

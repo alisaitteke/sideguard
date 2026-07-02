@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/api"
 )
 
 // ShortApprovalID returns a short display id like "#a1b2c3d4".

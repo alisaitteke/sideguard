@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/config"
-	"github.com/alisaitteke/vibeguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/config"
+	"github.com/alisaitteke/sideguard/internal/policy"
 )
 
 // Classifier runs LLM classification after YAML policy returns ask or no match.

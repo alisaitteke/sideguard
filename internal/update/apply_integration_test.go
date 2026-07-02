@@ -11,7 +11,7 @@ import (
 
 func TestAtomicSwapBinary(t *testing.T) {
 	dir := t.TempDir()
-	target := filepath.Join(dir, "vibeguard")
+	target := filepath.Join(dir, "sideguard")
 	staging := filepath.Join(dir, "staging")
 	newContent := []byte("#!/bin/sh\necho v2\n")
 	oldContent := []byte("#!/bin/sh\necho v1\n")
@@ -36,7 +36,7 @@ func TestAtomicSwapBinary(t *testing.T) {
 
 func TestNoopPlatformApplierSwap(t *testing.T) {
 	dir := t.TempDir()
-	target := filepath.Join(dir, "vibeguard")
+	target := filepath.Join(dir, "sideguard")
 	staging := filepath.Join(dir, "staging")
 	payload := []byte("noop-swap")
 	if err := os.WriteFile(target, []byte("old"), 0o755); err != nil {

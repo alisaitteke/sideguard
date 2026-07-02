@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/paths"
+	"github.com/alisaitteke/sideguard/internal/paths"
 )
 
 const manifestName = "manifest.json"
@@ -21,13 +21,13 @@ type manifest struct {
 	Files     map[string]string `json:"files"` // original path -> backup relative path
 }
 
-// BackupSession is a timestamped backup directory under ~/.vibeguard/backups/.
+// BackupSession is a timestamped backup directory under ~/.sideguard/backups/.
 type BackupSession struct {
 	Dir       string
 	Timestamp string
 }
 
-// CreateBackup copies the given files into ~/.vibeguard/backups/<timestamp>/.
+// CreateBackup copies the given files into ~/.sideguard/backups/<timestamp>/.
 // Only files that exist are backed up. Returns the session metadata.
 func CreateBackup(filePaths []string) (*BackupSession, error) {
 	base, err := paths.BackupsDir()
@@ -98,7 +98,7 @@ func RestoreLatest(filePaths []string) error {
 }
 
 // RestoreFirst restores each file from the oldest backup session that contains it.
-// Use this for uninstall fallback: the first install backup predates VibeGuard patches.
+// Use this for uninstall fallback: the first install backup predates SideGuard patches.
 func RestoreFirst(filePaths []string) error {
 	for _, original := range uniqueStrings(filePaths) {
 		session, rel, err := findFirstBackup(original)

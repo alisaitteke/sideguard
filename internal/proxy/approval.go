@@ -7,12 +7,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/api"
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
-	"github.com/alisaitteke/vibeguard/internal/llm"
-	"github.com/alisaitteke/vibeguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/llm"
+	"github.com/alisaitteke/sideguard/internal/policy"
 
-	_ "github.com/alisaitteke/vibeguard/internal/detect"
+	_ "github.com/alisaitteke/sideguard/internal/detect"
 )
 
 // ApprovalClient submits and waits on daemon approval requests.
@@ -64,7 +64,7 @@ func requestToolCallApproval(ctx context.Context, client ApprovalClient, params 
 	llmEnabled := llm.Enabled(cwd)
 	clf, clfErr := llm.ClassifierFor(cwd)
 	if clfErr != nil {
-		log.Printf("vibeguard llm: classifier init failed (fail-safe ask): %v", clfErr)
+		log.Printf("sideguard llm: classifier init failed (fail-safe ask): %v", clfErr)
 	}
 	mode := approvalmode.Ask
 	if m, err := client.GetApprovalMode(ctx); err == nil {

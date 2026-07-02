@@ -9,7 +9,7 @@ const (
 	// DefaultOwner is the GitHub organization/user hosting release assets.
 	DefaultOwner = "alisaitteke"
 	// DefaultRepo is the GitHub repository name for release assets.
-	DefaultRepo = "vibeguard"
+	DefaultRepo = "sideguard"
 )
 
 // ReleaseInfo describes a GitHub release asset matching the current platform.
@@ -30,7 +30,7 @@ type CheckResult struct {
 	Release         *ReleaseInfo `json:"release,omitempty"`
 }
 
-// State is persisted at ~/.vibeguard/update-state.json between background checks.
+// State is persisted at ~/.sideguard/update-state.json between background checks.
 type State struct {
 	LastCheckAt      time.Time `json:"last_check_at"`
 	LatestKnown      string    `json:"latest_known"`

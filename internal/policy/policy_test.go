@@ -8,20 +8,20 @@ import (
 
 func TestIsControlPlaneCommand(t *testing.T) {
 	allowed := []string{
-		"vibeguard pending",
-		"vibeguard pending --json",
-		"vibeguard ui",
-		"vibeguard approve abc-123",
-		"vibeguard deny x --reason no",
-		"vibeguard status",
-		"vibeguard mode",
-		"vibeguard mode set auto",
-		"vibeguard daemon start",
-		"vibeguard uninstall",
-		"vibeguard doctor",
-		"vibeguard policy validate",
-		"vibeguard policy init-dev",
-		"vibeguard clients reload",
+		"sideguard pending",
+		"sideguard pending --json",
+		"sideguard ui",
+		"sideguard approve abc-123",
+		"sideguard deny x --reason no",
+		"sideguard status",
+		"sideguard mode",
+		"sideguard mode set auto",
+		"sideguard daemon start",
+		"sideguard uninstall",
+		"sideguard doctor",
+		"sideguard policy validate",
+		"sideguard policy init-dev",
+		"sideguard clients reload",
 	}
 	for _, cmd := range allowed {
 		if !IsControlPlaneCommand(cmd) {
@@ -31,10 +31,10 @@ func TestIsControlPlaneCommand(t *testing.T) {
 
 	denied := []string{
 		"",
-		"vibeguard install",
-		"vibeguard wrap -- npx foo",
-		"sudo vibeguard pending",
-		"echo vibeguard pending",
+		"sideguard install",
+		"sideguard wrap -- npx foo",
+		"sudo sideguard pending",
+		"echo sideguard pending",
 	}
 	for _, cmd := range denied {
 		if IsControlPlaneCommand(cmd) {
@@ -53,7 +53,7 @@ func TestDefaultTemplateControlPlaneAllow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, cmd := range []string{"vibeguard pending", "vibeguard ui", "vibeguard approve id", "vibeguard daemon status"} {
+	for _, cmd := range []string{"sideguard pending", "sideguard ui", "sideguard approve id", "sideguard daemon status"} {
 		res := p.Evaluate(Input{Command: cmd})
 		if res.Action != ActionAllow {
 			t.Fatalf("cmd %q: got %q, want allow", cmd, res.Action)
@@ -141,7 +141,7 @@ func TestLoadGlobalAndWorkspaceMerge(t *testing.T) {
 	home := t.TempDir()
 	cwd := t.TempDir()
 
-	globalDir := filepath.Join(home, ".vibeguard")
+	globalDir := filepath.Join(home, ".sideguard")
 	if err := os.MkdirAll(globalDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestLoadGlobalAndWorkspaceMerge(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	wsDir := filepath.Join(cwd, ".vibeguard")
+	wsDir := filepath.Join(cwd, ".sideguard")
 	if err := os.MkdirAll(wsDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -185,7 +185,7 @@ func TestEvaluateFailClosedOnLoadError(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 
-	globalDir := filepath.Join(home, ".vibeguard")
+	globalDir := filepath.Join(home, ".sideguard")
 	if err := os.MkdirAll(globalDir, 0o700); err != nil {
 		t.Fatal(err)
 	}

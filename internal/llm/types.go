@@ -3,7 +3,7 @@
 // See docs/plans/2026-07-01-0318-llm-auto-triage/ (lat-phase-1.0-contracts.md).
 package llm
 
-import "github.com/alisaitteke/vibeguard/internal/policy"
+import "github.com/alisaitteke/sideguard/internal/policy"
 
 // ClassifyRequest is the input passed to an LLM provider for triage.
 type ClassifyRequest struct {

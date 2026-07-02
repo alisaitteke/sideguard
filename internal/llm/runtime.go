@@ -6,8 +6,8 @@ import (
 	"log"
 	"sync"
 
-	"github.com/alisaitteke/vibeguard/internal/config"
-	"github.com/alisaitteke/vibeguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/config"
+	"github.com/alisaitteke/sideguard/internal/policy"
 )
 
 var (
@@ -61,7 +61,7 @@ func ClassifierFor(cwd string) (policy.Classifier, error) {
 		} else {
 			lazyClassifier, lazyClassifierErr = NewClassifier(cfg, creds)
 			if lazyClassifierErr != nil {
-				log.Printf("vibeguard llm: classifier init failed: %v", lazyClassifierErr)
+				log.Printf("sideguard llm: classifier init failed: %v", lazyClassifierErr)
 			}
 		}
 		lazyInitialized = true

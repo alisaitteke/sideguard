@@ -1,5 +1,5 @@
 // Package install discovers client configs and wires hooks/MCP wraps.
-// See docs/plans/2026-07-01-0127-vibeguard-foundation/ (vgf-phase-3.0-install.md).
+// See docs/plans/2026-07-01-0127-sideguard-foundation/ (vgf-phase-3.0-install.md).
 package install
 
 import (
@@ -23,7 +23,7 @@ const (
 	KindHooks ConfigKind = "hooks"
 )
 
-// Target is a config file VibeGuard can patch during install.
+// Target is a config file SideGuard can patch during install.
 type Target struct {
 	Client Client
 	Kind   ConfigKind

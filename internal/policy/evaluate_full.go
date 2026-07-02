@@ -6,8 +6,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
-	"github.com/alisaitteke/vibeguard/internal/shell"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/shell"
 )
 
 // EvaluateOpts configures the YAML → detect → optional LLM pipeline.

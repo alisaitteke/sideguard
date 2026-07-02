@@ -1,6 +1,6 @@
 package tray
 
-import "github.com/alisaitteke/vibeguard/internal/api"
+import "github.com/alisaitteke/sideguard/internal/api"
 
 // Controller is a backward-compatible alias for Session during the mtp migration.
 type Controller = Session

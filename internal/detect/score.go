@@ -1,6 +1,6 @@
 package detect
 
-import "github.com/alisaitteke/vibeguard/internal/policy"
+import "github.com/alisaitteke/sideguard/internal/policy"
 
 // ruleMatch is a single rule that fired against an IR, carrying the metadata the
 // scorer needs to reach a decision.
@@ -95,7 +95,7 @@ func decide(matches []ruleMatch, argv0 string) (policy.Action, int, string) {
 
 	switch {
 	case hasBypass:
-		return policy.ActionDeny, score, reasonOr(bestReason, "blocked: VibeGuard control-plane tampering")
+		return policy.ActionDeny, score, reasonOr(bestReason, "blocked: SideGuard control-plane tampering")
 	case hasCritical:
 		return policy.ActionDeny, score, reasonOr(bestReason, "blocked: critical risk category")
 	case highCount >= 2:

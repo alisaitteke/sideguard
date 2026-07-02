@@ -7,10 +7,10 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/alisaitteke/vibeguard/internal/bootstrap"
-	"github.com/alisaitteke/vibeguard/internal/daemon"
-	"github.com/alisaitteke/vibeguard/internal/policy"
-	"github.com/alisaitteke/vibeguard/internal/tray"
+	"github.com/alisaitteke/sideguard/internal/bootstrap"
+	"github.com/alisaitteke/sideguard/internal/daemon"
+	"github.com/alisaitteke/sideguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/tray"
 )
 
 // Options controls install and uninstall.
@@ -21,7 +21,7 @@ type Options struct {
 	Discover      bool
 	SkipDaemon    bool
 	Headless      bool // install: skip menu-bar tray LaunchAgent (macOS)
-	Dev           bool // install: write repo-scoped workspace dev policy (.vibeguard/policy.yaml)
+	Dev           bool // install: write repo-scoped workspace dev policy (.sideguard/policy.yaml)
 	RestoreBackup bool // uninstall: restore oldest backup instead of surgical removal
 	KeepDaemon    bool // uninstall: leave daemon and tray LaunchAgents installed
 	Cwd           string
@@ -338,13 +338,13 @@ func printSummary(result *Result, opts Options) {
 	}
 	if !opts.DryRun {
 		fmt.Println("\nImportant: Cursor/Claude shell hooks now block agent commands until you approve them.")
-		fmt.Println("  1. Run `vibeguard ui` for interactive approvals (or `vibeguard pending` + approve/deny for scripting).")
+		fmt.Println("  1. Run `sideguard ui` for interactive approvals (or `sideguard pending` + approve/deny for scripting).")
 		fmt.Println("  2. Or open Terminal.app (outside Cursor) for approval if the agent cannot run the CLI.")
-		fmt.Println("  3. Developing VibeGuard in Cursor: run `vibeguard install --dev` or `vibeguard policy init-dev`")
-		fmt.Println("     to allow make/go/scripts only in this repo (.vibeguard/policy.yaml).")
-		fmt.Println("  4. Full local bypass (all commands): set VIBEGUARD_DEV=1 in the Cursor agent environment")
-		fmt.Println("     (Terminal.app: export VIBEGUARD_DEV=1 — does not apply to in-IDE agents).")
-		fmt.Println("\nNext: `vibeguard status`")
+		fmt.Println("  3. Developing SideGuard in Cursor: run `sideguard install --dev` or `sideguard policy init-dev`")
+		fmt.Println("     to allow make/go/scripts only in this repo (.sideguard/policy.yaml).")
+		fmt.Println("  4. Full local bypass (all commands): set SIDEGUARD_DEV=1 in the Cursor agent environment")
+		fmt.Println("     (Terminal.app: export SIDEGUARD_DEV=1 — does not apply to in-IDE agents).")
+		fmt.Println("\nNext: `sideguard status`")
 		PrintClientReloadHints(opts, "install changes", ReloadHintsBrief)
 	}
 }

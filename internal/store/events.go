@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/llm"
+	"github.com/alisaitteke/sideguard/internal/llm"
 	"github.com/google/uuid"
 )
 

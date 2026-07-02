@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alisaitteke/vibeguard/internal/install"
+	"github.com/alisaitteke/sideguard/internal/install"
 )
 
 func TestWrapMCPServers(t *testing.T) {
@@ -26,7 +26,7 @@ func TestWrapMCPServers(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	changed, _, err := install.PatchCursorMCP(path, "/usr/local/bin/vibeguard", false)
+	changed, _, err := install.PatchCursorMCP(path, "/usr/local/bin/sideguard", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func TestWrapMCPServers(t *testing.T) {
 	}
 	serversMap := doc["mcpServers"].(map[string]any)
 	fs := serversMap["fs"].(map[string]any)
-	if fs["command"] != "/usr/local/bin/vibeguard" {
+	if fs["command"] != "/usr/local/bin/sideguard" {
 		t.Fatalf("unexpected command: %v", fs["command"])
 	}
 	args := fs["args"].([]any)
@@ -52,7 +52,7 @@ func TestWrapMCPServers(t *testing.T) {
 		t.Fatalf("unexpected args: %v", args)
 	}
 
-	changed2, _, err := install.PatchCursorMCP(path, "/usr/local/bin/vibeguard", false)
+	changed2, _, err := install.PatchCursorMCP(path, "/usr/local/bin/sideguard", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestMergeCursorHooksPreservesExisting(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	added, _, err := install.PatchCursorHooks(path, "/bin/vibeguard", false)
+	added, _, err := install.PatchCursorHooks(path, "/bin/sideguard", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +114,7 @@ func TestPatchClaudeMCPPreservesOtherKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	changed, _, err := install.PatchClaudeMCP(path, "/opt/vibeguard", false)
+	changed, _, err := install.PatchClaudeMCP(path, "/opt/sideguard", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +135,7 @@ func TestBackupAndRestore(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 
-	vgHome := filepath.Join(home, ".vibeguard", "backups")
+	vgHome := filepath.Join(home, ".sideguard", "backups")
 	if err := os.MkdirAll(vgHome, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -202,7 +202,7 @@ func TestInstallDryRunNoWrites(t *testing.T) {
 		t.Fatal("dry-run mutated mcp.json")
 	}
 
-	backups := filepath.Join(home, ".vibeguard", "backups")
+	backups := filepath.Join(home, ".sideguard", "backups")
 	if _, err := os.Stat(backups); err == nil {
 		entries, _ := os.ReadDir(backups)
 		if len(entries) > 0 {
@@ -234,11 +234,11 @@ func TestInstallUninstallRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	changed, _, err := install.PatchCursorMCP(mcpPath, "/bin/vibeguard", false)
+	changed, _, err := install.PatchCursorMCP(mcpPath, "/bin/sideguard", false)
 	if err != nil || changed != 1 {
 		t.Fatalf("patch mcp: changed=%d err=%v", changed, err)
 	}
-	added, _, err := install.PatchCursorHooks(hooksPath, "/bin/vibeguard", false)
+	added, _, err := install.PatchCursorHooks(hooksPath, "/bin/sideguard", false)
 	if err != nil || added != 2 {
 		t.Fatalf("patch hooks: added=%d err=%v", added, err)
 	}
@@ -256,7 +256,7 @@ func TestInstallUninstallRoundTrip(t *testing.T) {
 		t.Fatalf("hooks not restored: %s", gotHooks)
 	}
 	if strings.Contains(string(gotHooks), "hook shell") {
-		t.Fatal("vibeguard hooks still present")
+		t.Fatal("sideguard hooks still present")
 	}
 }
 
@@ -268,10 +268,10 @@ func TestUnpatchMCPServers(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, _, err := install.PatchCursorMCP(path, "/bin/vibeguard", false); err != nil {
+	if _, _, err := install.PatchCursorMCP(path, "/bin/sideguard", false); err != nil {
 		t.Fatal(err)
 	}
-	unwrapped, _, err := install.UnpatchCursorMCP(path, "/bin/vibeguard", false)
+	unwrapped, _, err := install.UnpatchCursorMCP(path, "/bin/sideguard", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -302,11 +302,11 @@ func TestUnpatchCursorHooksPreservesUserHooks(t *testing.T) {
 	if err := os.WriteFile(path, []byte(patched), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := install.PatchCursorHooks(path, "/bin/vibeguard", false); err != nil {
+	if _, _, err := install.PatchCursorHooks(path, "/bin/sideguard", false); err != nil {
 		t.Fatal(err)
 	}
 
-	removed, _, err := install.UnpatchCursorHooks(path, "/bin/vibeguard", false)
+	removed, _, err := install.UnpatchCursorHooks(path, "/bin/sideguard", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -322,7 +322,7 @@ func TestUnpatchCursorHooksPreservesUserHooks(t *testing.T) {
 		t.Fatal("user hook removed")
 	}
 	if strings.Contains(string(raw), "hook shell") {
-		t.Fatal("vibeguard shell hook still present")
+		t.Fatal("sideguard shell hook still present")
 	}
 }
 
@@ -338,7 +338,7 @@ func TestUninstallIdempotent(t *testing.T) {
 	if err := os.WriteFile(mcpPath, []byte(initial), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := install.PatchCursorMCP(mcpPath, "/bin/vibeguard", false); err != nil {
+	if _, _, err := install.PatchCursorMCP(mcpPath, "/bin/sideguard", false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -371,7 +371,7 @@ func TestRestoreFirstVsRestoreLatest(t *testing.T) {
 		t.Fatal(err)
 	}
 	clean := `{"mcpServers":{"a":{"command":"npx"}}}`
-	patched := `{"mcpServers":{"a":{"command":"/bin/vibeguard","args":["wrap","--","npx"]}}}`
+	patched := `{"mcpServers":{"a":{"command":"/bin/sideguard","args":["wrap","--","npx"]}}}`
 	if err := os.WriteFile(orig, []byte(clean), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -385,7 +385,7 @@ func TestRestoreFirstVsRestoreLatest(t *testing.T) {
 	}
 
 	// Simulate second install backup of already-patched file.
-	backupsBase := filepath.Join(home, ".vibeguard", "backups")
+	backupsBase := filepath.Join(home, ".sideguard", "backups")
 	entries, err := os.ReadDir(backupsBase)
 	if err != nil {
 		t.Fatal(err)
@@ -452,10 +452,10 @@ func TestUninstallSurgicalAfterDoubleInstallBackup(t *testing.T) {
 	if _, err := install.CreateBackup([]string{mcpPath, hooksPath}); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := install.PatchCursorMCP(mcpPath, "/bin/vibeguard", false); err != nil {
+	if _, _, err := install.PatchCursorMCP(mcpPath, "/bin/sideguard", false); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := install.PatchCursorHooks(hooksPath, "/bin/vibeguard", false); err != nil {
+	if _, _, err := install.PatchCursorHooks(hooksPath, "/bin/sideguard", false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -464,7 +464,7 @@ func TestUninstallSurgicalAfterDoubleInstallBackup(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Re-patch is idempotent.
-	if _, _, err := install.PatchCursorMCP(mcpPath, "/bin/vibeguard", false); err != nil {
+	if _, _, err := install.PatchCursorMCP(mcpPath, "/bin/sideguard", false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -482,7 +482,7 @@ func TestUninstallSurgicalAfterDoubleInstallBackup(t *testing.T) {
 		t.Fatal("user hook lost after surgical uninstall")
 	}
 	if strings.Contains(string(gotHooks), "hook shell") {
-		t.Fatal("vibeguard hook still present after surgical uninstall")
+		t.Fatal("sideguard hook still present after surgical uninstall")
 	}
 }
 

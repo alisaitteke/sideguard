@@ -9,7 +9,7 @@ import (
 
 func TestValidateHTTPSURLRejectsInsecureScheme(t *testing.T) {
 	cases := []string{
-		"http://github.com/alisaitteke/vibeguard/releases/download/v1.0.0/asset.tar.gz",
+		"http://github.com/alisaitteke/sideguard/releases/download/v1.0.0/asset.tar.gz",
 		"ftp://github.com/asset.tar.gz",
 	}
 	for _, raw := range cases {
@@ -25,8 +25,8 @@ func TestValidateHTTPSURLRejectsInsecureScheme(t *testing.T) {
 
 func TestValidateHTTPSURLAllowsGitHubHosts(t *testing.T) {
 	cases := []string{
-		"https://github.com/alisaitteke/vibeguard/releases/download/v1.0.0/asset.tar.gz",
-		"https://api.github.com/repos/alisaitteke/vibeguard/releases/latest",
+		"https://github.com/alisaitteke/sideguard/releases/download/v1.0.0/asset.tar.gz",
+		"https://api.github.com/repos/alisaitteke/sideguard/releases/latest",
 		"https://release-assets.githubusercontent.com/github-production-release-asset/123/asset.tar.gz",
 	}
 	for _, raw := range cases {

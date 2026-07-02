@@ -85,12 +85,12 @@ func writeClaudeResponse(w io.Writer, decision, reason string) error {
 
 func claudeDenyUnreachable(w io.Writer) error {
 	return writeClaudeResponse(w, "deny",
-		"VibeGuard daemon is not running. Start with: vibeguard daemon start")
+		"SideGuard daemon is not running. Start with: sideguard daemon start")
 }
 
 func claudeDeny(w io.Writer, reason string) error {
 	if reason == "" {
-		reason = "Run vibeguard ui to review."
+		reason = "Run sideguard ui to review."
 	}
 	return writeClaudeResponse(w, "deny", reason)
 }

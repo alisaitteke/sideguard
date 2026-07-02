@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/config"
+	"github.com/alisaitteke/sideguard/internal/config"
 )
 
 func TestAnalyzerHappyPath(t *testing.T) {

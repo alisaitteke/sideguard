@@ -1,5 +1,5 @@
-// Package paths provides XDG-style path helpers for VibeGuard local state.
-// See docs/plans/2026-07-01-0127-vibeguard-foundation/ (vgf-phase-1.0-project-init.md).
+// Package paths provides XDG-style path helpers for SideGuard local state.
+// See docs/plans/2026-07-01-0127-sideguard-foundation/ (vgf-phase-1.0-project-init.md).
 package paths
 
 import (
@@ -8,32 +8,32 @@ import (
 )
 
 const (
-	// DirName is the base directory under the user's home for all VibeGuard state.
-	DirName = ".vibeguard"
+	// DirName is the base directory under the user's home for all SideGuard state.
+	DirName = ".sideguard"
 
 	// RunSubdir holds runtime artifacts such as the Unix socket.
 	RunSubdir = "run"
 
 	// SocketFile is the Unix domain socket filename.
-	SocketFile = "vibeguard.sock"
+	SocketFile = "sideguard.sock"
 
 	// AuditDBFile is the SQLite audit log database filename.
 	AuditDBFile = "audit.db"
 
 	// PIDFile is the daemon process id file name.
-	PIDFile = "vibeguard.pid"
+	PIDFile = "sideguard.pid"
 
 	// LaunchAgentLabel is the launchd label for the user-session daemon.
-	LaunchAgentLabel = "com.vibeguard.daemon"
+	LaunchAgentLabel = "com.sideguard.daemon"
 
 	// LaunchAgentFile is the plist filename under ~/Library/LaunchAgents.
-	LaunchAgentFile = "com.vibeguard.daemon.plist"
+	LaunchAgentFile = "com.sideguard.daemon.plist"
 
 	// TrayLaunchAgentLabel is the launchd label for the menu-bar tray.
-	TrayLaunchAgentLabel = "com.vibeguard.tray"
+	TrayLaunchAgentLabel = "com.sideguard.tray"
 
 	// TrayLaunchAgentFile is the tray plist filename under ~/Library/LaunchAgents.
-	TrayLaunchAgentFile = "com.vibeguard.tray.plist"
+	TrayLaunchAgentFile = "com.sideguard.tray.plist"
 
 	// BackupsSubdir holds timestamped config backups from install.
 	BackupsSubdir = "backups"
@@ -50,7 +50,7 @@ const (
 	// SignaturesSubdir holds LLM classification prompt files.
 	SignaturesSubdir = "signatures"
 
-	// RulesSubdir holds user-supplied detect rule packs (~/.vibeguard/rules).
+	// RulesSubdir holds user-supplied detect rule packs (~/.sideguard/rules).
 	// See docs/plans/2026-07-02-0001-shell-detect-history/ (sdh-phase-2.0-detect.md).
 	RulesSubdir = "rules"
 
@@ -58,11 +58,11 @@ const (
 	// See docs/plans/2026-07-02-1102-github-update/ (vgu-phase-2.0-update-core.md).
 	UpdateStateFile = "update-state.json"
 
-	// UpdateSubdir holds downloaded release artifacts under ~/.vibeguard/run/update/.
+	// UpdateSubdir holds downloaded release artifacts under ~/.sideguard/run/update/.
 	UpdateSubdir = "update"
 )
 
-// Home returns the VibeGuard base directory (~/.vibeguard).
+// Home returns the SideGuard base directory (~/.sideguard).
 func Home() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -71,7 +71,7 @@ func Home() (string, error) {
 	return filepath.Join(home, DirName), nil
 }
 
-// RunDir returns the runtime directory (~/.vibeguard/run).
+// RunDir returns the runtime directory (~/.sideguard/run).
 func RunDir() (string, error) {
 	base, err := Home()
 	if err != nil {
@@ -80,7 +80,7 @@ func RunDir() (string, error) {
 	return filepath.Join(base, RunSubdir), nil
 }
 
-// SocketPath returns the Unix socket path (~/.vibeguard/run/vibeguard.sock).
+// SocketPath returns the Unix socket path (~/.sideguard/run/sideguard.sock).
 func SocketPath() (string, error) {
 	dir, err := RunDir()
 	if err != nil {
@@ -89,7 +89,7 @@ func SocketPath() (string, error) {
 	return filepath.Join(dir, SocketFile), nil
 }
 
-// AuditDBPath returns the SQLite audit database path (~/.vibeguard/audit.db).
+// AuditDBPath returns the SQLite audit database path (~/.sideguard/audit.db).
 func AuditDBPath() (string, error) {
 	base, err := Home()
 	if err != nil {
@@ -98,7 +98,7 @@ func AuditDBPath() (string, error) {
 	return filepath.Join(base, AuditDBFile), nil
 }
 
-// PIDPath returns the daemon pid file path (~/.vibeguard/run/vibeguard.pid).
+// PIDPath returns the daemon pid file path (~/.sideguard/run/sideguard.pid).
 func PIDPath() (string, error) {
 	dir, err := RunDir()
 	if err != nil {
@@ -107,7 +107,7 @@ func PIDPath() (string, error) {
 	return filepath.Join(dir, PIDFile), nil
 }
 
-// BackupsDir returns the install backup directory (~/.vibeguard/backups).
+// BackupsDir returns the install backup directory (~/.sideguard/backups).
 func BackupsDir() (string, error) {
 	base, err := Home()
 	if err != nil {
@@ -116,7 +116,7 @@ func BackupsDir() (string, error) {
 	return filepath.Join(base, BackupsSubdir), nil
 }
 
-// PolicyPath returns the global policy file path (~/.vibeguard/policy.yaml).
+// PolicyPath returns the global policy file path (~/.sideguard/policy.yaml).
 func PolicyPath() (string, error) {
 	base, err := Home()
 	if err != nil {
@@ -125,7 +125,7 @@ func PolicyPath() (string, error) {
 	return filepath.Join(base, PolicyFile), nil
 }
 
-// ConfigPath returns the global config file path (~/.vibeguard/config.yaml).
+// ConfigPath returns the global config file path (~/.sideguard/config.yaml).
 // See docs/plans/2026-07-01-0318-llm-auto-triage/ (lat-phase-1.0-contracts.md).
 func ConfigPath() (string, error) {
 	base, err := Home()
@@ -135,7 +135,7 @@ func ConfigPath() (string, error) {
 	return filepath.Join(base, ConfigFile), nil
 }
 
-// CredentialsPath returns the credentials file path (~/.vibeguard/credentials.yaml).
+// CredentialsPath returns the credentials file path (~/.sideguard/credentials.yaml).
 // See docs/plans/2026-07-01-0318-llm-auto-triage/ (lat-phase-1.0-contracts.md).
 func CredentialsPath() (string, error) {
 	base, err := Home()
@@ -145,7 +145,7 @@ func CredentialsPath() (string, error) {
 	return filepath.Join(base, CredentialsFile), nil
 }
 
-// SignaturesDir returns the LLM signature prompts directory (~/.vibeguard/signatures).
+// SignaturesDir returns the LLM signature prompts directory (~/.sideguard/signatures).
 // See docs/plans/2026-07-01-0318-llm-auto-triage/ (lat-phase-1.0-contracts.md).
 func SignaturesDir() (string, error) {
 	base, err := Home()
@@ -155,7 +155,7 @@ func SignaturesDir() (string, error) {
 	return filepath.Join(base, SignaturesSubdir), nil
 }
 
-// RulesDir returns the user detect-rules directory (~/.vibeguard/rules), where
+// RulesDir returns the user detect-rules directory (~/.sideguard/rules), where
 // the detect engine loads optional user rule packs merged after embedded rules.
 // See docs/plans/2026-07-02-0001-shell-detect-history/ (sdh-phase-2.0-detect.md).
 func RulesDir() (string, error) {
@@ -167,7 +167,7 @@ func RulesDir() (string, error) {
 }
 
 // LaunchAgentPath returns the LaunchAgent plist path
-// (~/Library/LaunchAgents/com.vibeguard.daemon.plist).
+// (~/Library/LaunchAgents/com.sideguard.daemon.plist).
 func LaunchAgentPath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -177,7 +177,7 @@ func LaunchAgentPath() (string, error) {
 }
 
 // TrayLaunchAgentPath returns the tray LaunchAgent plist path
-// (~/Library/LaunchAgents/com.vibeguard.tray.plist).
+// (~/Library/LaunchAgents/com.sideguard.tray.plist).
 func TrayLaunchAgentPath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -186,7 +186,7 @@ func TrayLaunchAgentPath() (string, error) {
 	return filepath.Join(home, "Library", "LaunchAgents", TrayLaunchAgentFile), nil
 }
 
-// UpdateStatePath returns the update checker state file (~/.vibeguard/update-state.json).
+// UpdateStatePath returns the update checker state file (~/.sideguard/update-state.json).
 // See docs/plans/2026-07-02-1102-github-update/ (vgu-phase-2.0-update-core.md).
 func UpdateStatePath() (string, error) {
 	base, err := Home()
@@ -197,7 +197,7 @@ func UpdateStatePath() (string, error) {
 }
 
 // UpdateRunDir returns the per-version download staging directory
-// (~/.vibeguard/run/update/<version>/).
+// (~/.sideguard/run/update/<version>/).
 func UpdateRunDir(version string) (string, error) {
 	dir, err := RunDir()
 	if err != nil {

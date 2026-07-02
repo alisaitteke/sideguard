@@ -1,5 +1,5 @@
 // MCP JSON-RPC framing over STDIO (Content-Length headers).
-// See docs/plans/2026-07-01-0127-vibeguard-foundation/ (vgf-phase-4.0-mcp-proxy.md).
+// See docs/plans/2026-07-01-0127-sideguard-foundation/ (vgf-phase-4.0-mcp-proxy.md).
 package proxy
 
 import (

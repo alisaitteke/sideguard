@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/api"
-	"github.com/alisaitteke/vibeguard/internal/approvalfmt"
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
-	"github.com/alisaitteke/vibeguard/internal/llm"
-	"github.com/alisaitteke/vibeguard/internal/tray/darwin"
+	"github.com/alisaitteke/sideguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/approvalfmt"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/llm"
+	"github.com/alisaitteke/sideguard/internal/tray/darwin"
 )
 
 // Run starts the macOS menu-bar tray (NSStatusItem + NSPopover) and blocks until Quit.
@@ -155,7 +155,7 @@ func Run(opts Options) error {
 		defer callCancel()
 
 		if err := pollSession.SetMode(callCtx, mode); err != nil {
-			darwin.SetTooltip("VibeGuard — mode change failed: " + err.Error())
+			darwin.SetTooltip("SideGuard — mode change failed: " + err.Error())
 			return
 		}
 		pollSession.RefreshNow()
@@ -189,7 +189,7 @@ func Run(opts Options) error {
 	darwin.SetOpenSettingsHandler(func() {
 		snap, err := darwin.LoadSettingsSnapshot()
 		if err != nil {
-			darwin.SetTooltip("VibeGuard — settings load failed: " + err.Error())
+			darwin.SetTooltip("SideGuard — settings load failed: " + err.Error())
 			return
 		}
 		darwin.ShowSettings(snap)
@@ -219,7 +219,7 @@ func Run(opts Options) error {
 		<-readyCh
 		// Initial logo is set from ObjC after effective appearance is resolved.
 		darwin.SetIcon(menuBarIcon())
-		darwin.SetTooltip("VibeGuard — no pending")
+		darwin.SetTooltip("SideGuard — no pending")
 		pollSession.Start(ctx)
 		updateChecker.Start(ctx)
 

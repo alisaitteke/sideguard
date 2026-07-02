@@ -97,10 +97,10 @@ static void updateDetailActionButtons(NSString *rowID, BOOL useEventID, NSDictio
 static NSString *verdictDisplayTitle(NSString *verdict);
 static NSColor *verdictBadgeColor(NSString *verdict);
 
-@interface VibeGuardPanelRootView : NSView
+@interface SideGuardPanelRootView : NSView
 @end
 
-@implementation VibeGuardPanelRootView
+@implementation SideGuardPanelRootView
 
 - (void)viewDidChangeEffectiveAppearance {
     [super viewDidChangeEffectiveAppearance];
@@ -109,10 +109,10 @@ static NSColor *verdictBadgeColor(NSString *verdict);
 
 @end
 
-@interface VibeGuardTrayDelegate : NSObject <NSApplicationDelegate, NSPopoverDelegate>
+@interface SideGuardTrayDelegate : NSObject <NSApplicationDelegate, NSPopoverDelegate>
 @end
 
-@implementation VibeGuardTrayDelegate
+@implementation SideGuardTrayDelegate
 
 - (void)dealloc {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
@@ -144,7 +144,7 @@ static NSColor *verdictBadgeColor(NSString *verdict);
 }
 
 - (void)buildPanelShell {
-    gPanelRoot = [[VibeGuardPanelRootView alloc] initWithFrame:NSMakeRect(0, 0, kPanelWidth, kPanelHeight)];
+    gPanelRoot = [[SideGuardPanelRootView alloc] initWithFrame:NSMakeRect(0, 0, kPanelWidth, kPanelHeight)];
 
     [NSLayoutConstraint activateConstraints:@[
         [gPanelRoot.widthAnchor constraintEqualToConstant:kPanelWidth],
@@ -207,7 +207,7 @@ static NSColor *verdictBadgeColor(NSString *verdict);
         [gHeaderLogoView.heightAnchor constraintEqualToConstant:24.0],
     ]];
 
-    gHeaderTitleLabel = [NSTextField labelWithString:@"VibeGuard"];
+    gHeaderTitleLabel = [NSTextField labelWithString:@"SideGuard"];
     gHeaderTitleLabel.translatesAutoresizingMaskIntoConstraints = NO;
     gHeaderTitleLabel.font = [NSFont systemFontOfSize:15.0 weight:NSFontWeightSemibold];
     gHeaderTitleLabel.textColor = [NSColor labelColor];
@@ -595,7 +595,7 @@ static NSColor *verdictBadgeColor(NSString *verdict);
     (void)sender;
     NSAlert *alert = [[NSAlert alloc] init];
     alert.alertStyle = NSAlertStyleWarning;
-    alert.messageText = @"Quit VibeGuard tray?";
+    alert.messageText = @"Quit SideGuard tray?";
     alert.informativeText = @"Approvals will remain queued; reopen tray from the app.";
     [alert addButtonWithTitle:@"Cancel"];
     [alert addButtonWithTitle:@"Quit"];
@@ -1691,7 +1691,7 @@ void darwin_tray_prepare(darwin_ready_fn on_ready) {
         gOnReady = on_ready;
 
         [NSApplication sharedApplication];
-        gTrayDelegate = [[VibeGuardTrayDelegate alloc] init];
+        gTrayDelegate = [[SideGuardTrayDelegate alloc] init];
         [NSApp setDelegate:gTrayDelegate];
         [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
     }

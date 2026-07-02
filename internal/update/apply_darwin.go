@@ -10,8 +10,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/alisaitteke/vibeguard/internal/daemon"
-	"github.com/alisaitteke/vibeguard/internal/paths"
+	"github.com/alisaitteke/sideguard/internal/daemon"
+	"github.com/alisaitteke/sideguard/internal/paths"
 )
 
 type darwinApplier struct{}

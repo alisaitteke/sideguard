@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alisaitteke/vibeguard/internal/install"
+	"github.com/alisaitteke/sideguard/internal/install"
 )
 
 func capturePrint(fn func()) string {
@@ -34,7 +34,7 @@ func TestPrintClientReloadHints_CursorOnly(t *testing.T) {
 	if !strings.Contains(out, "Reload Window") {
 		t.Fatal("expected Cursor reload window hint")
 	}
-	if !strings.Contains(out, "vibeguard clients reload") {
+	if !strings.Contains(out, "sideguard clients reload") {
 		t.Fatal("expected pointer to clients reload command")
 	}
 }
@@ -52,7 +52,7 @@ func TestPrintClientReloadHints_FullClaude(t *testing.T) {
 	if !strings.Contains(out, "/hooks lists") {
 		t.Fatal("expected /hooks clarification")
 	}
-	if strings.Contains(out, "vibeguard clients reload") {
+	if strings.Contains(out, "sideguard clients reload") {
 		t.Fatal("full verbosity should not point to clients reload")
 	}
 }

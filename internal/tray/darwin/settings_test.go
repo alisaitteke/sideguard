@@ -8,14 +8,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/alisaitteke/vibeguard/internal/config"
+	"github.com/alisaitteke/sideguard/internal/config"
 )
 
 func setupTraySettingsHome(t *testing.T) string {
 	t.Helper()
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	if err := os.MkdirAll(filepath.Join(home, ".vibeguard"), 0o700); err != nil {
+	if err := os.MkdirAll(filepath.Join(home, ".sideguard"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	return home
@@ -23,7 +23,7 @@ func setupTraySettingsHome(t *testing.T) string {
 
 func writeTrayConfig(t *testing.T, home, content string) {
 	t.Helper()
-	path := filepath.Join(home, ".vibeguard", "config.yaml")
+	path := filepath.Join(home, ".sideguard", "config.yaml")
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatal(err)
 	}

@@ -9,7 +9,7 @@ import (
 	"image/png"
 	"sync"
 
-	"github.com/alisaitteke/vibeguard/assets"
+	"github.com/alisaitteke/sideguard/assets"
 	"github.com/srwiley/oksvg"
 	"github.com/srwiley/rasterx"
 	"golang.org/x/image/font"

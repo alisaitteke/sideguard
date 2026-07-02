@@ -8,7 +8,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/alisaitteke/vibeguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/api"
 )
 
 // AnalyseResultJSON is the ObjC bridge payload pushed after POST /v1/analyze completes.
@@ -61,7 +61,7 @@ func SanitizeAnalyseError(err error) string {
 	lower := strings.ToLower(msg)
 	switch {
 	case strings.Contains(lower, "daemon unreachable"):
-		return "Daemon unreachable. Is VibeGuard running?"
+		return "Daemon unreachable. Is SideGuard running?"
 	case strings.Contains(lower, "llm analysis is disabled"):
 		return "LLM analysis is disabled in config."
 	case strings.Contains(lower, "no llm provider configured"):

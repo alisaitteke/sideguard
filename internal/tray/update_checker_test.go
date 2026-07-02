@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/update"
+	"github.com/alisaitteke/sideguard/internal/update"
 )
 
 func TestUpdateChecker_SkipWhenDev(t *testing.T) {

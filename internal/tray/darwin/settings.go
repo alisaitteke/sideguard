@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alisaitteke/vibeguard/internal/config"
-	"github.com/alisaitteke/vibeguard/internal/llm"
+	"github.com/alisaitteke/sideguard/internal/config"
+	"github.com/alisaitteke/sideguard/internal/llm"
 )
 
 // DriverOptionJSON describes one registered LLM driver for the settings dropdown.

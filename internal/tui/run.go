@@ -6,7 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mattn/go-isatty"
-	"github.com/alisaitteke/vibeguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/api"
 )
 
 // Options configures the interactive approval UI session.
@@ -20,7 +20,7 @@ func Run(client *api.Client, opts Options) error {
 	}
 	_ = opts
 	if !isatty.IsTerminal(os.Stdin.Fd()) {
-		return fmt.Errorf("vibeguard ui requires an interactive terminal (TTY); stdin is not a terminal")
+		return fmt.Errorf("sideguard ui requires an interactive terminal (TTY); stdin is not a terminal")
 	}
 
 	p := tea.NewProgram(newModel(client), tea.WithAltScreen())

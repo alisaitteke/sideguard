@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
 )
 
 var (
@@ -145,14 +145,14 @@ func (c *Client) IngestEvent(ctx context.Context, e CommandEvent) error {
 	ingestClient := &http.Client{Timeout: 2 * time.Second}
 	resp, err := ingestClient.Do(req)
 	if err != nil {
-		log.Printf("vibeguard events: ingest unreachable: %v", err)
+		log.Printf("sideguard events: ingest unreachable: %v", err)
 		return nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusAccepted {
 		raw, _ := io.ReadAll(resp.Body)
-		log.Printf("vibeguard events: ingest failed: status %d: %s", resp.StatusCode, string(raw))
+		log.Printf("sideguard events: ingest failed: status %d: %s", resp.StatusCode, string(raw))
 	}
 	return nil
 }

@@ -27,8 +27,8 @@ go.work.sum
 .DS_Store
 Thumbs.db
 
-# VibeGuard local state
-.vibeguard/
+# SideGuard local state
+.sideguard/
 
 # Local env
 .env

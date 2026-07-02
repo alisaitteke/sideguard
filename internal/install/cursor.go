@@ -20,7 +20,7 @@ type cursorHooksDoc struct {
 	BeforeMCPExecution   []cursorHookEntry `json:"beforeMCPExecution,omitempty"`
 }
 
-// PatchCursorMCP rewrites STDIO MCP servers to vibeguard wrap -- <upstream>.
+// PatchCursorMCP rewrites STDIO MCP servers to sideguard wrap -- <upstream>.
 func PatchCursorMCP(path, binary string, dryRun bool) (changed int, diff string, err error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -39,7 +39,7 @@ func PatchCursorMCP(path, binary string, dryRun bool) (changed int, diff string,
 	return wrapped, diffSummary(path, string(data), string(out)), nil
 }
 
-// PatchCursorHooks merges VibeGuard hook entries without removing user hooks.
+// PatchCursorHooks merges SideGuard hook entries without removing user hooks.
 func PatchCursorHooks(path, binary string, dryRun bool) (added int, diff string, err error) {
 	var data []byte
 	if _, statErr := os.Stat(path); statErr == nil {
@@ -137,17 +137,17 @@ func hookCommandsEqual(a, b string) bool {
 	return trimHookCommand(a) == trimHookCommand(b)
 }
 
-// IsVibeguardHookCommand reports whether a hook command invokes vibeguard shell or MCP hooks.
-func IsVibeguardHookCommand(cmd string) bool {
+// IsSideguardHookCommand reports whether a hook command invokes sideguard shell or MCP hooks.
+func IsSideguardHookCommand(cmd string) bool {
 	t := trimHookCommand(cmd)
-	return t == "vibeguard hook shell" || t == "vibeguard hook mcp"
+	return t == "sideguard hook shell" || t == "sideguard hook mcp"
 }
 
 func filterCursorHookEntries(entries []cursorHookEntry) ([]cursorHookEntry, int) {
 	removed := 0
 	var kept []cursorHookEntry
 	for _, e := range entries {
-		if IsVibeguardHookCommand(e.Command) {
+		if IsSideguardHookCommand(e.Command) {
 			removed++
 			continue
 		}
@@ -156,7 +156,7 @@ func filterCursorHookEntries(entries []cursorHookEntry) ([]cursorHookEntry, int)
 	return kept, removed
 }
 
-// UnpatchCursorHooks removes VibeGuard hook entries without touching user hooks.
+// UnpatchCursorHooks removes SideGuard hook entries without touching user hooks.
 func UnpatchCursorHooks(path, binary string, dryRun bool) (removed int, diff string, err error) {
 	_ = binary
 	var data []byte
@@ -214,11 +214,11 @@ func UnpatchCursorHooks(path, binary string, dryRun bool) (removed int, diff str
 func trimHookCommand(cmd string) string {
 	const suffix = " hook shell"
 	if len(cmd) > len(suffix) && cmd[len(cmd)-len(suffix):] == suffix {
-		return "vibeguard hook shell"
+		return "sideguard hook shell"
 	}
 	const mcpSuffix = " hook mcp"
 	if len(cmd) > len(mcpSuffix) && cmd[len(cmd)-len(mcpSuffix):] == mcpSuffix {
-		return "vibeguard hook mcp"
+		return "sideguard hook mcp"
 	}
 	return cmd
 }

@@ -1,4 +1,4 @@
-// Package rules embeds VibeGuard's built-in detect rule packs so the daemon
+// Package rules embeds SideGuard's built-in detect rule packs so the daemon
 // ships with a working ruleset regardless of what is present on disk. The YAML
 // files are the trusted source for bypass (self-protection) rules, which user
 // rule packs may never override.

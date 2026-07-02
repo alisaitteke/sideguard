@@ -43,9 +43,9 @@ func TestResolveAssetName(t *testing.T) {
 	tests := []struct {
 		goos, goarch, version, want string
 	}{
-		{"darwin", "arm64", "1.2.3", "vibeguard_1.2.3_darwin_arm64.tar.gz"},
-		{"linux", "amd64", "0.1.0", "vibeguard_0.1.0_linux_amd64.tar.gz"},
-		{"windows", "amd64", "2.0.0", "vibeguard_2.0.0_windows_amd64.zip"},
+		{"darwin", "arm64", "1.2.3", "sideguard_1.2.3_darwin_arm64.tar.gz"},
+		{"linux", "amd64", "0.1.0", "sideguard_0.1.0_linux_amd64.tar.gz"},
+		{"windows", "amd64", "2.0.0", "sideguard_2.0.0_windows_amd64.zip"},
 	}
 	for _, tc := range tests {
 		got := ResolveAssetName(tc.goos, tc.goarch, tc.version)

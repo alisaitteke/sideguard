@@ -1,4 +1,4 @@
-module github.com/alisaitteke/vibeguard
+module github.com/alisaitteke/sideguard
 
 go 1.25.0
 

@@ -1,6 +1,6 @@
 // HTTP Stream (MCP 2025-11) reverse proxy for remote MCP servers.
 // Binds localhost only; validates Origin; intercepts tools/call for approval.
-// See docs/plans/2026-07-01-0127-vibeguard-foundation/ (vgf-phase-8.0-hardening.md).
+// See docs/plans/2026-07-01-0127-sideguard-foundation/ (vgf-phase-8.0-hardening.md).
 package proxy
 
 import (
@@ -67,7 +67,7 @@ func RunHTTP(ctx context.Context, opts HTTPOptions) error {
 	if err != nil {
 		return fmt.Errorf("listen %s: %w", listen, err)
 	}
-	log.Printf("vibeguard: HTTP MCP proxy listening on http://%s -> %s", ln.Addr().String(), upstream.String())
+	log.Printf("sideguard: HTTP MCP proxy listening on http://%s -> %s", ln.Addr().String(), upstream.String())
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -122,11 +122,11 @@ func (p *httpStreamProxy) handlePOST(w http.ResponseWriter, r *http.Request) {
 		if action == ActionHoldApproval {
 			params, err := ParseToolsCallParams(msg)
 			if err != nil {
-				p.writeJSONRPCError(w, msg.ID, -32602, "VibeGuard: "+err.Error())
+				p.writeJSONRPCError(w, msg.ID, -32602, "SideGuard: "+err.Error())
 				return
 			}
 			if err := requestToolCallApproval(r.Context(), p.client, params); err != nil {
-				p.writeJSONRPCError(w, msg.ID, -32000, "VibeGuard: "+err.Error())
+				p.writeJSONRPCError(w, msg.ID, -32000, "SideGuard: "+err.Error())
 				return
 			}
 		}

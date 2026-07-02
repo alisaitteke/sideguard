@@ -8,16 +8,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
-	"github.com/alisaitteke/vibeguard/internal/config"
-	"github.com/alisaitteke/vibeguard/internal/llm"
-	"github.com/alisaitteke/vibeguard/internal/notify"
-	"github.com/alisaitteke/vibeguard/internal/store"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/config"
+	"github.com/alisaitteke/sideguard/internal/llm"
+	"github.com/alisaitteke/sideguard/internal/notify"
+	"github.com/alisaitteke/sideguard/internal/store"
 )
 
 // Handler implements HTTP handlers for the daemon approval API.
 // Long-poll wait mirrors git credential-cache blocking semantics.
-// See docs/plans/2026-07-01-0127-vibeguard-foundation/ (vgf-phase-2.0-daemon-core.md).
+// See docs/plans/2026-07-01-0127-sideguard-foundation/ (vgf-phase-2.0-daemon-core.md).
 type Handler struct {
 	Version string
 	Store   *store.Store
@@ -212,7 +212,7 @@ func (h *Handler) IngestEvent(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		if err := h.Store.IngestEvent(ToStoreEvent(req)); err != nil {
-			log.Printf("vibeguard events: ingest failed: %v", err)
+			log.Printf("sideguard events: ingest failed: %v", err)
 		}
 	}()
 }
@@ -353,9 +353,9 @@ func (h *Handler) AnalyzeCommand(w http.ResponseWriter, r *http.Request) {
 
 	redacted := llm.RedactCommand(command)
 	if eventID != "" {
-		log.Printf("vibeguard analyze: event_id=%s command=%q", eventID, redacted)
+		log.Printf("sideguard analyze: event_id=%s command=%q", eventID, redacted)
 	} else {
-		log.Printf("vibeguard analyze: command=%q", redacted)
+		log.Printf("sideguard analyze: command=%q", redacted)
 	}
 
 	result, err := analyzer.Analyze(r.Context(), llm.AnalyzeInput{

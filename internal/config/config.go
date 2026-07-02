@@ -1,4 +1,4 @@
-// Package config loads ~/.vibeguard/config.yaml and resolves LLM settings
+// Package config loads ~/.sideguard/config.yaml and resolves LLM settings
 // with optional workspace policy overrides.
 // See docs/plans/2026-07-02-1521-llm-settings-analyse/ (lsa-phase-1.0-config.md).
 package config
@@ -11,8 +11,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/alisaitteke/vibeguard/internal/paths"
-	"github.com/alisaitteke/vibeguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/paths"
+	"github.com/alisaitteke/sideguard/internal/policy"
 )
 
 // ProviderInstance is a named LLM provider configuration (secrets live in credentials.yaml).
@@ -112,7 +112,7 @@ func defaultUpdateConfig() UpdateConfig {
 	}
 }
 
-// LoadUpdate reads self-update settings from ~/.vibeguard/config.yaml.
+// LoadUpdate reads self-update settings from ~/.sideguard/config.yaml.
 // Missing file or block uses defaults (enabled, 6h interval, stable channel).
 func LoadUpdate() (UpdateConfig, error) {
 	cfg := defaultUpdateConfig()
@@ -147,7 +147,7 @@ func LoadUpdate() (UpdateConfig, error) {
 	return cfg, nil
 }
 
-// LoadHistory reads history retention settings from ~/.vibeguard/config.yaml.
+// LoadHistory reads history retention settings from ~/.sideguard/config.yaml.
 // Missing file or block uses defaults (30 days, 50000 events). retention_days: 0
 // disables time-based pruning; max_events: 0 disables count-based trimming.
 func LoadHistory() (HistoryConfig, error) {

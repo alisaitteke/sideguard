@@ -7,7 +7,7 @@ import (
 
 func TestParseChecksumsAndVerify(t *testing.T) {
 	content := []byte("hello release")
-	archiveName := "vibeguard_1.0.0_darwin_arm64.tar.gz"
+	archiveName := "sideguard_1.0.0_darwin_arm64.tar.gz"
 	line := sha256Hex(content) + "  " + archiveName + "\n"
 
 	checksums, err := ParseChecksums([]byte(line))

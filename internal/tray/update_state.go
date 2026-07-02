@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/alisaitteke/vibeguard/internal/update"
+	"github.com/alisaitteke/sideguard/internal/update"
 )
 
 // UpdateUIState is the tray-visible self-update snapshot shared by popover and systray.

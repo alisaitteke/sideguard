@@ -1,8 +1,8 @@
 // status_popover.h — C API for macOS NSStatusItem + NSPopover tray shell.
 // See docs/plans/2026-07-01-1537-mac-tray-popover/ (mtp-phase-3.0-darwin-panel.md).
 
-#ifndef VIBEGUARD_STATUS_POPOVER_H
-#define VIBEGUARD_STATUS_POPOVER_H
+#ifndef SIDEGUARD_STATUS_POPOVER_H
+#define SIDEGUARD_STATUS_POPOVER_H
 
 #include <stddef.h>
 
@@ -61,4 +61,4 @@ void darwin_update_analyse_result(const char *json);
 }
 #endif
 
-#endif /* VIBEGUARD_STATUS_POPOVER_H */
+#endif /* SIDEGUARD_STATUS_POPOVER_H */

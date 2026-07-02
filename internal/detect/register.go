@@ -5,8 +5,8 @@ import (
 	"log"
 	"sync"
 
-	"github.com/alisaitteke/vibeguard/internal/policy"
-	"github.com/alisaitteke/vibeguard/internal/shell"
+	"github.com/alisaitteke/sideguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/shell"
 )
 
 var (
@@ -26,7 +26,7 @@ func init() {
 	policy.SetDetectEvaluator(func(ir shell.IR, input policy.Input) policy.DetectOutcome {
 		eng, err := registeredEngine()
 		if err != nil {
-			log.Printf("vibeguard detect: engine init failed: %v", err)
+			log.Printf("sideguard detect: engine init failed: %v", err)
 			return policy.DetectOutcome{
 				Action: policy.ActionAsk,
 				Reason: "detection engine unavailable",

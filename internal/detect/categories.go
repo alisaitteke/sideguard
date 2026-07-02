@@ -1,6 +1,6 @@
-// Package detect is VibeGuard's local decision engine. It evaluates the
+// Package detect is SideGuard's local decision engine. It evaluates the
 // execution-free shell.IR produced by internal/shell against embedded YAML
-// category rules (plus optional user rules in ~/.vibeguard/rules) and returns a
+// category rules (plus optional user rules in ~/.sideguard/rules) and returns a
 // Result carrying an allow/deny/ask action, matched rule ids, a numeric risk
 // score, and the categories that fired. It performs pure, offline pattern
 // matching — no network access and no command execution.
@@ -21,7 +21,7 @@ const (
 	CategoryReverseShell Category = "reverse_shell"
 	// CategoryPrivesc is privilege escalation (setuid, sudoers, chown root).
 	CategoryPrivesc Category = "privesc"
-	// CategoryBypass is tampering with VibeGuard's own config/hooks/daemon. It is
+	// CategoryBypass is tampering with SideGuard's own config/hooks/daemon. It is
 	// non-overridable: bypass rules may only originate from embedded packs.
 	CategoryBypass Category = "bypass"
 	// CategoryCredentialAccess is reading secrets (/etc/shadow, ssh keys, .env).

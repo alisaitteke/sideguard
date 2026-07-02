@@ -31,7 +31,7 @@ func (m *mockLaunchctlRunner) run(args ...string) (string, error) {
 
 func TestTrayLoadLaunchAgentBootoutThenBootstrap(t *testing.T) {
 	runner := &mockLaunchctlRunner{}
-	plist := "/Users/test/Library/LaunchAgents/com.vibeguard.tray.plist"
+	plist := "/Users/test/Library/LaunchAgents/com.sideguard.tray.plist"
 
 	if err := loadTrayLaunchAgent(runner, "501", plist); err != nil {
 		t.Fatal(err)
@@ -56,7 +56,7 @@ func TestTrayUninstallServiceRemovesPlist(t *testing.T) {
 	if err := os.MkdirAll(plistDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	plist := plistDir + "/com.vibeguard.tray.plist"
+	plist := plistDir + "/com.sideguard.tray.plist"
 	if err := os.WriteFile(plist, []byte("<plist/>"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestTrayLoadLaunchAgentBootstrapAlreadyLoadedKickstart(t *testing.T) {
 	for _, call := range runner.calls {
 		if len(call) > 0 && call[0] == "kickstart" {
 			sawKickstart = true
-			if call[2] != "gui/501/com.vibeguard.tray" {
+			if call[2] != "gui/501/com.sideguard.tray" {
 				t.Fatalf("unexpected kickstart call: %v", call)
 			}
 		}

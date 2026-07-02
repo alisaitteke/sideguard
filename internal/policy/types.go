@@ -1,5 +1,5 @@
 // Package policy implements deterministic YAML allow/deny/ask rules for shell
-// commands and MCP tool names. See docs/plans/2026-07-01-0127-vibeguard-foundation/
+// commands and MCP tool names. See docs/plans/2026-07-01-0127-sideguard-foundation/
 // (vgf-phase-7.0-policy-engine.md).
 package policy
 

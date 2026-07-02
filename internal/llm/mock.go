@@ -5,7 +5,7 @@ package llm
 import (
 	"context"
 
-	"github.com/alisaitteke/vibeguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/policy"
 )
 
 // MockProvider implements Provider with a predetermined result or error.

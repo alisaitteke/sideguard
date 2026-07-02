@@ -11,14 +11,14 @@ const (
 )
 
 // PrintClientReloadHints prints honest per-client steps to pick up hook and MCP config
-// changes after install or uninstall. There is no vibeguard command that forces a reload.
+// changes after install or uninstall. There is no sideguard command that forces a reload.
 func PrintClientReloadHints(opts Options, action string, verbosity ReloadHintsVerbosity) {
 	cursor, claude := clientFlags(opts)
 	if !cursor && !claude {
 		cursor, claude = true, true
 	}
 
-	fmt.Printf("\nApply %s in your AI clients (no vibeguard reload command exists):\n", action)
+	fmt.Printf("\nApply %s in your AI clients (no sideguard reload command exists):\n", action)
 
 	if cursor {
 		printCursorReloadHints(verbosity)
@@ -28,7 +28,7 @@ func PrintClientReloadHints(opts Options, action string, verbosity ReloadHintsVe
 	}
 
 	if verbosity == ReloadHintsBrief {
-		fmt.Println("\nDetails: `vibeguard clients reload`")
+		fmt.Println("\nDetails: `sideguard clients reload`")
 	}
 }
 

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/alisaitteke/vibeguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/policy"
 )
 
 func TestParseClassifyResponse(t *testing.T) {

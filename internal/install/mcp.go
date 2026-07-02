@@ -79,7 +79,7 @@ func unpatchMCPServersJSON(data []byte, binary string) ([]byte, int, error) {
 	return out, unwrapped, err
 }
 
-// UnpatchCursorMCP removes vibeguard wrap -- from STDIO MCP servers in-place.
+// UnpatchCursorMCP removes sideguard wrap -- from STDIO MCP servers in-place.
 func UnpatchCursorMCP(path, binary string, dryRun bool) (unwrapped int, diff string, err error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -103,7 +103,7 @@ func UnpatchCursorMCP(path, binary string, dryRun bool) (unwrapped int, diff str
 	return unwrapped, diffSummary(path, string(data), string(out)), nil
 }
 
-// UnpatchClaudeMCP removes vibeguard wrap -- from mcpServers in ~/.claude.json.
+// UnpatchClaudeMCP removes sideguard wrap -- from mcpServers in ~/.claude.json.
 func UnpatchClaudeMCP(path, binary string, dryRun bool) (unwrapped int, diff string, err error) {
 	return UnpatchCursorMCP(path, binary, dryRun)
 }
@@ -135,20 +135,20 @@ func wrapMCPServers(servers map[string]mcpServerEntry, binary string) (int, erro
 }
 
 func isAlreadyWrapped(entry mcpServerEntry, binary string) bool {
-	if !commandIsVibeguard(entry.Command, binary) {
+	if !commandIsSideguard(entry.Command, binary) {
 		return false
 	}
 	return len(entry.Args) >= 2 && entry.Args[0] == "wrap" && entry.Args[1] == "--"
 }
 
-func commandIsVibeguard(command, binary string) bool {
-	if command == "vibeguard" {
+func commandIsSideguard(command, binary string) bool {
+	if command == "sideguard" {
 		return true
 	}
 	if binary != "" && command == binary {
 		return true
 	}
-	return filepath.Base(command) == "vibeguard"
+	return filepath.Base(command) == "sideguard"
 }
 
 func marshalJSONPretty(v any) ([]byte, error) {

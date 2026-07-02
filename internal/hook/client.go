@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/api"
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
 )
 
 // DefaultApprovalTimeout matches Cursor/Claude hook timeout (600s).
@@ -18,7 +18,7 @@ type DaemonClient interface {
 	IngestEvent(ctx context.Context, e api.CommandEvent) error
 }
 
-// Client talks to the local VibeGuard daemon with hook-sized long-poll timeouts.
+// Client talks to the local SideGuard daemon with hook-sized long-poll timeouts.
 // Fail-closed on connection errors — see vgf-phase-5.0-hook-bridge.md.
 type Client struct {
 	api     *api.Client

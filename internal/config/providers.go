@@ -11,7 +11,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/alisaitteke/vibeguard/internal/paths"
+	"github.com/alisaitteke/sideguard/internal/paths"
 )
 
 var (
@@ -53,7 +53,7 @@ func ValidateLLMSettings(settings LLMSettings) error {
 	return nil
 }
 
-// LoadProviders returns provider instances from ~/.vibeguard/config.yaml.
+// LoadProviders returns provider instances from ~/.sideguard/config.yaml.
 func LoadProviders() ([]ProviderInstance, error) {
 	settings, err := LoadLLMSettings("")
 	if err != nil {

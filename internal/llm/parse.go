@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alisaitteke/vibeguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/policy"
 )
 
 // parseError marks failures to interpret model JSON; classifier maps these to ActionAsk.

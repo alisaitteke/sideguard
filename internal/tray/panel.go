@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alisaitteke/vibeguard/internal/api"
-	"github.com/alisaitteke/vibeguard/internal/approvalfmt"
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/approvalfmt"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
 )
 
 const (
@@ -279,7 +279,7 @@ func formatPendingCount(n int, healthOK bool) string {
 }
 
 func overflowLabel(overflow int) string {
-	return fmt.Sprintf("… and %d more (use vibeguard ui)", overflow)
+	return fmt.Sprintf("… and %d more (use sideguard ui)", overflow)
 }
 
 // visibleSystrayHistory returns capped history rows and whether the systray section / load-more show.

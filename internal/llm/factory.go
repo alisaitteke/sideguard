@@ -6,8 +6,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/alisaitteke/vibeguard/internal/config"
-	"github.com/alisaitteke/vibeguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/config"
+	"github.com/alisaitteke/sideguard/internal/policy"
 )
 
 const defaultClassifySignature = "default"

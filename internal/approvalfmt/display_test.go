@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/api"
 )
 
 func TestShortApprovalID(t *testing.T) {

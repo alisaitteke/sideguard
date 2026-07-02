@@ -1,13 +1,13 @@
-# GoReleaser config for VibeGuard release binaries.
+# GoReleaser config for SideGuard release binaries.
 # See docs/plans/2026-07-02-1102-github-update/vgu-phase-1.0-release-ci.md
 version: 2
 
-project_name: vibeguard
+project_name: sideguard
 
 builds:
   - id: darwin
-    main: ./cmd/vibeguard
-    binary: vibeguard
+    main: ./cmd/sideguard
+    binary: sideguard
     env:
       - CGO_ENABLED=1
     goos:
@@ -17,11 +17,11 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X github.com/alisaitteke/vibeguard/cmd/vibeguard/cmd.Version={{.Version}}
+      - -X github.com/alisaitteke/sideguard/cmd/sideguard/cmd.Version={{.Version}}
 
   - id: linux
-    main: ./cmd/vibeguard
-    binary: vibeguard
+    main: ./cmd/sideguard
+    binary: sideguard
     env:
       - CGO_ENABLED=1
     goos:
@@ -31,11 +31,11 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X github.com/alisaitteke/vibeguard/cmd/vibeguard/cmd.Version={{.Version}}
+      - -X github.com/alisaitteke/sideguard/cmd/sideguard/cmd.Version={{.Version}}
 
   - id: windows
-    main: ./cmd/vibeguard
-    binary: vibeguard
+    main: ./cmd/sideguard
+    binary: sideguard
     env:
       - CGO_ENABLED=1
     goos:
@@ -44,13 +44,13 @@ builds:
       - amd64
     ldflags:
       - -s -w
-      - -X github.com/alisaitteke/vibeguard/cmd/vibeguard/cmd.Version={{.Version}}
+      - -X github.com/alisaitteke/sideguard/cmd/sideguard/cmd.Version={{.Version}}
 
 archives:
   - id: default
     formats:
       - tar.gz
-    name_template: "vibeguard_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    name_template: "sideguard_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     format_overrides:
       - goos: windows
         formats:
@@ -65,7 +65,7 @@ checksum:
 release:
   github:
     owner: alisaitteke
-    name: vibeguard
+    name: sideguard
   draft: false
   prerelease: auto
 

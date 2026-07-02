@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alisaitteke/vibeguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/api"
 )
 
 func TestRunRequiresTTY(t *testing.T) {

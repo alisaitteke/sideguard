@@ -10,7 +10,7 @@ import (
 func Evaluate(cwd string, input Input) Result {
 	p, err := Load(cwd)
 	if err != nil {
-		log.Printf("vibeguard policy: load error (fail-closed deny): %v", err)
+		log.Printf("sideguard policy: load error (fail-closed deny): %v", err)
 		return Result{
 			Action:    ActionDeny,
 			Reason:    "policy configuration error",

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/store"
+	"github.com/alisaitteke/sideguard/internal/store"
 )
 
 func testStore(t *testing.T) *store.Store {

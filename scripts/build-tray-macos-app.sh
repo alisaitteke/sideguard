@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Builds dist/VibeGuard Tray.app — macOS menu-bar bundle with LSUIElement (no Dock icon).
+# Builds dist/SideGuard Tray.app — macOS menu-bar bundle with LSUIElement (no Dock icon).
 # See docs/plans/2026-07-01-1355-go-systray-tray/ (gst-phase-4.0-macos-packaging.md).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-BINARY="${BINARY:-$ROOT/bin/vibeguard}"
-APP_NAME="VibeGuard Tray"
+BINARY="${BINARY:-$ROOT/bin/sideguard}"
+APP_NAME="SideGuard Tray"
 DIST="$ROOT/dist"
 APP="$DIST/$APP_NAME.app"
 ICON_SRC="$ROOT/internal/tray/assets/icon_32.png"
@@ -29,15 +29,15 @@ fi
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-cp "$BINARY" "$APP/Contents/MacOS/vibeguard"
-chmod +x "$APP/Contents/MacOS/vibeguard"
+cp "$BINARY" "$APP/Contents/MacOS/sideguard"
+chmod +x "$APP/Contents/MacOS/sideguard"
 
-cat >"$APP/Contents/MacOS/vibeguard-tray" <<'EOF'
+cat >"$APP/Contents/MacOS/sideguard-tray" <<'EOF'
 #!/bin/bash
 DIR="$(cd "$(dirname "$0")" && pwd)"
-exec "$DIR/vibeguard" tray
+exec "$DIR/sideguard" tray
 EOF
-chmod +x "$APP/Contents/MacOS/vibeguard-tray"
+chmod +x "$APP/Contents/MacOS/sideguard-tray"
 
 ICNS_DST="$APP/Contents/Resources/AppIcon.icns"
 if [[ -f "$ICNS_ASSET" ]]; then
@@ -75,15 +75,15 @@ cat >"$APP/Contents/Info.plist" <<'EOF'
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleExecutable</key>
-	<string>vibeguard-tray</string>
+	<string>sideguard-tray</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.vibeguard.tray</string>
+	<string>com.sideguard.tray</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>VibeGuard Tray</string>
+	<string>SideGuard Tray</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

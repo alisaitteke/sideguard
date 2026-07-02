@@ -6,29 +6,29 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alisaitteke/vibeguard/internal/install"
+	"github.com/alisaitteke/sideguard/internal/install"
 )
 
-func TestDetectVibeguardHooksPresent(t *testing.T) {
+func TestDetectSideguardHooksPresent(t *testing.T) {
 	data := []byte(`{
 		"hooks": {
-			"beforeShellExecution": [{"command": "/usr/local/bin/vibeguard hook shell"}],
-			"beforeMCPExecution": [{"command": "/usr/local/bin/vibeguard hook mcp"}]
+			"beforeShellExecution": [{"command": "/usr/local/bin/sideguard hook shell"}],
+			"beforeMCPExecution": [{"command": "/usr/local/bin/sideguard hook mcp"}]
 		}
 	}`)
-	shell, mcp := detectVibeguardHooks("cursor", data)
+	shell, mcp := detectSideguardHooks("cursor", data)
 	if !shell || !mcp {
 		t.Fatalf("expected both hooks present, shell=%v mcp=%v", shell, mcp)
 	}
 }
 
-func TestDetectVibeguardHooksRemoved(t *testing.T) {
+func TestDetectSideguardHooksRemoved(t *testing.T) {
 	data := []byte(`{
 		"hooks": {
 			"beforeShellExecution": [{"command": "/bin/echo noop"}]
 		}
 	}`)
-	shell, mcp := detectVibeguardHooks("cursor", data)
+	shell, mcp := detectSideguardHooks("cursor", data)
 	if shell || mcp {
 		t.Fatalf("expected hooks missing, shell=%v mcp=%v", shell, mcp)
 	}
@@ -38,7 +38,7 @@ func TestFindUnwrappedStdioServers(t *testing.T) {
 	data := []byte(`{
 		"mcpServers": {
 			"wrapped": {
-				"command": "vibeguard",
+				"command": "sideguard",
 				"args": ["wrap", "--", "npx", "server"]
 			},
 			"direct": {
@@ -92,7 +92,7 @@ func TestCheckLLMConfigEnabledMissingAPIKey(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 
-	dir := filepath.Join(home, ".vibeguard")
+	dir := filepath.Join(home, ".sideguard")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +124,7 @@ func TestCheckLLMConfigCredentialsPermWarn(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 
-	dir := filepath.Join(home, ".vibeguard")
+	dir := filepath.Join(home, ".sideguard")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +160,7 @@ func TestCheckLLMConfigEnabledOK(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 
-	dir := filepath.Join(home, ".vibeguard")
+	dir := filepath.Join(home, ".sideguard")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatal(err)
 	}

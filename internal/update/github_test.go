@@ -15,7 +15,7 @@ func TestGitHubLatestRelease(t *testing.T) {
 
 	var assetURL string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/repos/alisaitteke/vibeguard/releases/latest" {
+		if r.URL.Path != "/repos/alisaitteke/sideguard/releases/latest" {
 			http.NotFound(w, r)
 			return
 		}

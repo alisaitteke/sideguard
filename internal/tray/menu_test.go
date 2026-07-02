@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alisaitteke/vibeguard/internal/api"
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
 )
 
 func TestFormatModeStatus(t *testing.T) {
@@ -71,7 +71,7 @@ func TestOverflowLabel(t *testing.T) {
 	t.Parallel()
 
 	got := overflowLabel(2)
-	want := "… and 2 more (use vibeguard ui)"
+	want := "… and 2 more (use sideguard ui)"
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}

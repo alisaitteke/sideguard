@@ -8,11 +8,11 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/alisaitteke/vibeguard/internal/daemon"
-	"github.com/alisaitteke/vibeguard/internal/paths"
+	"github.com/alisaitteke/sideguard/internal/daemon"
+	"github.com/alisaitteke/sideguard/internal/paths"
 )
 
-const systemdDaemonUnit = "vibeguard-daemon.service"
+const systemdDaemonUnit = "sideguard-daemon.service"
 
 type linuxApplier struct{}
 

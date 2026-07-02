@@ -1,6 +1,6 @@
 // Package proxy wraps upstream MCP servers over STDIO transparently.
-// Dual-posture MCP proxy: client sees VibeGuard; VibeGuard forwards to upstream child.
-// See docs/plans/2026-07-01-0127-vibeguard-foundation/ (vgf-phase-4.0-mcp-proxy.md).
+// Dual-posture MCP proxy: client sees SideGuard; SideGuard forwards to upstream child.
+// See docs/plans/2026-07-01-0127-sideguard-foundation/ (vgf-phase-4.0-mcp-proxy.md).
 package proxy
 
 import (
@@ -12,8 +12,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/alisaitteke/vibeguard/internal/api"
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
 )
 
 // RunOptions configures the STDIO MCP proxy loop.
@@ -24,7 +24,7 @@ type RunOptions struct {
 	Stdout   io.Writer
 }
 
-// Wrap runs an upstream MCP server with VibeGuard interception on tools/call.
+// Wrap runs an upstream MCP server with SideGuard interception on tools/call.
 func Wrap(upstream []string) error {
 	return Run(RunOptions{
 		Upstream: upstream,
@@ -154,7 +154,7 @@ func Run(opts RunOptions) error {
 func handleToolsCall(client ApprovalClient, msg *JSONRPCMessage, frame []byte, clientOut *bufio.Writer, upstreamIn *bufio.Writer) error {
 	params, err := ParseToolsCallParams(msg)
 	if err != nil {
-		if werr := writeClientError(clientOut, msg.ID, -32602, "VibeGuard: "+err.Error()); werr != nil {
+		if werr := writeClientError(clientOut, msg.ID, -32602, "SideGuard: "+err.Error()); werr != nil {
 			return werr
 		}
 		return nil
@@ -162,7 +162,7 @@ func handleToolsCall(client ApprovalClient, msg *JSONRPCMessage, frame []byte, c
 
 	ctx := context.Background()
 	if err := requestToolCallApproval(ctx, client, params); err != nil {
-		if werr := writeClientError(clientOut, msg.ID, -32000, "VibeGuard: "+err.Error()); werr != nil {
+		if werr := writeClientError(clientOut, msg.ID, -32000, "SideGuard: "+err.Error()); werr != nil {
 			return werr
 		}
 		return nil

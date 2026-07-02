@@ -33,7 +33,7 @@ func TestApplyTarGzHappyPath(t *testing.T) {
 
 	binary := []byte("#!/bin/sh\necho updated\n")
 	assetName := ResolveAssetName("darwin", "arm64", "9.9.9")
-	archiveBytes := buildTarGzBytes(t, "vibeguard", binary)
+	archiveBytes := buildTarGzBytes(t, "sideguard", binary)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch filepath.Base(r.URL.Path) {
@@ -48,7 +48,7 @@ func TestApplyTarGzHappyPath(t *testing.T) {
 	defer srv.Close()
 
 	work := t.TempDir()
-	target := filepath.Join(work, "vibeguard")
+	target := filepath.Join(work, "sideguard")
 	if err := os.WriteFile(target, []byte("old"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func TestApplyChecksumMismatch(t *testing.T) {
 
 	binary := []byte("payload")
 	assetName := ResolveAssetName("darwin", "arm64", "1.0.1")
-	archiveBytes := buildTarGzBytes(t, "vibeguard", binary)
+	archiveBytes := buildTarGzBytes(t, "sideguard", binary)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if filepath.Base(r.URL.Path) == assetName {
@@ -94,7 +94,7 @@ func TestApplyChecksumMismatch(t *testing.T) {
 	defer srv.Close()
 
 	work := t.TempDir()
-	target := filepath.Join(work, "vibeguard")
+	target := filepath.Join(work, "sideguard")
 	if err := os.WriteFile(target, []byte("old"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -117,9 +117,9 @@ func TestExtractZip(t *testing.T) {
 	dir := t.TempDir()
 	archive := filepath.Join(dir, "test.zip")
 	payload := []byte("zip-binary")
-	writeZip(t, archive, "vibeguard.exe", payload)
+	writeZip(t, archive, "sideguard.exe", payload)
 
-	out, err := extractArchive(archive, filepath.Join(dir, "out"), "vibeguard.exe")
+	out, err := extractArchive(archive, filepath.Join(dir, "out"), "sideguard.exe")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,9 +159,9 @@ func writeZip(t *testing.T, path, name string, content []byte) {
 func TestApplyRejectsPathTraversal(t *testing.T) {
 	dir := t.TempDir()
 	archive := filepath.Join(dir, "bad.tar.gz")
-	writeTarGz(t, archive, "foo/../../vibeguard", []byte("nope"))
+	writeTarGz(t, archive, "foo/../../sideguard", []byte("nope"))
 
-	_, err := extractArchive(archive, filepath.Join(dir, "out"), "vibeguard")
+	_, err := extractArchive(archive, filepath.Join(dir, "out"), "sideguard")
 	if err == nil {
 		t.Fatal("expected path traversal rejection")
 	}

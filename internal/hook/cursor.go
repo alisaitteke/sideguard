@@ -111,13 +111,13 @@ func writeCursorResponse(w io.Writer, permission, userMessage, agentMessage stri
 
 func cursorDenyUnreachable(w io.Writer) error {
 	return writeCursorResponse(w, "deny",
-		"VibeGuard daemon is not running. Start with: vibeguard daemon start",
-		"Run vibeguard ui to review.")
+		"SideGuard daemon is not running. Start with: sideguard daemon start",
+		"Run sideguard ui to review.")
 }
 
 func cursorDeny(w io.Writer, userMessage, agentMessage string) error {
 	if agentMessage == "" {
-		agentMessage = "Run vibeguard ui to review."
+		agentMessage = "Run sideguard ui to review."
 	}
 	return writeCursorResponse(w, "deny", userMessage, agentMessage)
 }

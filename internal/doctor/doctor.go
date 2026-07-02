@@ -1,5 +1,5 @@
-// Package doctor diagnoses VibeGuard install health and bypass vectors.
-// See docs/plans/2026-07-01-0127-vibeguard-foundation/ (vgf-phase-8.0-hardening.md).
+// Package doctor diagnoses SideGuard install health and bypass vectors.
+// See docs/plans/2026-07-01-0127-sideguard-foundation/ (vgf-phase-8.0-hardening.md).
 package doctor
 
 import (
@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/alisaitteke/vibeguard/internal/config"
-	"github.com/alisaitteke/vibeguard/internal/daemon"
-	"github.com/alisaitteke/vibeguard/internal/install"
-	"github.com/alisaitteke/vibeguard/internal/paths"
-	"github.com/alisaitteke/vibeguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/config"
+	"github.com/alisaitteke/sideguard/internal/daemon"
+	"github.com/alisaitteke/sideguard/internal/install"
+	"github.com/alisaitteke/sideguard/internal/paths"
+	"github.com/alisaitteke/sideguard/internal/policy"
 )
 
 // Severity classifies a doctor finding.
@@ -243,14 +243,14 @@ func checkHooks(t install.Target) []Finding {
 		}}
 	}
 
-	hasShell, hasMCP := detectVibeguardHooks(t.Client, data)
+	hasShell, hasMCP := detectSideguardHooks(t.Client, data)
 	var findings []Finding
 
 	if !hasShell {
 		findings = append(findings, Finding{
 			Check:    fmt.Sprintf("hooks:%s:shell", t.Client),
 			Severity: SeverityHigh,
-			Message:  fmt.Sprintf("VibeGuard shell hook missing in %s — shell commands may bypass approval", shortenPath(t.Path)),
+			Message:  fmt.Sprintf("SideGuard shell hook missing in %s — shell commands may bypass approval", shortenPath(t.Path)),
 		})
 	} else {
 		findings = append(findings, Finding{
@@ -264,7 +264,7 @@ func checkHooks(t install.Target) []Finding {
 		findings = append(findings, Finding{
 			Check:    fmt.Sprintf("hooks:%s:mcp", t.Client),
 			Severity: SeverityHigh,
-			Message:  fmt.Sprintf("VibeGuard MCP hook missing in %s — MCP tools may bypass approval", shortenPath(t.Path)),
+			Message:  fmt.Sprintf("SideGuard MCP hook missing in %s — MCP tools may bypass approval", shortenPath(t.Path)),
 		})
 	} else {
 		findings = append(findings, Finding{
@@ -305,12 +305,12 @@ func checkMCPWrap(t install.Target) []Finding {
 	}}
 }
 
-func detectVibeguardHooks(client install.Client, data []byte) (shell bool, mcp bool) {
+func detectSideguardHooks(client install.Client, data []byte) (shell bool, mcp bool) {
 	text := string(data)
 	switch client {
 	case install.ClientCursor, install.ClientClaude:
-		shell = strings.Contains(text, "hook shell") || strings.Contains(text, "vibeguard hook shell")
-		mcp = strings.Contains(text, "hook mcp") || strings.Contains(text, "vibeguard hook mcp")
+		shell = strings.Contains(text, "hook shell") || strings.Contains(text, "sideguard hook shell")
+		mcp = strings.Contains(text, "hook mcp") || strings.Contains(text, "sideguard hook mcp")
 	}
 	return shell, mcp
 }
@@ -349,7 +349,7 @@ func findUnwrappedStdioServers(data []byte) []string {
 
 func isWrappedEntry(entry mcpInspectEntry) bool {
 	cmd := filepath.Base(entry.Command)
-	if cmd != "vibeguard" && !strings.HasSuffix(entry.Command, "/vibeguard") {
+	if cmd != "sideguard" && !strings.HasSuffix(entry.Command, "/sideguard") {
 		return false
 	}
 	return len(entry.Args) >= 2 && entry.Args[0] == "wrap" && entry.Args[1] == "--"

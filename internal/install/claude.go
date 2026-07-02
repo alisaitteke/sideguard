@@ -129,7 +129,7 @@ func filterClaudeHookCommands(hooks []claudeHookCommand) ([]claudeHookCommand, i
 	removed := 0
 	var kept []claudeHookCommand
 	for _, h := range hooks {
-		if IsVibeguardHookCommand(h.Command) {
+		if IsSideguardHookCommand(h.Command) {
 			removed++
 			continue
 		}
@@ -138,7 +138,7 @@ func filterClaudeHookCommands(hooks []claudeHookCommand) ([]claudeHookCommand, i
 	return kept, removed
 }
 
-// UnpatchClaudeHooks removes VibeGuard PreToolUse hook commands in-place.
+// UnpatchClaudeHooks removes SideGuard PreToolUse hook commands in-place.
 func UnpatchClaudeHooks(path, binary string, dryRun bool) (removed int, diff string, err error) {
 	_ = binary
 	var data []byte
@@ -199,7 +199,7 @@ func UnpatchClaudeHooks(path, binary string, dryRun bool) (removed int, diff str
 func absoluteHookCommand(binary, kind string) string {
 	suffix := " hook " + kind
 	if binary == "" {
-		return "vibeguard" + suffix
+		return "sideguard" + suffix
 	}
 	return binary + suffix
 }

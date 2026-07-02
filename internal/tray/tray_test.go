@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/alisaitteke/vibeguard/internal/api"
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
 )
 
 func TestResolveBaseURL_default(t *testing.T) {
@@ -27,19 +27,19 @@ func TestResolveBaseURL_override(t *testing.T) {
 func TestTooltipForUpdate(t *testing.T) {
 	t.Parallel()
 
-	if got := tooltipForUpdate(nil, approvalmode.Ask, fmt.Errorf("daemon unreachable: connection refused")); got != "VibeGuard — daemon unreachable" {
+	if got := tooltipForUpdate(nil, approvalmode.Ask, fmt.Errorf("daemon unreachable: connection refused")); got != "SideGuard — daemon unreachable" {
 		t.Fatalf("daemon down: got %q", got)
 	}
-	if got := tooltipForUpdate([]api.PendingApproval{{ID: "abc"}}, approvalmode.Ask, nil); got != "VibeGuard — 1 pending" {
+	if got := tooltipForUpdate([]api.PendingApproval{{ID: "abc"}}, approvalmode.Ask, nil); got != "SideGuard — 1 pending" {
 		t.Fatalf("pending: got %q", got)
 	}
-	if got := tooltipForUpdate(nil, approvalmode.Ask, nil); got != "VibeGuard — no pending" {
+	if got := tooltipForUpdate(nil, approvalmode.Ask, nil); got != "SideGuard — no pending" {
 		t.Fatalf("idle: got %q", got)
 	}
-	if got := tooltipForUpdate(nil, approvalmode.AutoAllow, nil); got != "VibeGuard — no pending — auto-allow" {
+	if got := tooltipForUpdate(nil, approvalmode.AutoAllow, nil); got != "SideGuard — no pending — auto-allow" {
 		t.Fatalf("auto-allow: got %q", got)
 	}
-	if got := tooltipForUpdate([]api.PendingApproval{{ID: "abc"}}, approvalmode.AutoDeny, nil); got != "VibeGuard — 1 pending — auto-deny" {
+	if got := tooltipForUpdate([]api.PendingApproval{{ID: "abc"}}, approvalmode.AutoDeny, nil); got != "SideGuard — 1 pending — auto-deny" {
 		t.Fatalf("auto-deny with pending: got %q", got)
 	}
 }

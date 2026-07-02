@@ -5,8 +5,8 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/alisaitteke/vibeguard/internal/daemon"
-	"github.com/alisaitteke/vibeguard/internal/tray"
+	"github.com/alisaitteke/sideguard/internal/daemon"
+	"github.com/alisaitteke/sideguard/internal/tray"
 )
 
 // UninstallResult summarizes uninstall actions for CLI output.
@@ -21,7 +21,7 @@ type UninstallResult struct {
 	Warnings      []string
 }
 
-// Uninstall removes VibeGuard hooks, MCP wraps, and optionally the daemon LaunchAgent.
+// Uninstall removes SideGuard hooks, MCP wraps, and optionally the daemon LaunchAgent.
 // Default mode is surgical in-place removal; --restore-backup uses the oldest backup per file.
 func Uninstall(opts Options) (*UninstallResult, error) {
 	if !opts.Cursor && !opts.Claude {

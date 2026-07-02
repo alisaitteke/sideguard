@@ -1,6 +1,6 @@
 // Package hook implements the Cursor/Claude shell and MCP hook bridge.
 // Blocking stdin/stdout normalization with daemon long-poll approval.
-// See docs/plans/2026-07-01-0127-vibeguard-foundation/ (vgf-phase-5.0-hook-bridge.md).
+// See docs/plans/2026-07-01-0127-sideguard-foundation/ (vgf-phase-5.0-hook-bridge.md).
 package hook
 
 import (
@@ -14,12 +14,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/api"
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
-	"github.com/alisaitteke/vibeguard/internal/llm"
-	"github.com/alisaitteke/vibeguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/llm"
+	"github.com/alisaitteke/sideguard/internal/policy"
 
-	_ "github.com/alisaitteke/vibeguard/internal/detect"
+	_ "github.com/alisaitteke/sideguard/internal/detect"
 )
 
 const (
@@ -154,7 +154,7 @@ func runApproval(stdout io.Writer, client DaemonClient, claude bool, build func(
 	llmEnabled := llm.Enabled(req.CWD)
 	clf, clfErr := llm.ClassifierFor(req.CWD)
 	if clfErr != nil {
-		log.Printf("vibeguard llm: classifier init failed (fail-safe ask): %v", clfErr)
+		log.Printf("sideguard llm: classifier init failed (fail-safe ask): %v", clfErr)
 	}
 	mode := approvalmode.Ask
 	if m, err := client.GetApprovalMode(context.Background()); err == nil {
@@ -254,9 +254,9 @@ func respondAllow(stdout io.Writer, claude bool) int {
 	return ExitAllow
 }
 
-// devBypassEnabled is true when VIBEGUARD_DEV=1 or VIBEGUARD_BYPASS=1 (local dev/testing only).
+// devBypassEnabled is true when SIDEGUARD_DEV=1 or SIDEGUARD_BYPASS=1 (local dev/testing only).
 func devBypassEnabled() bool {
-	for _, key := range []string{"VIBEGUARD_DEV", "VIBEGUARD_BYPASS"} {
+	for _, key := range []string{"SIDEGUARD_DEV", "SIDEGUARD_BYPASS"} {
 		switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
 		case "1", "true", "yes":
 			return true

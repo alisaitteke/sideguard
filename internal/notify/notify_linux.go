@@ -8,7 +8,7 @@ import (
 )
 
 // sendMacOS delivers a desktop notification on Linux via notify-send.
-// See docs/plans/2026-07-01-0127-vibeguard-foundation/ (vgf-phase-8.0-hardening.md).
+// See docs/plans/2026-07-01-0127-sideguard-foundation/ (vgf-phase-8.0-hardening.md).
 func sendMacOS(title, body string) error {
 	title = truncate(title, maxTitleLen)
 	body = truncate(body, maxBodyLen)

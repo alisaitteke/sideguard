@@ -6,14 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alisaitteke/vibeguard/internal/paths"
+	"github.com/alisaitteke/sideguard/internal/paths"
 )
 
 func setupHome(t *testing.T) string {
 	t.Helper()
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	if err := os.MkdirAll(filepath.Join(home, ".vibeguard"), 0o700); err != nil {
+	if err := os.MkdirAll(filepath.Join(home, ".sideguard"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	return home
@@ -21,7 +21,7 @@ func setupHome(t *testing.T) string {
 
 func writeConfig(t *testing.T, home, content string) {
 	t.Helper()
-	path := filepath.Join(home, ".vibeguard", "config.yaml")
+	path := filepath.Join(home, ".sideguard", "config.yaml")
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +29,7 @@ func writeConfig(t *testing.T, home, content string) {
 
 func writeWorkspacePolicy(t *testing.T, cwd, content string) {
 	t.Helper()
-	dir := filepath.Join(cwd, ".vibeguard")
+	dir := filepath.Join(cwd, ".sideguard")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +162,7 @@ func TestEnsureDefaultWritesConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("EnsureDefault() error: %v", err)
 	}
-	want := filepath.Join(home, ".vibeguard", "config.yaml")
+	want := filepath.Join(home, ".sideguard", "config.yaml")
 	if path != want {
 		t.Fatalf("path %q, want %q", path, want)
 	}

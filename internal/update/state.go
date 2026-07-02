@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/alisaitteke/vibeguard/internal/paths"
+	"github.com/alisaitteke/sideguard/internal/paths"
 )
 
-// FileStateStore persists update state at ~/.vibeguard/update-state.json.
+// FileStateStore persists update state at ~/.sideguard/update-state.json.
 type FileStateStore struct {
 	path string
 }

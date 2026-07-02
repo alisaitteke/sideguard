@@ -8,7 +8,7 @@ import (
 )
 
 func TestDevWorkspacePolicyPathScoped(t *testing.T) {
-	repo := "/tmp/vibeguard-dev-test"
+	repo := "/tmp/sideguard-dev-test"
 	content, err := DevWorkspacePolicy(repo)
 	if err != nil {
 		t.Fatal(err)

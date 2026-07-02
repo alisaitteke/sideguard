@@ -3,7 +3,7 @@ package tray
 import (
 	"testing"
 
-	"github.com/alisaitteke/vibeguard/internal/api"
+	"github.com/alisaitteke/sideguard/internal/api"
 )
 
 func TestDetectNewPending(t *testing.T) {

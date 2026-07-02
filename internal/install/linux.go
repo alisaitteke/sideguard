@@ -1,7 +1,7 @@
 //go:build linux
 
 // Linux systemd user service install stub.
-// See docs/plans/2026-07-01-0127-vibeguard-foundation/ (vgf-phase-8.0-hardening.md).
+// See docs/plans/2026-07-01-0127-sideguard-foundation/ (vgf-phase-8.0-hardening.md).
 package install
 
 import (
@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/alisaitteke/vibeguard/internal/paths"
+	"github.com/alisaitteke/sideguard/internal/paths"
 )
 
 // SystemdUnitPath returns the user systemd unit file path.
@@ -17,7 +17,7 @@ func SystemdUnitPath() (string, error) {
 	return paths.SystemdUnitPath()
 }
 
-// RenderSystemdUnit returns a user-level systemd unit for the VibeGuard daemon.
+// RenderSystemdUnit returns a user-level systemd unit for the SideGuard daemon.
 func RenderSystemdUnit(exe string) (string, error) {
 	home, err := paths.Home()
 	if err != nil {
@@ -26,7 +26,7 @@ func RenderSystemdUnit(exe string) (string, error) {
 	logPath := filepath.Join(home, paths.RunSubdir, "daemon.log")
 
 	return fmt.Sprintf(`[Unit]
-Description=VibeGuard approval daemon
+Description=SideGuard approval daemon
 After=network.target
 
 [Service]

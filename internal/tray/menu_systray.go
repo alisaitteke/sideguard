@@ -8,8 +8,8 @@ import (
 	"sync"
 
 	"github.com/getlantern/systray"
-	"github.com/alisaitteke/vibeguard/internal/approvalfmt"
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/approvalfmt"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
 )
 
 // MenuBuilder owns the systray context menu and rebuilds approval rows on each poll.
@@ -60,7 +60,7 @@ func NewMenuBuilder(session *Session, updateState *UpdateState, onInstall, onQui
 
 // Init builds the static menu shell and approval slots. Call once from onReady.
 func (mb *MenuBuilder) Init() {
-	header := systray.AddMenuItem("VibeGuard", "VibeGuard menu-bar tray")
+	header := systray.AddMenuItem("SideGuard", "SideGuard menu-bar tray")
 	header.Disable()
 
 	systray.AddSeparator()
@@ -140,7 +140,7 @@ func (mb *MenuBuilder) Init() {
 		}
 	}()
 
-	terminalUI := systray.AddMenuItem("Open Terminal UI…", "Run: vibeguard ui")
+	terminalUI := systray.AddMenuItem("Open Terminal UI…", "Run: sideguard ui")
 	terminalUI.Disable()
 
 	systray.AddSeparator()
@@ -157,7 +157,7 @@ func (mb *MenuBuilder) Init() {
 
 	systray.AddSeparator()
 
-	quitParent := systray.AddMenuItem("Quit VibeGuard…", "Exit the menu-bar tray")
+	quitParent := systray.AddMenuItem("Quit SideGuard…", "Exit the menu-bar tray")
 	mb.quitConfirm = quitParent.AddSubMenuItem("Quit", "Confirm quit")
 	quitParent.AddSubMenuItem("Cancel", "Keep running")
 	go func() {

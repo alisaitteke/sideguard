@@ -3,7 +3,7 @@ package llm
 import (
 	"testing"
 
-	"github.com/alisaitteke/vibeguard/internal/config"
+	"github.com/alisaitteke/sideguard/internal/config"
 )
 
 func testLLMSettings(providerID, driver string) config.LLMSettings {

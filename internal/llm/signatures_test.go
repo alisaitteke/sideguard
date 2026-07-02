@@ -39,7 +39,7 @@ func TestLoadSignatureMissingFile(t *testing.T) {
 func TestLoadSignatureViaHome(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	sigDir := filepath.Join(home, ".vibeguard", "signatures")
+	sigDir := filepath.Join(home, ".sideguard", "signatures")
 	if err := os.MkdirAll(sigDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +67,7 @@ func TestEnsureDefaultSignature(t *testing.T) {
 	if err != nil {
 		t.Fatalf("EnsureDefaultSignature() error: %v", err)
 	}
-	want := filepath.Join(home, ".vibeguard", "signatures", "default.yaml")
+	want := filepath.Join(home, ".sideguard", "signatures", "default.yaml")
 	if path != want {
 		t.Fatalf("path %q, want %q", path, want)
 	}

@@ -9,7 +9,7 @@ import (
 
 func TestResolveProviderCredentialsFromFile(t *testing.T) {
 	home := setupHome(t)
-	path := filepath.Join(home, ".vibeguard", "credentials.yaml")
+	path := filepath.Join(home, ".sideguard", "credentials.yaml")
 	content := `providers:
   my-openai:
     api_key: file-openai
@@ -42,7 +42,7 @@ func TestResolveProviderCredentialsEnvOverride(t *testing.T) {
       model: claude
       auth_mode: api_key
 `)
-	path := filepath.Join(home, ".vibeguard", "credentials.yaml")
+	path := filepath.Join(home, ".sideguard", "credentials.yaml")
 	if err := os.WriteFile(path, []byte(`providers:
   my-openai:
     api_key: file-key
@@ -83,7 +83,7 @@ func TestSetProviderKeyWrites0600(t *testing.T) {
 	if err := SetProviderKey("my-openai", "sk-test-secret-key"); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(home, ".vibeguard", "credentials.yaml")
+	path := filepath.Join(home, ".sideguard", "credentials.yaml")
 	info, err := os.Stat(path)
 	if err != nil {
 		t.Fatal(err)
@@ -140,7 +140,7 @@ func TestEnsureCredentialsDefaultMode0600(t *testing.T) {
 	if err != nil {
 		t.Fatalf("EnsureCredentialsDefault() error: %v", err)
 	}
-	want := filepath.Join(home, ".vibeguard", "credentials.yaml")
+	want := filepath.Join(home, ".sideguard", "credentials.yaml")
 	if path != want {
 		t.Fatalf("path %q, want %q", path, want)
 	}

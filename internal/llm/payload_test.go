@@ -3,7 +3,7 @@ package llm
 import (
 	"testing"
 
-	"github.com/alisaitteke/vibeguard/internal/policy"
+	"github.com/alisaitteke/sideguard/internal/policy"
 )
 
 func TestMockProvider(t *testing.T) {

@@ -3,7 +3,7 @@ package store
 import (
 	"testing"
 
-	"github.com/alisaitteke/vibeguard/internal/approvalmode"
+	"github.com/alisaitteke/sideguard/internal/approvalmode"
 )
 
 func TestGetApprovalModeDefault(t *testing.T) {

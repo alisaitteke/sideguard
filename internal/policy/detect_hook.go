@@ -3,7 +3,7 @@
 // See docs/plans/2026-07-02-0001-shell-detect-history/ (sdh-phase-3.0-integration.md).
 package policy
 
-import "github.com/alisaitteke/vibeguard/internal/shell"
+import "github.com/alisaitteke/sideguard/internal/shell"
 
 // DetectOutcome is the detect layer result folded into EvaluateFull.
 type DetectOutcome struct {
