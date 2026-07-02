@@ -30,6 +30,13 @@ Thumbs.db
 # SideGuard local state
 .sideguard/
 
+# CI-only copy — SSoT is repo-root setup.sh (see .github/workflows/pages.yml)
+site/dist/setup.sh
+
+# SideGuard site (Vite)
+site/node_modules/
+site/dist/
+
 # Local env
 .env
 .env.*

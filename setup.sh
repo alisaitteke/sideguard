@@ -1,7 +1,8 @@
 #!/usr/bin/env sh
 # SideGuard installer — download a release binary from GitHub or build from source.
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/alisaitteke/sideguard/main/setup.sh | sh
+#   curl -fsSL https://sideguard.io/setup.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/alisaitteke/sideguard/main/setup.sh | sh  # fallback
 #   ./setup.sh
 #
 # Optional environment variables:

@@ -145,11 +145,14 @@ sideguard deny <id> --reason "too risky"
 
 ## Quick install (curl)
 
-The fastest way to install the `sideguard` binary on **macOS** or **Linux** (amd64/arm64):
+The fastest way to install the `sideguard` binary on **macOS** or **Linux** (amd64/arm64). Install scripts are served from **sideguard.io** (primary):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/alisaitteke/sideguard/main/setup.sh | sh
+curl -fsSL https://sideguard.io/setup.sh | sh
 ```
+
+> **Fallback:** If the domain is unreachable, use the GitHub raw URL:  
+> `curl -fsSL https://raw.githubusercontent.com/alisaitteke/sideguard/main/setup.sh | sh`
 
 **Interactive vs piped:** Run `./setup.sh` (or `sh setup.sh`) from a terminal and you will be asked whether to download a pre-built binary from GitHub or build from source. When stdin is not a TTY — for example `curl … | sh` — the script defaults to the GitHub download path (no prompt).
 
@@ -166,19 +169,22 @@ The GitHub path downloads the latest [GitHub Release](https://github.com/alisait
 
 ```bash
 # Default piped install (GitHub binary)
-curl -fsSL https://raw.githubusercontent.com/alisaitteke/sideguard/main/setup.sh | sh
+curl -fsSL https://sideguard.io/setup.sh | sh
 
 # Non-interactive source build (e.g. CI or scripted dev setup)
-SIDEGUARD_INSTALL_MODE=source curl -fsSL https://raw.githubusercontent.com/alisaitteke/sideguard/main/setup.sh | sh
+SIDEGUARD_INSTALL_MODE=source curl -fsSL https://sideguard.io/setup.sh | sh
 
 # Pin a version (GitHub download)
-SIDEGUARD_VERSION=v0.1.2 curl -fsSL https://raw.githubusercontent.com/alisaitteke/sideguard/main/setup.sh | sh
+SIDEGUARD_VERSION=v0.1.2 curl -fsSL https://sideguard.io/setup.sh | sh
 
 # Install to ~/.local/bin
-SIDEGUARD_INSTALL_DIR="$HOME/.local/bin" curl -fsSL https://raw.githubusercontent.com/alisaitteke/sideguard/main/setup.sh | sh
+SIDEGUARD_INSTALL_DIR="$HOME/.local/bin" curl -fsSL https://sideguard.io/setup.sh | sh
 
 # Binary + full integration in one step
-SIDEGUARD_RUN_INSTALL=1 curl -fsSL https://raw.githubusercontent.com/alisaitteke/sideguard/main/setup.sh | sh
+SIDEGUARD_RUN_INSTALL=1 curl -fsSL https://sideguard.io/setup.sh | sh
+
+# Fallback (GitHub raw — when sideguard.io is unreachable)
+curl -fsSL https://raw.githubusercontent.com/alisaitteke/sideguard/main/setup.sh | sh
 ```
 
 **After install** (default flow — binary only, then wire clients yourself):
@@ -193,6 +199,22 @@ sideguard clients reload   # reload hooks/MCP in Cursor & Claude Code
 **Limitations:** Windows is not supported by `setup.sh` — download the `.zip` from [GitHub Releases](#installing-from-github-releases) manually. On Linux, login auto-start and the menu-bar tray differ from macOS; use `sideguard daemon start` (or a user systemd unit) after `sideguard install`. Release binaries are unsigned — see [macOS Gatekeeper](#macos-gatekeeper-unsigned-releases).
 
 For manual download, archive naming, and checksum verification by hand, see [Installing from GitHub Releases](#installing-from-github-releases) below.
+
+## Site development
+
+The [sideguard.io](https://sideguard.io) landing is a Vite + React app under `site/`. Edit and preview it on your macOS host (Node.js required; Go toolchain unchanged for binary dev). Node 22 is recommended.
+
+```bash
+cd site
+npm install
+npm run dev      # http://localhost:5173 — Vite HMR
+npm run build    # outputs site/dist/
+npm run preview  # local production preview
+```
+
+Production deploys `site/dist/` to GitHub Pages via [`.github/workflows/pages.yml`](.github/workflows/pages.yml). For DNS and operator steps, see [docs/runbooks/sideguard-io-github-pages.md](docs/runbooks/sideguard-io-github-pages.md).
+
+Shortcut: `make site-dev` (same as `cd site && npm run dev`).
 
 ## Installing from GitHub Releases
 

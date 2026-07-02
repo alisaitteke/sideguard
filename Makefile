@@ -1,4 +1,4 @@
-.PHONY: build test lint run-daemon clean tray-app
+.PHONY: build test lint run-daemon clean tray-app site-dev
 
 BINARY := bin/sideguard
 PKG := ./cmd/sideguard
@@ -23,6 +23,9 @@ lint:
 
 run-daemon:
 	go run $(PKG) daemon start
+
+site-dev:
+	cd site && npm run dev
 
 clean:
 	rm -rf bin/ dist/
