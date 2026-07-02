@@ -22,10 +22,22 @@ jobs:
         include:
           - runs-on: macos-latest
             platform_id: darwin
+            artifact_name: dist-darwin
+            goreleaser_args: build --clean --id darwin
           - runs-on: ubuntu-latest
             platform_id: linux
+            goarch: amd64
+            artifact_name: dist-linux-amd64
+            goreleaser_args: build --clean --id linux --single-target
+          - runs-on: ubuntu-24.04-arm
+            platform_id: linux
+            goarch: arm64
+            artifact_name: dist-linux-arm64
+            goreleaser_args: build --clean --id linux --single-target
           - runs-on: windows-latest
             platform_id: windows
+            artifact_name: dist-windows
+            goreleaser_args: build --clean --id windows
     runs-on: ${{ matrix.runs-on }}
     steps:
       - name: Checkout
@@ -38,16 +50,18 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Install Linux cross-compilers
+      - name: Install Linux build dependencies
         if: matrix.platform_id == 'linux'
         run: |
-          sudo dpkg --add-architecture arm64
-          sudo apt-get update
-          sudo apt-get install -y \
-            gcc-aarch64-linux-gnu \
-            pkg-config-aarch64-linux-gnu \
-            libayatana-appindicator3-dev \
-            libayatana-appindicator3-dev:arm64
+          # ubuntu-latest (24.04) mirrors lack arm64 packages; cross-arch apt fails with 404.
+          # Build linux/amd64 natively on amd64 and linux/arm64 on ubuntu-24.04-arm instead.
+          # Refs: https://github.com/actions/runner-images/issues/10901
+          #       https://github.com/safedep/vet/pull/706
+          if [[ "${{ matrix.goarch }}" == "amd64" ]]; then
+            sudo sed -i 's/^Types: deb$/Types: deb\nArchitectures: amd64/' /etc/apt/sources.list.d/ubuntu.sources
+          fi
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends libayatana-appindicator3-dev
 
       - name: Setup MSYS2 (Windows)
         if: matrix.platform_id == 'windows'
@@ -57,12 +71,26 @@ jobs:
           update: true
           install: mingw-w64-x86_64-gcc
 
-      - name: Build binaries
+      - name: Build binaries (linux)
+        if: matrix.platform_id == 'linux'
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: "~> v2"
-          args: build --clean --id ${{ matrix.platform_id }}
+          args: ${{ matrix.goreleaser_args }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+
+      - name: Build binaries
+        if: matrix.platform_id != 'linux'
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: ${{ matrix.goreleaser_args }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
@@ -70,7 +98,7 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist-${{ matrix.platform_id }}
+          name: ${{ matrix.artifact_name }}
           path: dist/
           retention-days: 1
 
