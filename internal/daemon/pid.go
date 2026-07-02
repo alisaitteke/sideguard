@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 )
 
 func writePID(path string, pid int) error {
@@ -34,12 +33,4 @@ func readPID(path string) (int, error) {
 
 func removePID(path string) {
 	_ = os.Remove(path)
-}
-
-func processAlive(pid int) bool {
-	if pid <= 0 {
-		return false
-	}
-	err := syscall.Kill(pid, 0)
-	return err == nil
 }

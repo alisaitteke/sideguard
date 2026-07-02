@@ -12,7 +12,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/alisaitteke/vibeguard/internal/api"
@@ -37,7 +36,7 @@ func Start(version string) error {
 	cmd := exec.Command(exe, "daemon", "run")
 	cmd.Stdout = nil
 	cmd.Stderr = nil
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	cmd.SysProcAttr = detachSysProcAttr()
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("start daemon process: %w", err)
 	}
@@ -103,7 +102,7 @@ func Run(version string) error {
 	}
 
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+	signal.Notify(sigCh, shutdownSignals()...)
 	<-sigCh
 
 	sweeperCancel()
@@ -151,7 +150,7 @@ func Stop() error {
 		return fmt.Errorf("daemon is not running (stale pid file)")
 	}
 
-	if err := syscall.Kill(pid, syscall.SIGTERM); err != nil {
+	if err := terminateProcess(pid); err != nil {
 		return fmt.Errorf("signal daemon: %w", err)
 	}
 
