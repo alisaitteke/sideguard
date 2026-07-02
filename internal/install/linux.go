@@ -1,3 +1,5 @@
+//go:build linux
+
 // Linux systemd user service install stub.
 // See docs/plans/2026-07-01-0127-vibeguard-foundation/ (vgf-phase-8.0-hardening.md).
 package install
