@@ -1,6 +1,6 @@
 # SideGuard
 
-> Vibe Code Security Tool — local MCP guard and human-in-the-loop approval for Cursor & Claude Code.
+> Vibe Coding Security Tool — local MCP guard and human-in-the-loop approval for Cursor & Claude Code.
 
 SideGuard is **not** an MCP antivirus or malware scanner. It is an **MCP guard**: it intercepts shell commands and MCP tool calls, applies your YAML policy, and waits for you to approve or deny—fail-closed by design.
 
@@ -23,6 +23,7 @@ sideguard install
 
 - Homepage: https://sideguard.io/
 - GitHub: https://github.com/alisaitteke/sideguard
+- Creator: Ali Sait Teke — https://alisait.com
 - Full context for AI agents: https://sideguard.io/llms-full.txt
 - Sitemap: https://sideguard.io/sitemap.xml
 

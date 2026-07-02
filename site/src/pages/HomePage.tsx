@@ -1,6 +1,7 @@
 /**
  * Landing page: composes all marketing sections inside semantic main.
  */
+import { CraftSection } from "@/components/sections/CraftSection"
 import { FaqSection } from "@/components/sections/FaqSection"
 import { FeaturesSection } from "@/components/sections/FeaturesSection"
 import { HeroSection } from "@/components/sections/HeroSection"
@@ -19,6 +20,7 @@ export function HomePage() {
       <PromptInjectionSection />
       <NotWhatSection />
       <FeaturesSection />
+      <CraftSection />
       <InstallSection />
       <QuickStartSection />
       <PlatformsSection />

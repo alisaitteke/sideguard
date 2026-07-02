@@ -57,7 +57,7 @@ export function HeroSection() {
               SideGuard
             </h1>
             <p className="text-sm font-medium tracking-[0.18em] text-primary uppercase sm:text-base">
-              Vibe Code Security Tool
+              Vibe Coding Security Tool
             </p>
           </div>
         </div>

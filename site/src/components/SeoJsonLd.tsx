@@ -4,6 +4,7 @@
 import {
   buildFaqPageJsonLd,
   buildOrganizationJsonLd,
+  buildPersonJsonLd,
   buildSoftwareApplicationJsonLd,
   buildWebSiteJsonLd,
 } from "@/lib/seo"
@@ -21,6 +22,7 @@ export function SeoJsonLd() {
   return (
     <>
       <JsonLdScript data={buildWebSiteJsonLd()} />
+      <JsonLdScript data={buildPersonJsonLd()} />
       <JsonLdScript data={buildOrganizationJsonLd()} />
       <JsonLdScript data={buildSoftwareApplicationJsonLd()} />
       <JsonLdScript data={buildFaqPageJsonLd()} />

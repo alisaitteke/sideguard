@@ -1,6 +1,25 @@
-# SideGuard
+<p align="center">
+  <img src="assets/logo.svg" alt="SideGuard logo" width="88" height="88" />
+</p>
 
-Local security layer for AI coding agents (Cursor, Claude Code). SideGuard intercepts **shell/terminal commands** and **MCP tool calls**, holding them for user approval via the terminal CLI (`sideguard ui`), an optional macOS menu-bar tray, and alert-only notifications.
+<h1 align="center">SideGuard</h1>
+
+<p align="center">
+  <strong>Vibe Coding Security Tool</strong><br />
+  MCP guard with human-in-the-loop approval for Cursor and Claude Code
+</p>
+
+<p align="center">
+  <a href="https://sideguard.io/">sideguard.io</a>
+  · <a href="https://sideguard.io/#install">Install</a>
+  · <a href="https://sideguard.io/llms-full.txt">AI context</a>
+</p>
+
+<p align="center">
+  <sub>Fail-closed hooks · YAML policy · local audit trail · not an MCP antivirus</sub>
+</p>
+
+Before your AI assistant runs a shell command or MCP tool on your machine, SideGuard asks you to approve. It intercepts **shell/terminal commands** and **MCP tool calls**, applies your YAML policy, and holds risky actions for human approval via the terminal CLI (`sideguard ui`), an optional macOS menu-bar tray, and alert-only notifications.
 
 ## Status
 
@@ -321,6 +340,7 @@ macOS notifications are **alert-only** — decisions always happen in the termin
 | Document | Description |
 | --- | --- |
 | [docs/roadmap.md](docs/roadmap.md) | Product roadmap and API contracts |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | System overview, components, and security model |
 | [docs/research-report.md](docs/research-report.md) | Cursor/Claude hooks and hybrid architecture research |
 | [docs/integration-and-terminal-ui.md](docs/integration-and-terminal-ui.md) | Install flow and terminal approval UX |
 | [docs/plans/2026-07-01-0127-sideguard-foundation/](docs/plans/2026-07-01-0127-sideguard-foundation/) | Phased implementation plan |
@@ -333,6 +353,11 @@ macOS notifications are **alert-only** — decisions always happen in the termin
 | `~/.sideguard/audit.db` | SQLite audit log |
 | `~/.sideguard/update-state.json` | Last update check + latest known release |
 | `http://127.0.0.1:9477/v1/health` | Daemon HTTP health |
+
+## Author
+
+Built by **[Ali Sait Teke](https://alisait.com)** — software architect (Go, Python, Node, React).
+[GitHub](https://github.com/alisaitteke) · [LinkedIn](https://www.linkedin.com/in/alisait/) · [Architecture](ARCHITECTURE.md)
 
 ## License
 
