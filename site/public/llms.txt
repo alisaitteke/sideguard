@@ -1,0 +1,33 @@
+# SideGuard
+
+> Vibe Code Security Tool — local MCP guard and human-in-the-loop approval for Cursor & Claude Code.
+
+SideGuard is **not** an MCP antivirus or malware scanner. It is an **MCP guard**: it intercepts shell commands and MCP tool calls, applies your YAML policy, and waits for you to approve or deny—fail-closed by design.
+
+## What people search for
+
+- MCP guard / MCP guards for Cursor and Claude Code
+- MCP security and MCP tool approval (not passive MCP antivirus scanning)
+- Vibe coding security tools and vibe coding tips for safer AI-assisted development
+- Fail-closed Cursor hooks, Claude Code security, local AI agent approval
+- Prompt injection in issues and repos—blocking exfiltration commands before they run
+
+## Install
+
+```bash
+curl -fsSL https://sideguard.io/setup.sh | sh
+sideguard install
+```
+
+## Links
+
+- Homepage: https://sideguard.io/
+- GitHub: https://github.com/alisaitteke/sideguard
+- Full context for AI agents: https://sideguard.io/llms-full.txt
+- Sitemap: https://sideguard.io/sitemap.xml
+
+## Optional
+
+- [Install & quick start](https://sideguard.io/#install)
+- [Features](https://sideguard.io/#features)
+- [FAQ](https://sideguard.io/#faq)

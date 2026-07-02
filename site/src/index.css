@@ -45,6 +45,7 @@
     --color-background: var(--background);
     --color-hero: var(--hero);
     --color-hero-glow: rgb(var(--hero-glow-primary));
+    --color-hero-logo: var(--hero-logo);
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -91,6 +92,8 @@
     /* Corporate IDE green — JetBrains / VS Code dark-theme inspired */
     --hero-glow-primary: 35 107 71;
     --hero-glow-secondary: 45 134 89;
+    /* Brighter teal — stands out from the soft green beam (light mode) */
+    --hero-logo: #0d9488;
 }
 
 .dark {
@@ -128,6 +131,8 @@
     --hero: #10161c;
     --hero-glow-primary: 35 107 71;
     --hero-glow-secondary: 45 134 89;
+    /* Electric mint-teal — pops in front of the muted green light beam */
+    --hero-logo: #5eead4;
 }
 
 @layer base {

@@ -3,18 +3,76 @@
   <head>
     <!--
       SideGuard public landing: Vite + React SPA for GitHub Pages.
-      Plan: docs/plans/2026-07-02-1705-vite-shadcn-site/vss-phase-1.0-scaffold.md
+      Static head + root fallback serve crawlers and AI agents that skip JS.
     -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>
-      SideGuard: AI agent command approval for Cursor &amp; Claude Code
+      SideGuard — MCP Guard &amp; Vibe Coding Security Tool | Cursor &amp; Claude
+      Code
     </title>
     <meta
       name="description"
-      content="Local approval daemon for shell commands and MCP tools. Fail-closed Cursor hooks, YAML policy, human-in-the-loop vibe coding security guardrails, not an antivirus."
+      content="SideGuard is a vibe code security tool and MCP guard for Cursor and Claude Code. Human-in-the-loop approval for shell commands and MCP tools—not an MCP antivirus. YAML policy, fail-closed hooks, local audit trail."
     />
+    <meta
+      name="keywords"
+      content="MCP guard, MCP security, MCP antivirus, vibe coding security, vibe coding tools, vibe coding tips, vibe code security tool, genius vibe coding, Cursor hooks, Claude Code security, AI agent approval, prompt injection, fail-closed hooks"
+    />
+    <meta name="author" content="SideGuard" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
+    <link rel="canonical" href="https://sideguard.io/" />
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://sideguard.io/" />
+    <meta property="og:site_name" content="SideGuard" />
+    <meta
+      property="og:title"
+      content="SideGuard — MCP Guard &amp; Vibe Coding Security Tool"
+    />
+    <meta
+      property="og:description"
+      content="Local MCP guard for Cursor &amp; Claude Code. Approve shell commands and MCP tools before they run—not an MCP antivirus. YAML policy, fail-closed hooks."
+    />
+    <meta property="og:image" content="https://sideguard.io/assets/logo.svg" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="SideGuard — MCP Guard &amp; Vibe Coding Security Tool" />
+    <meta
+      name="twitter:description"
+      content="Vibe code security tool: human-in-the-loop MCP guard for Cursor and Claude Code."
+    />
+    <meta name="twitter:image" content="https://sideguard.io/assets/logo.svg" />
+
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "SideGuard",
+        "url": "https://sideguard.io/",
+        "description": "Vibe code security tool and MCP guard for Cursor and Claude Code.",
+        "inLanguage": "en"
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "SideGuard",
+        "applicationCategory": "SecurityApplication",
+        "operatingSystem": "macOS, Linux",
+        "url": "https://sideguard.io/",
+        "downloadUrl": "https://sideguard.io/setup.sh",
+        "description": "Local MCP guard and vibe coding security tool with human-in-the-loop approval for shell commands and MCP tools.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "keywords": "MCP guard, MCP security, vibe coding security, vibe coding tools, Cursor hooks, Claude Code security"
+      }
+    </script>
+
     <script>
       document.documentElement.classList.add(
         window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -24,7 +82,43 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+  <!-- Static fallback: visible to crawlers before React hydrates -->
+    <div id="root">
+      <main>
+        <h1>SideGuard — Vibe Code Security Tool</h1>
+        <p>
+          <strong>MCP guard</strong> for Cursor and Claude Code. SideGuard is a
+          <strong>vibe coding security tool</strong> that asks you to approve
+          shell commands and MCP tool calls before they run—fail-closed hooks,
+          YAML policy, local audit trail. Not an MCP antivirus or malware
+          scanner.
+        </p>
+        <h2>MCP guard vs MCP antivirus</h2>
+        <p>
+          SideGuard does not scan MCP traffic with signatures or LLMs. It is an
+          MCP guard with human-in-the-loop approval—an alternative when you
+          search for MCP security, MCP tool approval, or MCP firewall-style
+          guardrails without a cloud proxy.
+        </p>
+        <h2>Vibe coding tools &amp; tips</h2>
+        <p>
+          Practical vibe coding tips: use fail-closed hooks, deny secret path
+          reads by default, review MCP tools—not just terminal commands. SideGuard
+          is built for genius vibe coding velocity with guardrails you control.
+        </p>
+        <h2>Install</h2>
+        <p>
+          <code>curl -fsSL https://sideguard.io/setup.sh | sh</code> then
+          <code>sideguard install</code>
+        </p>
+        <p>
+          <a href="https://sideguard.io/">sideguard.io</a> ·
+          <a href="https://github.com/alisaitteke/sideguard">GitHub</a> ·
+          <a href="/llms.txt">llms.txt</a> ·
+          <a href="/llms-full.txt">llms-full.txt</a>
+        </p>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

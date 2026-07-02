@@ -48,11 +48,6 @@ export function PromptInjectionSection() {
           >
             Prompt injection hides in places your agent trusts
           </h2>
-          <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
-            An innocent-looking GitHub issue can smuggle instructions into the
-            text your coding agent reads. It does not look like malware — it
-            looks like a normal comment.
-          </p>
         </div>
 
         <div className="prompt-injection-scene">

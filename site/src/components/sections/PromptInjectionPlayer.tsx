@@ -50,7 +50,7 @@ export function PromptInjectionCenterPlay({
         <span className="yt-big-play" aria-hidden>
           <PlayIcon className="size-7 fill-white text-white" />
         </span>
-        <p className="yt-paused-caption">What&apos;s the topic?</p>
+        <p className="yt-paused-caption">Uh… what is this?</p>
       </div>
     </div>
   )

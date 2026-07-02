@@ -17,7 +17,8 @@ export function SiteFooter() {
           </a>
         </p>
         <p className="text-muted-foreground/80">
-          Local approval daemon · shell + MCP guardrails · MIT License
+          Vibe code security tool · MCP guard · shell + MCP approval · MIT
+          License
         </p>
         <p>
           <a

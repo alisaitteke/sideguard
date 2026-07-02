@@ -50,13 +50,18 @@ export function HeroSection() {
         <div className="mb-8 flex flex-col items-center gap-4">
           <span
             aria-hidden
-            className="size-[88px] bg-hero-glow mask-[url(/assets/logo.svg)] mask-contain mask-center mask-no-repeat"
+            className="hero-logo-mark size-[88px] bg-hero-logo mask-[url(/assets/logo.svg)] mask-contain mask-center mask-no-repeat"
           />
-          <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-            SideGuard
-          </h1>
+          <div className="flex flex-col items-center gap-1">
+            <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+              SideGuard
+            </h1>
+            <p className="text-sm font-medium tracking-[0.18em] text-primary uppercase sm:text-base">
+              Vibe Code Security Tool
+            </p>
+          </div>
         </div>
-        <p className="mx-auto mt-4 max-w-[32rem] text-base leading-relaxed text-muted-foreground sm:text-lg">
+        <p className="mx-auto mt-4 max-w-[32rem] text-base leading-snug text-muted-foreground sm:text-lg">
           Before your AI assistant runs a command on your computer, SideGuard asks
           you to approve. Nothing runs until you say yes or no.
         </p>
