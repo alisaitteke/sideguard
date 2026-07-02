@@ -110,9 +110,9 @@
     </script>
   </head>
   <body>
-  <!-- Static fallback: visible to crawlers before React hydrates -->
-    <div id="root">
-      <main>
+    <!-- SEO fallback for no-JS crawlers only — must NOT live inside #root (React replaces it and flashes). -->
+    <noscript>
+      <main style="max-width: 52rem; margin: 0 auto; padding: 2rem 1rem; font-family: system-ui, sans-serif;">
         <h1>SideGuard — Vibe Coding Security Tool</h1>
         <p>
           <strong>MCP guard</strong> for Cursor and Claude Code. SideGuard is a
@@ -146,7 +146,8 @@
           <a href="/llms-full.txt">llms-full.txt</a>
         </p>
       </main>
-    </div>
+    </noscript>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
