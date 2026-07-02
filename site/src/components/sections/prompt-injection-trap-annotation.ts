@@ -1,4 +1,6 @@
-import { annotate, type RoughAnnotation } from "rough-notation"
+import { annotate } from "rough-notation"
+
+type RoughAnnotation = ReturnType<typeof annotate>
 
 /** Beat after scroll lands, before Rough Notation draws. */
 export const POST_SCROLL_WAIT_MS = 1_500
@@ -74,7 +76,7 @@ export class TrapAnnotationController {
 /** @deprecated Use TrapAnnotationController — kept for reduced-motion static path. */
 export function startTrapAnnotationSync(
   animation: Animation,
-  durationMs: number,
+  _durationMs: number,
   showAfterMs: number,
   target: HTMLElement,
   animate = true
@@ -89,7 +91,9 @@ export function startTrapAnnotationSync(
       return
     }
 
-    controller.sync(animation.currentTime ?? 0, showAfterMs)
+    const time =
+      typeof animation.currentTime === "number" ? animation.currentTime : 0
+    controller.sync(time, showAfterMs)
     rafId = requestAnimationFrame(tick)
   }
 

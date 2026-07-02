@@ -37,6 +37,11 @@ function clampTime(timeMs: number, durationMs: number): number {
   return Math.min(Math.max(timeMs, 0), durationMs)
 }
 
+function readAnimationTimeMs(animation: Animation): number {
+  const time = animation.currentTime
+  return typeof time === "number" ? time : 0
+}
+
 type SceneRuntime = {
   metrics: CameraMetrics
   animation: Animation
@@ -85,7 +90,7 @@ export function usePromptInjectionZoom(
       return
     }
 
-    syncSceneAtTime(runtime.animation.currentTime ?? 0)
+    syncSceneAtTime(readAnimationTimeMs(runtime.animation))
   }, [syncSceneAtTime])
 
   const play = useCallback(() => {
@@ -97,7 +102,7 @@ export function usePromptInjectionZoom(
 
     const { animation, metrics } = runtime
     const atEnd =
-      (animation.currentTime ?? 0) >= metrics.durationMs - 16
+      readAnimationTimeMs(animation) >= metrics.durationMs - 16
 
     if (atEnd) {
       animation.currentTime = 0
@@ -179,7 +184,7 @@ export function usePromptInjectionZoom(
         runtime.animation.playState === "running" &&
         !scrubbingRef.current
       ) {
-        syncSceneAtTime(runtime.animation.currentTime ?? 0)
+        syncSceneAtTime(readAnimationTimeMs(runtime.animation))
       }
 
       rafId = requestAnimationFrame(tick)
@@ -232,7 +237,7 @@ export function usePromptInjectionZoom(
       }
 
       const savedTime = clampTime(
-        runtime.animation.currentTime ?? 0,
+        readAnimationTimeMs(runtime.animation),
         runtime.metrics.durationMs
       )
       const wasPlaying = playingRef.current
@@ -311,7 +316,9 @@ export function usePromptInjectionZoom(
 
       const previousRuntime = runtimeRef.current
       const previousDuration = durationMsRef.current
-      const previousTime = previousRuntime?.animation.currentTime ?? 0
+      const previousTime = previousRuntime
+        ? readAnimationTimeMs(previousRuntime.animation)
+        : 0
       const timeRatio =
         previousDuration > 0 ? previousTime / previousDuration : 0
 
