@@ -36,7 +36,7 @@ jobs:
         working-directory: site
       - name: Sync setup.sh into dist artifact
         run: cp setup.sh site/dist/setup.sh
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site/dist
 
@@ -50,6 +50,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
-        with:
-          timeout: 2700000
+        uses: actions/deploy-pages@v5

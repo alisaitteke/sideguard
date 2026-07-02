@@ -106,7 +106,7 @@ jobs:
           GORELEASER_CURRENT_TAG: ${{ env.RELEASE_TAG }}
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.artifact_name }}
           path: dist/
@@ -123,7 +123,7 @@ jobs:
           ref: ${{ env.RELEASE_TAG }}
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: artifacts
 
