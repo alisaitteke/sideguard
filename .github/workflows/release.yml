@@ -41,8 +41,13 @@ jobs:
       - name: Install Linux cross-compilers
         if: matrix.platform_id == 'linux'
         run: |
+          sudo dpkg --add-architecture arm64
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu libayatana-appindicator3-dev
+          sudo apt-get install -y \
+            gcc-aarch64-linux-gnu \
+            pkg-config-aarch64-linux-gnu \
+            libayatana-appindicator3-dev \
+            libayatana-appindicator3-dev:arm64
 
       - name: Setup MSYS2 (Windows)
         if: matrix.platform_id == 'windows'
