@@ -1,6 +1,6 @@
 /**
  * PostHog analytics for the public landing site (pageviews + future product events).
- * Proxied via kim.sideguard.io; UI links resolve to eu.posthog.com.
+ * Proxied via a.alisait.com; UI links resolve to eu.posthog.com.
  */
 import posthog from "posthog-js"
 
@@ -13,7 +13,7 @@ export function initPostHog(): void {
   if (initialized || typeof window === "undefined") return
 
   posthog.init(POSTHOG_KEY, {
-    api_host: "https://kim.sideguard.io",
+    api_host: "https://a.alisait.com",
     ui_host: "https://eu.posthog.com",
     defaults: "2026-05-30",
     person_profiles: "always",
