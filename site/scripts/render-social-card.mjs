@@ -13,6 +13,8 @@ import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { chromium } from "playwright"
 
+import { BRAND, readLogoPath } from "./brand-tokens.mjs"
+
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const siteRoot = resolve(__dirname, "..")
 const repoRoot = resolve(siteRoot, "..")
@@ -25,8 +27,7 @@ const geistWoff2 = readFileSync(
 )
 const geistBase64 = geistWoff2.toString("base64")
 
-const logoSvg = readFileSync(join(siteRoot, "public/assets/logo.svg"), "utf8")
-const logoPath = logoSvg.match(/<path[^>]+d="([^"]+)"/)?.[1] ?? ""
+const logoPath = readLogoPath()
 
 /** @typedef {"social" | "readme"} CardVariant */
 
@@ -160,7 +161,7 @@ function buildHtml(width, height, variant) {
       width: ${logoSize}px;
       height: ${logoSize}px;
       margin-bottom: ${Math.round((variant === "readme" ? 16 : 28) * scale)}px;
-      filter: drop-shadow(0 0 ${Math.round(28 * scale)}px rgba(94, 234, 212, 0.22));
+      filter: drop-shadow(0 0 ${Math.round(28 * scale)}px ${BRAND.glowMint});
     }
 
     .logo-wrap svg {
@@ -228,7 +229,7 @@ function buildHtml(width, height, variant) {
     <div class="frame">
       <div class="logo-wrap" aria-hidden="true">
         <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-          <path fill="#5eead4" d="${logoPath}" />
+          <path fill="${BRAND.logoDark}" d="${logoPath}" />
         </svg>
       </div>
       ${titleBlock}
