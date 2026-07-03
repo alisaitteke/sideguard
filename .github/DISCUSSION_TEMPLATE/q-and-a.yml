@@ -1,0 +1,18 @@
+title: Q&A
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask a question about installing, configuring, or using SideGuard.
+
+        **Before posting:** check the [README Quick start](https://github.com/alisaitteke/sideguard#quick-start) and run `sideguard doctor` if something is not working.
+
+        For **confirmed bugs** with reproduction steps, open a [Bug Report](https://github.com/alisaitteke/sideguard/issues/new?template=bug_report.yml) instead.
+
+  - type: textarea
+    id: body
+    attributes:
+      label: Your question
+      description: Include SideGuard version, OS, and AI client (Cursor / Claude Code) when relevant
+    validations:
+      required: true

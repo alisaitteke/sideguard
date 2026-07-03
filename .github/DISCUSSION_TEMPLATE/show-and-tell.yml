@@ -1,0 +1,16 @@
+title: Show and tell
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share how you use SideGuard — policy YAML snippets, approval workflows, client setup tips, or integrations.
+
+        **Redact secrets** before posting. Do not paste API keys, `credentials.yaml`, or full private policy files with sensitive paths.
+
+  - type: textarea
+    id: body
+    attributes:
+      label: What are you sharing?
+      description: Context, what works well, and any config examples (redacted)
+    validations:
+      required: true

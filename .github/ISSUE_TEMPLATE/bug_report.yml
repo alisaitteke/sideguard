@@ -1,0 +1,114 @@
+name: Bug Report
+description: Report a reproducible bug in SideGuard
+title: "[Bug]: "
+labels:
+  - bug
+  - triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please run `sideguard version`, `sideguard doctor`, and `sideguard status` before submitting — paste the outputs below.
+
+        For install or setup questions without a clear bug, use **Installation Support** instead.
+
+  - type: input
+    id: version
+    attributes:
+      label: SideGuard version
+      description: Output of `sideguard version`
+      placeholder: "sideguard 1.2.3"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Linux
+        - Windows
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: clients
+    attributes:
+      label: AI client(s)
+      options:
+        - label: Cursor
+        - label: Claude Code
+        - label: Other
+
+  - type: dropdown
+    id: install_method
+    attributes:
+      label: Install method
+      options:
+        - setup.sh (sideguard.io)
+        - Homebrew
+        - Built from source
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: approval_mode
+    attributes:
+      label: Approval mode
+      description: Output of `sideguard mode` if unsure
+      options:
+        - ask
+        - auto
+        - auto-allow
+        - auto-deny
+        - Unknown
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What you did, in order, starting from a fresh terminal or client session
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: Expected vs actual behavior
+      description: What you expected to happen and what happened instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor_output
+    attributes:
+      label: "`sideguard doctor` output"
+      description: Paste the full terminal output (redact paths if needed)
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: status_output
+    attributes:
+      label: "`sideguard status` output"
+      description: Optional — paste if the daemon or pending queue is involved
+      render: shell
+
+  - type: textarea
+    id: policy_snippet
+    attributes:
+      label: Policy snippet
+      description: Optional redacted excerpt from `~/.sideguard/policy.yaml` if policy-related
+      render: yaml
+
+  - type: upload
+    id: attachments
+    attributes:
+      label: Screenshots or logs
+      description: Optional — tray screenshot, notification, or redacted log file
+    validations:
+      required: false

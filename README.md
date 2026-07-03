@@ -361,7 +361,7 @@ macOS notifications are **alert-only** — decisions always happen in the termin
 ## Author
 
 Built by **[Ali Sait Teke](https://alisait.com)** — software architect (Go, Python, Node, React).
-[GitHub](https://github.com/alisaitteke) · [LinkedIn](https://www.linkedin.com/in/alisait/) · [Architecture](ARCHITECTURE.md)
+[GitHub](https://github.com/alisaitteke) · [LinkedIn](https://www.linkedin.com/in/alisait/) · [Architecture](ARCHITECTURE.md) · [Contributing](CONTRIBUTING.md)
 
 ## License
 

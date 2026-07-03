@@ -1,0 +1,29 @@
+name: Security Advisory (read first)
+description: How to report a vulnerability privately — not for public exploit details
+title: "[Security]: "
+labels:
+  - security
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Do not post vulnerability details here
+
+        Public issues are visible to everyone. To report a security vulnerability in SideGuard, use **GitHub Private Vulnerability Reporting**:
+
+        1. Open the [Security tab](https://github.com/alisaitteke/sideguard/security) on this repository
+        2. Click **Report a vulnerability** (or use [this direct link](https://github.com/alisaitteke/sideguard/security/advisories/new))
+        3. Submit a private draft advisory with affected version, component, and impact
+
+        See [SECURITY.md](https://github.com/alisaitteke/sideguard/blob/main/SECURITY.md) for the full policy.
+
+        Use this template only if you need a public pointer after you have already started a private report, or if private reporting is unavailable — **never include exploit code or live attack steps in a public issue**.
+
+  - type: checkboxes
+    id: acknowledge
+    attributes:
+      label: Acknowledgment
+      options:
+        - label: I understand and will use GitHub Private Vulnerability Reporting for vulnerability details
+    validations:
+      required: true

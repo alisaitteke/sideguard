@@ -1,0 +1,16 @@
+title: Ideas
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share a feature idea or improvement for SideGuard.
+
+        For **actionable enhancement requests** you want tracked on the roadmap, you can also open a [Feature Request](https://github.com/alisaitteke/sideguard/issues/new?template=feature_request.yml).
+
+  - type: textarea
+    id: body
+    attributes:
+      label: Describe your idea
+      description: What problem does it solve? Which surface — CLI, daemon, hooks, MCP proxy, tray, or site?
+    validations:
+      required: true

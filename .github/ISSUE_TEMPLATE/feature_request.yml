@@ -1,0 +1,47 @@
+name: Feature Request
+description: Suggest an enhancement or new capability
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem and your proposed solution. For open-ended ideas or roadmap discussion, consider [Discussions → Ideas](https://github.com/alisaitteke/sideguard/discussions/categories/ideas) instead.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What pain point or gap does this address?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How would you like SideGuard to behave?
+
+  - type: checkboxes
+    id: surfaces
+    attributes:
+      label: Affected surface(s)
+      options:
+        - label: CLI
+        - label: Daemon
+        - label: Hooks (Cursor / Claude Code)
+        - label: MCP proxy
+        - label: Menu bar tray (macOS)
+        - label: Website (sideguard.io)
+
+  - type: dropdown
+    id: contribute
+    attributes:
+      label: Willing to open a PR?
+      options:
+        - "Yes"
+        - "Maybe — need guidance"
+        - "No"
+    validations:
+      required: true

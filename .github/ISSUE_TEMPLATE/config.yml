@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: SideGuard website
+    url: https://sideguard.io
+    about: Install instructions, docs, and AI context
+  - name: Q&A Discussions
+    url: https://github.com/alisaitteke/sideguard/discussions/categories/q-a
+    about: Ask questions about install, policy, or client setup
+  - name: Report a vulnerability
+    url: https://github.com/alisaitteke/sideguard/security/advisories/new
+    about: Private security reporting — do not post exploit details in public issues

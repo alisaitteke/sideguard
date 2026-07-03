@@ -121,4 +121,4 @@ Upload order suggestion: `01-hero` → `02-approval` → `03-integrations` → `
 
 **Ali Sait Teke** — [alisait.com](https://alisait.com) · [GitHub](https://github.com/alisaitteke) · [LinkedIn](https://www.linkedin.com/in/alisait/)
 
-For press inquiries, use the links above or open a GitHub issue.
+For press inquiries, use the links above or open a **[Press Inquiry](https://github.com/alisaitteke/sideguard/issues/new?template=press_inquiry.md)** on GitHub (see also [Contributing](https://github.com/alisaitteke/sideguard/blob/main/CONTRIBUTING.md)).
