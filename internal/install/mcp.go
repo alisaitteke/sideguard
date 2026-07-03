@@ -53,15 +53,14 @@ func unwrapMCPServers(servers map[string]mcpServerEntry, binary string) int {
 
 	unwrapped := 0
 	for name, entry := range servers {
-		if !isAlreadyWrapped(entry, binary) {
-			continue
+		for isAlreadyWrapped(entry, binary) {
+			upstreamCmd := entry.Args[2]
+			upstreamArgs := append([]string{}, entry.Args[3:]...)
+			entry.Command = upstreamCmd
+			entry.Args = upstreamArgs
+			unwrapped++
 		}
-		upstreamCmd := entry.Args[2]
-		upstreamArgs := append([]string{}, entry.Args[3:]...)
-		entry.Command = upstreamCmd
-		entry.Args = upstreamArgs
 		servers[name] = entry
-		unwrapped++
 	}
 	return unwrapped
 }
@@ -142,13 +141,22 @@ func isAlreadyWrapped(entry mcpServerEntry, binary string) bool {
 }
 
 func commandIsSideguard(command, binary string) bool {
-	if command == "sideguard" {
+	if isGuardBinaryName(command) {
 		return true
 	}
 	if binary != "" && command == binary {
 		return true
 	}
-	return filepath.Base(command) == "sideguard"
+	return isGuardBinaryName(filepath.Base(command))
+}
+
+func isGuardBinaryName(name string) bool {
+	switch name {
+	case "sideguard", "vibeguard":
+		return true
+	default:
+		return false
+	}
 }
 
 func marshalJSONPretty(v any) ([]byte, error) {

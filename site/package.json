@@ -13,6 +13,7 @@
     "render:social-card": "node scripts/render-social-card.mjs",
     "render:favicons": "node scripts/render-favicons.mjs",
     "render:media-kit": "node scripts/render-media-kit.mjs",
+    "render:prompt-injection": "node scripts/render-prompt-injection-video.mjs",
     "render:assets": "npm run render:favicons && npm run render:social-card && npm run render:media-kit"
   },
   "dependencies": {

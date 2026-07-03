@@ -9,12 +9,21 @@ import { PostHogPageview } from "@/components/PostHogPageview"
 import { PageShell } from "@/components/layout/PageShell"
 import { HomePage } from "@/pages/HomePage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
+import { PromptInjectionExportPage } from "@/pages/PromptInjectionExportPage"
 
 export function AppRouter() {
   return (
     <BrowserRouter>
       <PostHogPageview />
       <Routes>
+        <Route
+          path="/export/prompt-injection"
+          element={<PromptInjectionExportPage />}
+        />
+        <Route
+          path="/export/prompt-injection-pan"
+          element={<PromptInjectionExportPage clip="pan" />}
+        />
         <Route element={<PageShell />}>
           <Route index element={<HomePage />} />
           <Route path="*" element={<NotFoundPage />} />

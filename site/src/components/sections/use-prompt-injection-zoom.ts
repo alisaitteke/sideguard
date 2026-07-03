@@ -33,6 +33,17 @@ export type PromptInjectionPlayback = {
   endScrub: (resume: boolean) => void
 }
 
+export type PromptInjectionZoomOptions = {
+  /** Start playback once the scene is measured and ready. */
+  autoPlay?: boolean
+  /** Replay when the timeline finishes (default true on landing). */
+  loop?: boolean
+  /** Fired once when a non-looping run reaches the end. */
+  onCycleComplete?: () => void
+  /** Play only a slice of the timeline (GIF pan clip). */
+  segment?: { startMs: number; endMs: number; holdMs?: number }
+}
+
 function clampTime(timeMs: number, durationMs: number): number {
   return Math.min(Math.max(timeMs, 0), durationMs)
 }
@@ -58,8 +69,13 @@ export function usePromptInjectionZoom(
   viewportRef: RefObject<HTMLElement | null>,
   cameraRef: RefObject<HTMLElement | null>,
   commandRef: RefObject<HTMLElement | null>,
-  onReady: (ready: boolean) => void
+  onReady: (ready: boolean) => void,
+  options: PromptInjectionZoomOptions = {}
 ): PromptInjectionPlayback {
+  const { autoPlay = false, loop = true, onCycleComplete, segment } = options
+  const optionsRef = useRef({ autoPlay, loop, onCycleComplete, segment })
+  optionsRef.current = { autoPlay, loop, onCycleComplete, segment }
+  const segmentCompleteRef = useRef(false)
   const runtimeRef = useRef<SceneRuntime | null>(null)
   const durationMsRef = useRef(0)
   const playingRef = useRef(false)
@@ -78,10 +94,45 @@ export function usePromptInjectionZoom(
       return
     }
 
-    const clamped = clampTime(timeMs, runtime.metrics.durationMs)
+    const segmentEnd = optionsRef.current.segment?.endMs
+    const clamped = clampTime(
+      timeMs,
+      segmentEnd ?? runtime.metrics.durationMs
+    )
     runtime.annotation.sync(clamped, runtime.metrics.annotationShowAfterMs)
     setCurrentTimeMs(clamped)
   }, [])
+
+  const completeSegment = useCallback(() => {
+    if (segmentCompleteRef.current) {
+      return
+    }
+
+    segmentCompleteRef.current = true
+    const runtime = runtimeRef.current
+    const segmentRange = optionsRef.current.segment
+
+    if (!runtime || !segmentRange) {
+      return
+    }
+
+    playingRef.current = false
+    runtime.animation.pause()
+    runtime.animation.currentTime = segmentRange.endMs
+    syncSceneAtTime(segmentRange.endMs)
+    setIsPlaying(false)
+
+    const holdMs = segmentRange.holdMs ?? 0
+
+    if (holdMs > 0) {
+      window.setTimeout(() => {
+        optionsRef.current.onCycleComplete?.()
+      }, holdMs)
+      return
+    }
+
+    optionsRef.current.onCycleComplete?.()
+  }, [syncSceneAtTime])
 
   const syncTimeFromAnimation = useCallback(() => {
     const runtime = runtimeRef.current
@@ -184,7 +235,14 @@ export function usePromptInjectionZoom(
         runtime.animation.playState === "running" &&
         !scrubbingRef.current
       ) {
-        syncSceneAtTime(readAnimationTimeMs(runtime.animation))
+        const timeMs = readAnimationTimeMs(runtime.animation)
+        const segmentRange = optionsRef.current.segment
+
+        if (segmentRange && timeMs >= segmentRange.endMs - 16) {
+          completeSegment()
+        } else {
+          syncSceneAtTime(timeMs)
+        }
       }
 
       rafId = requestAnimationFrame(tick)
@@ -195,7 +253,7 @@ export function usePromptInjectionZoom(
     return () => {
       cancelAnimationFrame(rafId)
     }
-  }, [ready, syncSceneAtTime])
+  }, [ready, syncSceneAtTime, completeSegment])
 
   useLayoutEffect(() => {
     const shell = shellRef.current
@@ -349,41 +407,64 @@ export function usePromptInjectionZoom(
         previousRuntime?.annotation ?? new TrapAnnotationController()
       annotation.bind(commandEl)
 
-      const loopHandler = () => {
+      const onAnimationFinish = () => {
         const runtime = runtimeRef.current
 
-        if (!playingRef.current || !runtime || runtime.animation !== animation) {
+        if (!runtime || runtime.animation !== animation) {
           return
         }
 
-        animation!.currentTime = 0
+        if (!optionsRef.current.loop) {
+          if (optionsRef.current.segment) {
+            completeSegment()
+            return
+          }
+
+          playingRef.current = false
+          setIsPlaying(false)
+          optionsRef.current.onCycleComplete?.()
+          return
+        }
+
+        if (!playingRef.current) {
+          return
+        }
+
+        animation.currentTime = 0
         syncSceneAtTime(0)
         annotation.relayout()
-        animation!.play()
+        animation.play()
       }
 
-      animation.addEventListener("finish", loopHandler)
+      animation.addEventListener("finish", onAnimationFinish)
 
       runtimeRef.current = {
         metrics,
         animation,
         annotation,
-        loopHandler,
+        loopHandler: onAnimationFinish,
       }
 
       durationMsRef.current = metrics.durationMs
       setDurationMs(metrics.durationMs)
       setReady(true)
 
+      const segmentRange = optionsRef.current.segment
       const restoredTime = clampTime(
-        timeRatio * metrics.durationMs,
+        segmentRange
+          ? segmentRange.startMs
+          : timeRatio * metrics.durationMs,
         metrics.durationMs
       )
       animation.currentTime = restoredTime
       syncSceneAtTime(restoredTime)
       annotation.relayout()
+      segmentCompleteRef.current = false
 
-      if (playingRef.current) {
+      if (playingRef.current || optionsRef.current.autoPlay) {
+        if (optionsRef.current.autoPlay) {
+          playingRef.current = true
+        }
         animation.play()
         setIsPlaying(true)
       } else {

@@ -327,7 +327,6 @@ install_from_github() {
 
   version="${tag#v}"
   archive="sideguard_${version}_${os}_${arch}.tar.gz"
-  legacy_archive="vibeguard_${version}_${os}_${arch}.tar.gz"
   base_url="https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/${tag}"
 
   info "Platform: ${os}/${arch}"
@@ -343,16 +342,8 @@ install_from_github() {
     || die "failed to download checksums.txt for ${tag}"
 
   info "Downloading ${archive}..."
-  if ! curl -fsSL -o "${tmpdir}/${archive}" "${base_url}/${archive}"; then
-    if [ "$archive" != "$legacy_archive" ]; then
-      info "Archive not found; trying legacy name ${legacy_archive}..."
-      archive="$legacy_archive"
-      curl -fsSL -o "${tmpdir}/${archive}" "${base_url}/${archive}" \
-        || die "failed to download ${archive} (is this platform published for ${tag}?)"
-    else
-      die "failed to download ${archive} (is this platform published for ${tag}?)"
-    fi
-  fi
+  curl -fsSL -o "${tmpdir}/${archive}" "${base_url}/${archive}" \
+    || die "failed to download ${archive} (is this platform published for ${tag}?)"
 
   info "Verifying SHA256 checksum..."
   verify_checksum "$archive" "${tmpdir}/${archive}" "${tmpdir}/checksums.txt"
@@ -361,13 +352,9 @@ install_from_github() {
   tar -xzf "${tmpdir}/${archive}" -C "$tmpdir" \
     || die "failed to extract ${archive}"
 
-  binary_path=""
-  if [ -f "${tmpdir}/sideguard" ]; then
-    binary_path="${tmpdir}/sideguard"
-  elif [ -f "${tmpdir}/vibeguard" ]; then
-    binary_path="${tmpdir}/vibeguard"
-  else
-    die "archive did not contain a sideguard or vibeguard binary"
+  binary_path="${tmpdir}/sideguard"
+  if [ ! -f "$binary_path" ]; then
+    die "archive did not contain a sideguard binary"
   fi
 
   info "Installing binary..."

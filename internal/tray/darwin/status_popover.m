@@ -1,5 +1,5 @@
-// status_popover.m — NSStatusItem + NSPopover panel with pending/history rows.
-// See docs/plans/2026-07-02-1226-tray-ui-polish/ (tup-phase-3.0-tray-darwin.md).
+// status_popover.m — NSStatusItem + NSPopover panel with unified command review.
+// See docs/plans/2026-07-03-1026-tray-command-review-unified/ (ucr-phase-1.0-darwin-tray.md).
 
 #import "status_popover.h"
 #import <Cocoa/Cocoa.h>
@@ -25,7 +25,9 @@ static char *copyCString(NSString *s) {
 }
 
 static const CGFloat kPanelWidth = 360.0;
-static const CGFloat kPanelHeight = 480.0;
+static const CGFloat kPanelHeightList = 480.0;
+static const CGFloat kPanelHeightReview = 360.0;
+static const CGFloat kReviewCommandMinHeight = 100.0;
 static const CGFloat kPadding = 12.0;
 static const CGFloat kRowHeight = 36.0;
 
@@ -41,6 +43,8 @@ static NSMenu *gModeMenu = nil;
 static NSStackView *gBodyStack = nil;
 static NSScrollView *gBodyScroll = nil;
 static NSView *gPanelRoot = nil;
+static NSLayoutConstraint *gPanelHeightConstraint = nil;
+static NSStackView *gListHeaderStack = nil;
 static NSTextField *gFooterDaemonLabel = nil;
 static NSTextField *gFooterPendingLabel = nil;
 static NSStackView *gUpdateFooter = nil;
@@ -49,16 +53,7 @@ static NSButton *gInstallBtn = nil;
 
 static BOOL gHistoryHasMore = NO;
 static NSView *gBodyContainer = nil;
-static NSView *gDetailContainer = nil;
-static NSScrollView *gDetailScroll = nil;
-static NSTextView *gDetailTextView = nil;
-static BOOL gShowingDetail = NO;
-static NSString *gDetailRowID = nil;
-static BOOL gDetailUseEventID = NO;
 static NSButton *gAnalyseBtn = nil;
-static NSStackView *gDetailActionStack = nil;
-static NSButton *gDetailRunBtn = nil;
-static NSButton *gDetailDeclineBtn = nil;
 static NSTextField *gAnalyseStatusLabel = nil;
 static NSTextField *gVerdictBadge = nil;
 static NSTextField *gAnalyseSummaryLabel = nil;
@@ -72,9 +67,35 @@ static BOOL gShowingSettings = NO;
 static NSString *gLastBodyFingerprint = nil;
 static BOOL gHasSavedListScroll = NO;
 static NSPoint gSavedListScrollOrigin = {0, 0};
-static char kRowDetailTextKey;
-static char kRowDetailIDKey;
-static char kRowDetailUseEventIDKey;
+static NSUInteger gLastPendingRowCount = 0;
+static NSDictionary *gCachedTrayPayload = nil;
+
+typedef NS_ENUM(NSInteger, CommandReviewMode) {
+    CommandReviewModePending = 0,
+    CommandReviewModeHistory = 1,
+};
+
+// Unified command review — pending auto-open and history row tap share this screen.
+static NSView *gCommandReviewContainer = nil;
+static NSButton *gReviewBackBtn = nil;
+static NSTextField *gReviewCounter = nil;
+static NSScrollView *gReviewCommandScroll = nil;
+static NSTextView *gReviewCommandView = nil;
+static NSStackView *gReviewDotsStack = nil;
+static NSButton *gReviewPrevBtn = nil;
+static NSButton *gReviewNextBtn = nil;
+static NSButton *gReviewRunBtn = nil;
+static NSButton *gReviewDeclineBtn = nil;
+static NSStackView *gReviewCenterActions = nil;
+static CommandReviewMode gReviewMode = CommandReviewModePending;
+static NSArray *gReviewRows = nil;
+static NSInteger gReviewIndex = 0;
+static BOOL gReviewSkipMode = NO;
+static BOOL gReviewDecided = NO;
+static NSString *gReviewRowID = nil;
+static BOOL gReviewUseEventID = NO;
+static BOOL gShowingCommandReview = NO;
+static char kRowDetailIndexKey;
 
 static NSString *jsonString(id dict, NSString *key);
 static BOOL jsonBool(id dict, NSString *key);
@@ -82,12 +103,21 @@ static NSInteger jsonInt(id dict, NSString *key);
 static void rebuildBodyFromJSON(NSDictionary *payload, id target);
 static NSString *bodyPayloadFingerprint(NSDictionary *payload);
 static void restoreBodyScrollOrigin(NSClipView *clipView, NSPoint origin);
-static void addRowsFromJSONArray(NSArray *rows, NSString *kind, id target, NSMutableArray *outViews);
-static NSView *makeHistoryRow(NSString *label, NSString *detail, NSString *rowID, id target);
-static NSView *makeApprovalRow(NSString *label, NSString *detail, NSString *approvalID, id target);
-static NSView *makeSectionLabel(NSString *text);
+static void resetBodyScrollToTop(void);
+static NSArray *pendingRowsFromPayload(NSDictionary *payload);
+static NSArray *historyRowsFromPayload(NSDictionary *payload);
+static void applyPanelLayoutForReviewMode(BOOL reviewMode);
+static void clearListBodyStack(void);
+static void enterCommandReviewPending(NSDictionary *payload, id target);
+static void enterCommandReviewHistory(NSDictionary *payload, NSInteger index);
+static void exitCommandReview(void);
+static void syncCommandReviewNavButtons(void);
+static void updateCommandReviewDots(void);
+static void refreshCommandReviewSlide(NSDictionary *payload);
+static void addRowsFromJSONArray(NSArray *rows, id target, NSMutableArray *outViews);
+static NSView *makeHistoryRow(NSString *label, NSString *detail, NSString *rowID, NSInteger rowIndex, id target);
 static NSView *makeLoadMoreRow(id target);
-static void attachRowDetailTap(NSView *view, NSString *detail, NSString *rowID, BOOL useEventID, id target);
+static void attachRowDetailTap(NSView *view, NSInteger rowIndex, id target);
 static NSString *detailTextForRowID(NSDictionary *payload, NSString *rowID);
 static BOOL isEffectiveAppearanceDark(NSView *view);
 static void notifyAppearanceChanged(void);
@@ -98,9 +128,9 @@ static NSView *makeSettingsProviderRow(NSDictionary *row, NSArray *drivers, id t
 static NSDictionary *collectSettingsSavePayload(void);
 static void clearAnalyseUI(void);
 static void styleColoredActionButton(NSButton *btn, NSString *title, NSColor *accentColor);
-static void updateDetailActionButtons(NSString *rowID, BOOL useEventID, NSDictionary *payload);
 static NSString *verdictDisplayTitle(NSString *verdict);
 static NSColor *verdictBadgeColor(NSString *verdict);
+static NSDictionary *reviewRowAtIndex(NSArray *rows, NSInteger index);
 
 @interface SideGuardPanelRootView : NSView
 @end
@@ -149,11 +179,12 @@ static NSColor *verdictBadgeColor(NSString *verdict);
 }
 
 - (void)buildPanelShell {
-    gPanelRoot = [[SideGuardPanelRootView alloc] initWithFrame:NSMakeRect(0, 0, kPanelWidth, kPanelHeight)];
+    gPanelRoot = [[SideGuardPanelRootView alloc] initWithFrame:NSMakeRect(0, 0, kPanelWidth, kPanelHeightList)];
 
+    gPanelHeightConstraint = [gPanelRoot.heightAnchor constraintEqualToConstant:kPanelHeightList];
     [NSLayoutConstraint activateConstraints:@[
         [gPanelRoot.widthAnchor constraintEqualToConstant:kPanelWidth],
-        [gPanelRoot.heightAnchor constraintEqualToConstant:kPanelHeight],
+        gPanelHeightConstraint,
     ]];
 
     NSStackView *rootStack = [[NSStackView alloc] init];
@@ -256,8 +287,38 @@ static NSColor *verdictBadgeColor(NSString *verdict);
     // Never observe clip bounds — programmatic scroll restore must not auto-load history.
     [clipView setPostsBoundsChangedNotifications:NO];
     [gBodyContainer addSubview:gBodyScroll];
+
+    gListHeaderStack = [[NSStackView alloc] init];
+    gListHeaderStack.translatesAutoresizingMaskIntoConstraints = NO;
+    gListHeaderStack.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    gListHeaderStack.alignment = NSLayoutAttributeCenterY;
+    gListHeaderStack.spacing = 8.0;
+    [gBodyContainer addSubview:gListHeaderStack];
+
+    NSTextField *historyHeaderLabel = [NSTextField labelWithString:@"History"];
+    historyHeaderLabel.font = [NSFont systemFontOfSize:[NSFont smallSystemFontSize] weight:NSFontWeightSemibold];
+    historyHeaderLabel.textColor = [NSColor tertiaryLabelColor];
+    [gListHeaderStack addArrangedSubview:historyHeaderLabel];
+
+    NSView *listHeaderSpacer = [[NSView alloc] init];
+    [listHeaderSpacer setContentHuggingPriority:NSLayoutPriorityDefaultLow
+                               forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [gListHeaderStack addArrangedSubview:listHeaderSpacer];
+
+    gFooterDaemonLabel = [self makeStatusLabel:@"● Daemon: …"];
+    gFooterPendingLabel = [self makeStatusLabel:@"● pending …"];
+    [gFooterPendingLabel setContentCompressionResistancePriority:NSLayoutPriorityRequired
+                                                forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [gListHeaderStack addArrangedSubview:gFooterDaemonLabel];
+    [gListHeaderStack addArrangedSubview:gFooterPendingLabel];
+
     [NSLayoutConstraint activateConstraints:@[
-        [gBodyScroll.topAnchor constraintEqualToAnchor:gBodyContainer.topAnchor],
+        [gListHeaderStack.topAnchor constraintEqualToAnchor:gBodyContainer.topAnchor],
+        [gListHeaderStack.leadingAnchor constraintEqualToAnchor:gBodyContainer.leadingAnchor],
+        [gListHeaderStack.trailingAnchor constraintEqualToAnchor:gBodyContainer.trailingAnchor],
+        [gListHeaderStack.heightAnchor constraintEqualToConstant:22.0],
+
+        [gBodyScroll.topAnchor constraintEqualToAnchor:gListHeaderStack.bottomAnchor constant:4.0],
         [gBodyScroll.bottomAnchor constraintEqualToAnchor:gBodyContainer.bottomAnchor],
         [gBodyScroll.leadingAnchor constraintEqualToAnchor:gBodyContainer.leadingAnchor],
         [gBodyScroll.trailingAnchor constraintEqualToAnchor:gBodyContainer.trailingAnchor],
@@ -269,141 +330,6 @@ static NSColor *verdictBadgeColor(NSString *verdict);
         [gBodyStack.topAnchor constraintEqualToAnchor:clipView.topAnchor],
         [gBodyStack.widthAnchor constraintEqualToAnchor:clipView.widthAnchor],
     ]];
-
-    gDetailContainer = [[NSView alloc] init];
-    gDetailContainer.translatesAutoresizingMaskIntoConstraints = NO;
-    gDetailContainer.hidden = YES;
-    [gBodyContainer addSubview:gDetailContainer];
-    [NSLayoutConstraint activateConstraints:@[
-        [gDetailContainer.topAnchor constraintEqualToAnchor:gBodyContainer.topAnchor],
-        [gDetailContainer.bottomAnchor constraintEqualToAnchor:gBodyContainer.bottomAnchor],
-        [gDetailContainer.leadingAnchor constraintEqualToAnchor:gBodyContainer.leadingAnchor],
-        [gDetailContainer.trailingAnchor constraintEqualToAnchor:gBodyContainer.trailingAnchor],
-    ]];
-
-    NSStackView *detailStack = [[NSStackView alloc] init];
-    detailStack.translatesAutoresizingMaskIntoConstraints = NO;
-    detailStack.orientation = NSUserInterfaceLayoutOrientationVertical;
-    detailStack.alignment = NSLayoutAttributeLeading;
-    detailStack.spacing = 8.0;
-    [gDetailContainer addSubview:detailStack];
-    [NSLayoutConstraint activateConstraints:@[
-        [detailStack.topAnchor constraintEqualToAnchor:gDetailContainer.topAnchor],
-        [detailStack.bottomAnchor constraintEqualToAnchor:gDetailContainer.bottomAnchor],
-        [detailStack.leadingAnchor constraintEqualToAnchor:gDetailContainer.leadingAnchor],
-        [detailStack.trailingAnchor constraintEqualToAnchor:gDetailContainer.trailingAnchor],
-    ]];
-
-    NSButton *backBtn = [NSButton buttonWithTitle:@"← History" target:self action:@selector(detailBackClicked:)];
-    backBtn.bezelStyle = NSBezelStyleRounded;
-    backBtn.translatesAutoresizingMaskIntoConstraints = NO;
-    [detailStack addArrangedSubview:backBtn];
-
-    gDetailScroll = [[NSScrollView alloc] init];
-    gDetailScroll.translatesAutoresizingMaskIntoConstraints = NO;
-    gDetailScroll.hasVerticalScroller = YES;
-    gDetailScroll.autohidesScrollers = YES;
-    gDetailScroll.drawsBackground = NO;
-    gDetailScroll.borderType = NSNoBorder;
-
-    gDetailTextView = [[NSTextView alloc] init];
-    gDetailTextView.editable = NO;
-    gDetailTextView.selectable = YES;
-    gDetailTextView.drawsBackground = NO;
-    gDetailTextView.font = [NSFont systemFontOfSize:[NSFont systemFontSize]];
-    gDetailTextView.textColor = [NSColor labelColor];
-    gDetailTextView.textContainerInset = NSMakeSize(4.0, 4.0);
-    gDetailTextView.textContainer.widthTracksTextView = YES;
-    gDetailTextView.textContainer.containerSize = NSMakeSize(0, CGFLOAT_MAX);
-    gDetailTextView.verticallyResizable = YES;
-    gDetailTextView.horizontallyResizable = NO;
-    gDetailTextView.autoresizingMask = NSViewWidthSizable;
-    gDetailScroll.documentView = gDetailTextView;
-    [detailStack addArrangedSubview:gDetailScroll];
-    [gDetailScroll setContentHuggingPriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationVertical];
-    [gDetailScroll setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
-                                          forOrientation:NSLayoutConstraintOrientationVertical];
-
-    [gDetailScroll setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
-                                          forOrientation:NSLayoutConstraintOrientationVertical];
-
-    gAnalyseBtn = [NSButton buttonWithTitle:@"Analyse" target:self action:@selector(analyseClicked:)];
-    gAnalyseBtn.bezelStyle = NSBezelStyleRounded;
-    gAnalyseBtn.translatesAutoresizingMaskIntoConstraints = NO;
-    [detailStack addArrangedSubview:gAnalyseBtn];
-
-    gAnalyseStatusLabel = [NSTextField labelWithString:@""];
-    gAnalyseStatusLabel.font = [NSFont systemFontOfSize:[NSFont smallSystemFontSize]];
-    gAnalyseStatusLabel.textColor = [NSColor secondaryLabelColor];
-    gAnalyseStatusLabel.hidden = YES;
-    [detailStack addArrangedSubview:gAnalyseStatusLabel];
-
-    gVerdictBadge = [NSTextField labelWithString:@""];
-    gVerdictBadge.font = [NSFont systemFontOfSize:[NSFont systemFontSize] weight:NSFontWeightSemibold];
-    gVerdictBadge.hidden = YES;
-    [detailStack addArrangedSubview:gVerdictBadge];
-
-    gAnalyseSummaryLabel = [NSTextField labelWithString:@""];
-    gAnalyseSummaryLabel.font = [NSFont systemFontOfSize:[NSFont systemFontSize] weight:NSFontWeightMedium];
-    gAnalyseSummaryLabel.textColor = [NSColor labelColor];
-    gAnalyseSummaryLabel.hidden = YES;
-    [detailStack addArrangedSubview:gAnalyseSummaryLabel];
-
-    gAnalyseExplanationScroll = [[NSScrollView alloc] init];
-    gAnalyseExplanationScroll.translatesAutoresizingMaskIntoConstraints = NO;
-    gAnalyseExplanationScroll.hasVerticalScroller = YES;
-    gAnalyseExplanationScroll.autohidesScrollers = YES;
-    gAnalyseExplanationScroll.drawsBackground = NO;
-    gAnalyseExplanationScroll.borderType = NSNoBorder;
-    gAnalyseExplanationScroll.hidden = YES;
-
-    gAnalyseExplanationView = [[NSTextView alloc] init];
-    gAnalyseExplanationView.editable = NO;
-    gAnalyseExplanationView.selectable = YES;
-    gAnalyseExplanationView.drawsBackground = NO;
-    gAnalyseExplanationView.font = [NSFont systemFontOfSize:[NSFont smallSystemFontSize]];
-    gAnalyseExplanationView.textColor = [NSColor secondaryLabelColor];
-    gAnalyseExplanationView.textContainerInset = NSMakeSize(2.0, 2.0);
-    gAnalyseExplanationView.textContainer.widthTracksTextView = YES;
-    gAnalyseExplanationView.textContainer.containerSize = NSMakeSize(0, CGFLOAT_MAX);
-    gAnalyseExplanationView.verticallyResizable = YES;
-    gAnalyseExplanationView.horizontallyResizable = NO;
-    gAnalyseExplanationScroll.documentView = gAnalyseExplanationView;
-    [detailStack addArrangedSubview:gAnalyseExplanationScroll];
-    [gAnalyseExplanationScroll.heightAnchor constraintLessThanOrEqualToConstant:96.0].active = YES;
-    [gAnalyseExplanationScroll setContentHuggingPriority:NSLayoutPriorityRequired
-                                        forOrientation:NSLayoutConstraintOrientationVertical];
-
-    NSView *detailActionsSpacer = [[NSView alloc] init];
-    [detailActionsSpacer setContentHuggingPriority:NSLayoutPriorityDefaultLow
-                                    forOrientation:NSLayoutConstraintOrientationVertical];
-    [detailStack addArrangedSubview:detailActionsSpacer];
-
-    gDetailActionStack = [[NSStackView alloc] init];
-    gDetailActionStack.translatesAutoresizingMaskIntoConstraints = NO;
-    gDetailActionStack.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-    gDetailActionStack.alignment = NSLayoutAttributeCenterY;
-    gDetailActionStack.spacing = 8.0;
-    gDetailActionStack.hidden = YES;
-
-    gDetailRunBtn = [NSButton buttonWithTitle:@"Run" target:self action:@selector(allowClicked:)];
-    gDetailRunBtn.translatesAutoresizingMaskIntoConstraints = NO;
-    styleColoredActionButton(gDetailRunBtn, @"Run", [NSColor systemGreenColor]);
-    [gDetailActionStack addArrangedSubview:gDetailRunBtn];
-
-    NSView *detailActionSpacer = [[NSView alloc] init];
-    [detailActionSpacer setContentHuggingPriority:NSLayoutPriorityDefaultLow
-                                   forOrientation:NSLayoutConstraintOrientationHorizontal];
-    [gDetailActionStack addArrangedSubview:detailActionSpacer];
-
-    gDetailDeclineBtn = [NSButton buttonWithTitle:@"Decline" target:self action:@selector(denyClicked:)];
-    gDetailDeclineBtn.translatesAutoresizingMaskIntoConstraints = NO;
-    styleColoredActionButton(gDetailDeclineBtn, @"Decline", [NSColor systemRedColor]);
-    [gDetailActionStack addArrangedSubview:gDetailDeclineBtn];
-    [detailStack addArrangedSubview:gDetailActionStack];
-    [gDetailActionStack.widthAnchor constraintEqualToConstant:kPanelWidth - (kPadding * 2)].active = YES;
-    [gDetailRunBtn.widthAnchor constraintGreaterThanOrEqualToConstant:72.0].active = YES;
-    [gDetailDeclineBtn.widthAnchor constraintGreaterThanOrEqualToConstant:80.0].active = YES;
 
     gSettingsContainer = [[NSView alloc] init];
     gSettingsContainer.translatesAutoresizingMaskIntoConstraints = NO;
@@ -490,19 +416,189 @@ static NSColor *verdictBadgeColor(NSString *verdict);
     [gBodyContainer setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
                                              forOrientation:NSLayoutConstraintOrientationVertical];
 
-    // Footer: daemon + pending status.
-    NSStackView *footerStatusStack = [[NSStackView alloc] init];
-    footerStatusStack.translatesAutoresizingMaskIntoConstraints = NO;
-    footerStatusStack.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-    footerStatusStack.alignment = NSLayoutAttributeCenterY;
-    footerStatusStack.spacing = 12.0;
+    // Unified command review — overlays list body (same slot, no extra root-stack row).
+    gCommandReviewContainer = [[NSView alloc] init];
+    gCommandReviewContainer.translatesAutoresizingMaskIntoConstraints = NO;
+    gCommandReviewContainer.hidden = YES;
+    [gBodyContainer addSubview:gCommandReviewContainer];
 
-    gFooterDaemonLabel = [self makeStatusLabel:@"● Daemon: …"];
-    gFooterPendingLabel = [self makeStatusLabel:@"● pending …"];
-    [footerStatusStack addArrangedSubview:gFooterDaemonLabel];
-    [footerStatusStack addArrangedSubview:gFooterPendingLabel];
-    [rootStack addArrangedSubview:footerStatusStack];
-    [footerStatusStack.widthAnchor constraintEqualToConstant:kPanelWidth - (kPadding * 2)].active = YES;
+    gReviewBackBtn = [NSButton buttonWithTitle:@"← History" target:self action:@selector(reviewBackClicked:)];
+    gReviewBackBtn.bezelStyle = NSBezelStyleRounded;
+    gReviewBackBtn.translatesAutoresizingMaskIntoConstraints = NO;
+    gReviewBackBtn.hidden = YES;
+    [gCommandReviewContainer addSubview:gReviewBackBtn];
+
+    gReviewCounter = [NSTextField labelWithString:@"1 of 1"];
+    gReviewCounter.translatesAutoresizingMaskIntoConstraints = NO;
+    gReviewCounter.font = [NSFont monospacedDigitSystemFontOfSize:[NSFont smallSystemFontSize]
+                                                            weight:NSFontWeightMedium];
+    gReviewCounter.textColor = [NSColor secondaryLabelColor];
+    gReviewCounter.alignment = NSTextAlignmentRight;
+    [gCommandReviewContainer addSubview:gReviewCounter];
+
+    gReviewCommandScroll = [[NSScrollView alloc] init];
+    gReviewCommandScroll.translatesAutoresizingMaskIntoConstraints = NO;
+    gReviewCommandScroll.hasVerticalScroller = YES;
+    gReviewCommandScroll.autohidesScrollers = YES;
+    gReviewCommandScroll.borderType = NSNoBorder;
+    gReviewCommandScroll.wantsLayer = YES;
+    gReviewCommandScroll.layer.cornerRadius = 8.0;
+    gReviewCommandScroll.layer.borderWidth = 1.0;
+    gReviewCommandScroll.layer.borderColor = [[NSColor separatorColor] colorWithAlphaComponent:0.6].CGColor;
+    gReviewCommandScroll.drawsBackground = YES;
+    gReviewCommandScroll.backgroundColor = [[NSColor textBackgroundColor] colorWithAlphaComponent:0.55];
+
+    gReviewCommandView = [[NSTextView alloc] init];
+    gReviewCommandView.editable = NO;
+    gReviewCommandView.selectable = YES;
+    gReviewCommandView.drawsBackground = NO;
+    gReviewCommandView.font = [NSFont monospacedSystemFontOfSize:12.0 weight:NSFontWeightRegular];
+    gReviewCommandView.textColor = [NSColor labelColor];
+    gReviewCommandView.textContainerInset = NSMakeSize(10.0, 10.0);
+    gReviewCommandView.textContainer.widthTracksTextView = YES;
+    gReviewCommandView.textContainer.containerSize = NSMakeSize(0, CGFLOAT_MAX);
+    gReviewCommandView.verticallyResizable = YES;
+    gReviewCommandView.horizontallyResizable = NO;
+    gReviewCommandScroll.documentView = gReviewCommandView;
+    [gCommandReviewContainer addSubview:gReviewCommandScroll];
+
+    gAnalyseBtn = [NSButton buttonWithTitle:@"Analyse" target:self action:@selector(analyseClicked:)];
+    gAnalyseBtn.bezelStyle = NSBezelStyleRounded;
+    gAnalyseBtn.translatesAutoresizingMaskIntoConstraints = NO;
+    [gCommandReviewContainer addSubview:gAnalyseBtn];
+
+    gAnalyseStatusLabel = [NSTextField labelWithString:@""];
+    gAnalyseStatusLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    gAnalyseStatusLabel.font = [NSFont systemFontOfSize:[NSFont smallSystemFontSize]];
+    gAnalyseStatusLabel.textColor = [NSColor secondaryLabelColor];
+    gAnalyseStatusLabel.hidden = YES;
+    [gCommandReviewContainer addSubview:gAnalyseStatusLabel];
+
+    gVerdictBadge = [NSTextField labelWithString:@""];
+    gVerdictBadge.translatesAutoresizingMaskIntoConstraints = NO;
+    gVerdictBadge.font = [NSFont systemFontOfSize:[NSFont systemFontSize] weight:NSFontWeightSemibold];
+    gVerdictBadge.hidden = YES;
+    [gCommandReviewContainer addSubview:gVerdictBadge];
+
+    gAnalyseSummaryLabel = [NSTextField labelWithString:@""];
+    gAnalyseSummaryLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    gAnalyseSummaryLabel.font = [NSFont systemFontOfSize:[NSFont systemFontSize] weight:NSFontWeightMedium];
+    gAnalyseSummaryLabel.textColor = [NSColor labelColor];
+    gAnalyseSummaryLabel.hidden = YES;
+    [gCommandReviewContainer addSubview:gAnalyseSummaryLabel];
+
+    gAnalyseExplanationScroll = [[NSScrollView alloc] init];
+    gAnalyseExplanationScroll.translatesAutoresizingMaskIntoConstraints = NO;
+    gAnalyseExplanationScroll.hasVerticalScroller = YES;
+    gAnalyseExplanationScroll.autohidesScrollers = YES;
+    gAnalyseExplanationScroll.drawsBackground = NO;
+    gAnalyseExplanationScroll.borderType = NSNoBorder;
+    gAnalyseExplanationScroll.hidden = YES;
+
+    gAnalyseExplanationView = [[NSTextView alloc] init];
+    gAnalyseExplanationView.editable = NO;
+    gAnalyseExplanationView.selectable = YES;
+    gAnalyseExplanationView.drawsBackground = NO;
+    gAnalyseExplanationView.font = [NSFont systemFontOfSize:[NSFont smallSystemFontSize]];
+    gAnalyseExplanationView.textColor = [NSColor secondaryLabelColor];
+    gAnalyseExplanationView.textContainerInset = NSMakeSize(2.0, 2.0);
+    gAnalyseExplanationView.textContainer.widthTracksTextView = YES;
+    gAnalyseExplanationView.textContainer.containerSize = NSMakeSize(0, CGFLOAT_MAX);
+    gAnalyseExplanationView.verticallyResizable = YES;
+    gAnalyseExplanationView.horizontallyResizable = NO;
+    gAnalyseExplanationScroll.documentView = gAnalyseExplanationView;
+    [gCommandReviewContainer addSubview:gAnalyseExplanationScroll];
+
+    gReviewDotsStack = [[NSStackView alloc] init];
+    gReviewDotsStack.translatesAutoresizingMaskIntoConstraints = NO;
+    gReviewDotsStack.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    gReviewDotsStack.alignment = NSLayoutAttributeCenterY;
+    gReviewDotsStack.spacing = 5.0;
+    [gCommandReviewContainer addSubview:gReviewDotsStack];
+
+    NSStackView *reviewNavBar = [[NSStackView alloc] init];
+    reviewNavBar.translatesAutoresizingMaskIntoConstraints = NO;
+    reviewNavBar.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    reviewNavBar.alignment = NSLayoutAttributeCenterY;
+    reviewNavBar.distribution = NSStackViewDistributionFillEqually;
+    reviewNavBar.spacing = 8.0;
+    [gCommandReviewContainer addSubview:reviewNavBar];
+
+    gReviewPrevBtn = [NSButton buttonWithTitle:@"Previous" target:self action:@selector(reviewPrevClicked:)];
+    gReviewPrevBtn.bezelStyle = NSBezelStyleRounded;
+    gReviewPrevBtn.translatesAutoresizingMaskIntoConstraints = NO;
+    [reviewNavBar addArrangedSubview:gReviewPrevBtn];
+
+    gReviewCenterActions = [[NSStackView alloc] init];
+    gReviewCenterActions.orientation = NSUserInterfaceLayoutOrientationVertical;
+    gReviewCenterActions.alignment = NSLayoutAttributeCenterX;
+    gReviewCenterActions.spacing = 6.0;
+    [reviewNavBar addArrangedSubview:gReviewCenterActions];
+
+    gReviewRunBtn = [NSButton buttonWithTitle:@"Run" target:self action:@selector(reviewRunClicked:)];
+    gReviewRunBtn.translatesAutoresizingMaskIntoConstraints = NO;
+    styleColoredActionButton(gReviewRunBtn, @"Run", [NSColor systemGreenColor]);
+    [gReviewCenterActions addArrangedSubview:gReviewRunBtn];
+    [gReviewRunBtn.widthAnchor constraintGreaterThanOrEqualToConstant:92.0].active = YES;
+
+    gReviewDeclineBtn = [NSButton buttonWithTitle:@"Decline" target:self action:@selector(reviewDeclineClicked:)];
+    gReviewDeclineBtn.translatesAutoresizingMaskIntoConstraints = NO;
+    styleColoredActionButton(gReviewDeclineBtn, @"Decline", [NSColor systemRedColor]);
+    [gReviewCenterActions addArrangedSubview:gReviewDeclineBtn];
+    [gReviewDeclineBtn.widthAnchor constraintGreaterThanOrEqualToConstant:92.0].active = YES;
+
+    gReviewNextBtn = [NSButton buttonWithTitle:@"Next" target:self action:@selector(reviewNextClicked:)];
+    gReviewNextBtn.bezelStyle = NSBezelStyleRounded;
+    gReviewNextBtn.translatesAutoresizingMaskIntoConstraints = NO;
+    [reviewNavBar addArrangedSubview:gReviewNextBtn];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [gReviewBackBtn.topAnchor constraintEqualToAnchor:gCommandReviewContainer.topAnchor],
+        [gReviewBackBtn.leadingAnchor constraintEqualToAnchor:gCommandReviewContainer.leadingAnchor],
+
+        [gReviewCounter.topAnchor constraintEqualToAnchor:gReviewBackBtn.bottomAnchor constant:4.0],
+        [gReviewCounter.trailingAnchor constraintEqualToAnchor:gCommandReviewContainer.trailingAnchor],
+        [gReviewCounter.leadingAnchor constraintEqualToAnchor:gCommandReviewContainer.leadingAnchor],
+
+        [gReviewCommandScroll.topAnchor constraintEqualToAnchor:gReviewCounter.bottomAnchor constant:6.0],
+        [gReviewCommandScroll.leadingAnchor constraintEqualToAnchor:gCommandReviewContainer.leadingAnchor],
+        [gReviewCommandScroll.trailingAnchor constraintEqualToAnchor:gCommandReviewContainer.trailingAnchor],
+        [gReviewCommandScroll.heightAnchor constraintGreaterThanOrEqualToConstant:kReviewCommandMinHeight],
+
+        [gAnalyseBtn.topAnchor constraintEqualToAnchor:gReviewCommandScroll.bottomAnchor constant:8.0],
+        [gAnalyseBtn.leadingAnchor constraintEqualToAnchor:gCommandReviewContainer.leadingAnchor],
+
+        [gAnalyseStatusLabel.topAnchor constraintEqualToAnchor:gAnalyseBtn.bottomAnchor constant:4.0],
+        [gAnalyseStatusLabel.leadingAnchor constraintEqualToAnchor:gCommandReviewContainer.leadingAnchor],
+        [gAnalyseStatusLabel.trailingAnchor constraintEqualToAnchor:gCommandReviewContainer.trailingAnchor],
+
+        [gVerdictBadge.topAnchor constraintEqualToAnchor:gAnalyseStatusLabel.bottomAnchor constant:2.0],
+        [gVerdictBadge.leadingAnchor constraintEqualToAnchor:gCommandReviewContainer.leadingAnchor],
+        [gVerdictBadge.trailingAnchor constraintEqualToAnchor:gCommandReviewContainer.trailingAnchor],
+
+        [gAnalyseSummaryLabel.topAnchor constraintEqualToAnchor:gVerdictBadge.bottomAnchor constant:2.0],
+        [gAnalyseSummaryLabel.leadingAnchor constraintEqualToAnchor:gCommandReviewContainer.leadingAnchor],
+        [gAnalyseSummaryLabel.trailingAnchor constraintEqualToAnchor:gCommandReviewContainer.trailingAnchor],
+
+        [gAnalyseExplanationScroll.topAnchor constraintEqualToAnchor:gAnalyseSummaryLabel.bottomAnchor constant:2.0],
+        [gAnalyseExplanationScroll.leadingAnchor constraintEqualToAnchor:gCommandReviewContainer.leadingAnchor],
+        [gAnalyseExplanationScroll.trailingAnchor constraintEqualToAnchor:gCommandReviewContainer.trailingAnchor],
+        [gAnalyseExplanationScroll.heightAnchor constraintLessThanOrEqualToConstant:72.0],
+
+        [gReviewDotsStack.topAnchor constraintEqualToAnchor:gAnalyseExplanationScroll.bottomAnchor constant:6.0],
+        [gReviewDotsStack.centerXAnchor constraintEqualToAnchor:gCommandReviewContainer.centerXAnchor],
+
+        [reviewNavBar.topAnchor constraintEqualToAnchor:gReviewDotsStack.bottomAnchor constant:6.0],
+        [reviewNavBar.bottomAnchor constraintEqualToAnchor:gCommandReviewContainer.bottomAnchor],
+        [reviewNavBar.leadingAnchor constraintEqualToAnchor:gCommandReviewContainer.leadingAnchor],
+        [reviewNavBar.trailingAnchor constraintEqualToAnchor:gCommandReviewContainer.trailingAnchor],
+        [reviewNavBar.heightAnchor constraintEqualToConstant:64.0],
+
+        [gCommandReviewContainer.topAnchor constraintEqualToAnchor:gBodyContainer.topAnchor],
+        [gCommandReviewContainer.bottomAnchor constraintEqualToAnchor:gBodyContainer.bottomAnchor],
+        [gCommandReviewContainer.leadingAnchor constraintEqualToAnchor:gBodyContainer.leadingAnchor],
+        [gCommandReviewContainer.trailingAnchor constraintEqualToAnchor:gBodyContainer.trailingAnchor],
+    ]];
 
     gUpdateFooter = [[NSStackView alloc] init];
     gUpdateFooter.translatesAutoresizingMaskIntoConstraints = NO;
@@ -596,6 +692,68 @@ static NSColor *verdictBadgeColor(NSString *verdict);
     free(idCopy);
 }
 
+- (void)reviewRunClicked:(NSButton *)sender {
+    gReviewDecided = YES;
+    syncCommandReviewNavButtons();
+    [self allowClicked:sender];
+}
+
+- (void)reviewDeclineClicked:(NSButton *)sender {
+    gReviewDecided = YES;
+    syncCommandReviewNavButtons();
+    [self denyClicked:sender];
+}
+
+- (void)reviewPrevClicked:(id)sender {
+    (void)sender;
+    if (gReviewRows.count == 0) {
+        return;
+    }
+    if (gReviewMode == CommandReviewModePending) {
+        if (gReviewIndex <= 0 || gReviewDecided) {
+            return;
+        }
+        gReviewIndex -= 1;
+        gReviewSkipMode = NO;
+        gReviewDecided = NO;
+    } else {
+        if (gReviewIndex <= 0) {
+            return;
+        }
+        gReviewIndex -= 1;
+    }
+    refreshCommandReviewSlide(gCachedTrayPayload);
+}
+
+- (void)reviewNextClicked:(id)sender {
+    (void)sender;
+    if (gReviewRows.count == 0) {
+        return;
+    }
+    if (gReviewMode == CommandReviewModePending) {
+        if (gReviewSkipMode || gReviewDecided) {
+            return;
+        }
+        if ((NSUInteger)gReviewIndex >= gReviewRows.count - 1) {
+            return;
+        }
+        gReviewIndex += 1;
+        gReviewSkipMode = YES;
+        gReviewDecided = NO;
+    } else {
+        if ((NSUInteger)gReviewIndex >= gReviewRows.count - 1) {
+            return;
+        }
+        gReviewIndex += 1;
+    }
+    refreshCommandReviewSlide(gCachedTrayPayload);
+}
+
+- (void)reviewBackClicked:(id)sender {
+    (void)sender;
+    exitCommandReview();
+}
+
 - (void)quitClicked:(id)sender {
     (void)sender;
     NSAlert *alert = [[NSAlert alloc] init];
@@ -613,37 +771,6 @@ static NSColor *verdictBadgeColor(NSString *verdict);
 - (void)installClicked:(id)sender {
     (void)sender;
     goInstallUpdate();
-}
-
-- (void)showCommandDetail:(NSString *)detail rowID:(NSString *)rowID useEventID:(BOOL)useEventID {
-    if (gDetailTextView == nil || gBodyScroll == nil || gDetailContainer == nil) {
-        return;
-    }
-    clearAnalyseUI();
-    gDetailRowID = rowID.length > 0 ? [rowID copy] : nil;
-    gDetailUseEventID = useEventID;
-    gDetailTextView.string = detail ?: @"";
-    [gDetailTextView scrollPoint:NSMakePoint(0, 0)];
-    updateDetailActionButtons(rowID, useEventID, nil);
-    gBodyScroll.hidden = YES;
-    gDetailContainer.hidden = NO;
-    gShowingDetail = YES;
-}
-
-- (void)detailBackClicked:(id)sender {
-    (void)sender;
-    if (gBodyScroll == nil || gDetailContainer == nil) {
-        return;
-    }
-    clearAnalyseUI();
-    gBodyScroll.hidden = NO;
-    gDetailContainer.hidden = YES;
-    gShowingDetail = NO;
-    gDetailRowID = nil;
-    gDetailUseEventID = NO;
-    if (gDetailActionStack != nil) {
-        gDetailActionStack.hidden = YES;
-    }
 }
 
 - (void)analyseClicked:(id)sender {
@@ -674,8 +801,8 @@ static NSColor *verdictBadgeColor(NSString *verdict);
         gAnalyseStatusLabel.textColor = [NSColor secondaryLabelColor];
     }
 
-    NSString *rowID = gDetailRowID ?: @"";
-    NSString *command = gDetailTextView.string ?: @"";
+    NSString *rowID = gReviewRowID ?: @"";
+    NSString *command = gReviewCommandView.string ?: @"";
     char *rowCopy = copyCString(rowID);
     char *cmdCopy = copyCString(command);
     if (rowCopy == NULL || cmdCopy == NULL) {
@@ -687,7 +814,7 @@ static NSColor *verdictBadgeColor(NSString *verdict);
         free(cmdCopy);
         return;
     }
-    goAnalyseCommand(rowCopy, cmdCopy, gDetailUseEventID ? 1 : 0);
+    goAnalyseCommand(rowCopy, cmdCopy, gReviewUseEventID ? 1 : 0);
     free(rowCopy);
     free(cmdCopy);
 }
@@ -859,13 +986,18 @@ static NSColor *verdictBadgeColor(NSString *verdict);
     NSDictionary *payload = (NSDictionary *)parsed;
     rebuildSettingsRowsFromJSON(payload, self);
 
+    if (gPanelHeightConstraint != nil) {
+        gPanelHeightConstraint.constant = kPanelHeightList;
+    }
+    gBodyContainer.hidden = NO;
     gBodyScroll.hidden = YES;
-    gDetailContainer.hidden = YES;
+    gCommandReviewContainer.hidden = YES;
+    gListHeaderStack.hidden = YES;
     gSettingsContainer.hidden = NO;
-    gShowingDetail = NO;
+    gShowingCommandReview = NO;
     gShowingSettings = YES;
-    gDetailRowID = nil;
-    gDetailUseEventID = NO;
+    gReviewRowID = nil;
+    gReviewUseEventID = NO;
     clearAnalyseUI();
 }
 
@@ -892,17 +1024,14 @@ static NSColor *verdictBadgeColor(NSString *verdict);
         return;
     }
     NSView *view = sender.view;
-    if (view == nil) {
+    if (view == nil || gCachedTrayPayload == nil) {
         return;
     }
-    NSString *detail = objc_getAssociatedObject(view, &kRowDetailTextKey);
-    if (detail.length == 0) {
+    NSNumber *indexNum = objc_getAssociatedObject(view, &kRowDetailIndexKey);
+    if (indexNum == nil) {
         return;
     }
-    NSString *rowID = objc_getAssociatedObject(view, &kRowDetailIDKey);
-    NSNumber *useEventNum = objc_getAssociatedObject(view, &kRowDetailUseEventIDKey);
-    BOOL useEventID = useEventNum != nil ? useEventNum.boolValue : NO;
-    [self showCommandDetail:detail rowID:rowID useEventID:useEventID];
+    enterCommandReviewHistory(gCachedTrayPayload, indexNum.integerValue);
 }
 
 - (void)setTrayIcon:(NSImage *)image {
@@ -959,7 +1088,10 @@ static NSColor *verdictBadgeColor(NSString *verdict);
     }
     NSDictionary *payload = (NSDictionary *)parsed;
 
-    gHasSavedListScroll = gPopover != nil && gPopover.isShown && !gShowingDetail && !gShowingSettings;
+    gCachedTrayPayload = payload;
+
+    gHasSavedListScroll = gPopover != nil && gPopover.isShown && !gShowingCommandReview && !gShowingSettings &&
+                          pendingRowsFromPayload(payload).count == 0;
     if (gHasSavedListScroll && gBodyScroll != nil) {
         NSClipView *clip = gBodyScroll.contentView;
         if (clip != nil) {
@@ -1006,6 +1138,13 @@ static NSColor *verdictBadgeColor(NSString *verdict);
     }
 
     rebuildBodyFromJSON(payload, self);
+
+    if (gHasSavedListScroll && gBodyScroll != nil && !gBodyScroll.hidden) {
+        NSClipView *clip = gBodyScroll.contentView;
+        if (clip != nil) {
+            restoreBodyScrollOrigin(clip, gSavedListScrollOrigin);
+        }
+    }
 }
 
 - (void)terminateTray {
@@ -1044,8 +1183,8 @@ static void applySemanticTextColors(void) {
     if (gHeaderTitleLabel != nil) {
         gHeaderTitleLabel.textColor = [NSColor labelColor];
     }
-    if (gDetailTextView != nil) {
-        gDetailTextView.textColor = [NSColor labelColor];
+    if (gReviewCommandView != nil) {
+        gReviewCommandView.textColor = [NSColor labelColor];
     }
     if (gAnalyseExplanationView != nil) {
         gAnalyseExplanationView.textColor = [NSColor secondaryLabelColor];
@@ -1071,41 +1210,15 @@ static void styleColoredActionButton(NSButton *btn, NSString *title, NSColor *ac
     btn.attributedTitle = attr;
 }
 
-static BOOL rowIDIsPending(NSString *rowID, NSDictionary *payload) {
-    if (rowID.length == 0 || payload == nil) {
-        return NO;
+static NSArray *historyRowsFromPayload(NSDictionary *payload) {
+    if (payload == nil) {
+        return @[];
     }
-    NSArray *pendingRows = payload[@"pending_rows"];
-    if (![pendingRows isKindOfClass:[NSArray class]]) {
-        return NO;
+    NSArray *rows = payload[@"history_rows"];
+    if (![rows isKindOfClass:[NSArray class]]) {
+        return @[];
     }
-    for (id rowObj in pendingRows) {
-        if (![rowObj isKindOfClass:[NSDictionary class]]) {
-            continue;
-        }
-        if ([rowID isEqualToString:jsonString((NSDictionary *)rowObj, @"id")]) {
-            return YES;
-        }
-    }
-    return NO;
-}
-
-static void updateDetailActionButtons(NSString *rowID, BOOL useEventID, NSDictionary *payload) {
-    BOOL actionable = !useEventID && rowID.length > 0;
-    if (actionable && payload != nil) {
-        actionable = rowIDIsPending(rowID, payload);
-    }
-    if (gDetailActionStack != nil) {
-        gDetailActionStack.hidden = !actionable;
-    }
-    if (actionable) {
-        if (gDetailRunBtn != nil) {
-            gDetailRunBtn.identifier = rowID;
-        }
-        if (gDetailDeclineBtn != nil) {
-            gDetailDeclineBtn.identifier = rowID;
-        }
-    }
+    return rows;
 }
 
 static void clearAnalyseUI(void) {
@@ -1192,22 +1305,11 @@ static NSInteger jsonInt(id dict, NSString *key) {
     return 0;
 }
 
-static NSView *makeSectionLabel(NSString *text) {
-    NSTextField *field = [NSTextField labelWithString:text];
-    field.font = [NSFont systemFontOfSize:[NSFont smallSystemFontSize] weight:NSFontWeightSemibold];
-    field.textColor = [NSColor tertiaryLabelColor];
-    return field;
-}
-
-static void attachRowDetailTap(NSView *view, NSString *detail, NSString *rowID, BOOL useEventID, id target) {
+static void attachRowDetailTap(NSView *view, NSInteger rowIndex, id target) {
     if (view == nil) {
         return;
     }
-    NSString *text = detail.length > 0 ? detail : @"";
-    objc_setAssociatedObject(view, &kRowDetailTextKey, text, OBJC_ASSOCIATION_COPY_NONATOMIC);
-    NSString *idText = rowID.length > 0 ? rowID : @"";
-    objc_setAssociatedObject(view, &kRowDetailIDKey, idText, OBJC_ASSOCIATION_COPY_NONATOMIC);
-    objc_setAssociatedObject(view, &kRowDetailUseEventIDKey, @(useEventID), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(view, &kRowDetailIndexKey, @(rowIndex), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
     for (NSGestureRecognizer *existing in [view.gestureRecognizers copy]) {
         if ([existing isKindOfClass:[NSClickGestureRecognizer class]]) {
@@ -1245,8 +1347,9 @@ static NSView *makeLoadMoreRow(id target) {
     return row;
 }
 
-static NSView *makeHistoryRow(NSString *label, NSString *detail, NSString *rowID, id target) {
-    NSString *fullDetail = detail.length > 0 ? detail : label;
+static NSView *makeHistoryRow(NSString *label, NSString *detail, NSString *rowID, NSInteger rowIndex, id target) {
+    (void)detail;
+    (void)rowID;
     CGFloat rowWidth = kPanelWidth - (kPadding * 2);
 
     NSView *row = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, rowWidth, kRowHeight)];
@@ -1267,74 +1370,16 @@ static NSView *makeHistoryRow(NSString *label, NSString *detail, NSString *rowID
         [row.heightAnchor constraintEqualToConstant:kRowHeight],
     ]];
 
-    attachRowDetailTap(row, fullDetail, rowID, YES, target);
+    attachRowDetailTap(row, rowIndex, target);
     return row;
 }
 
-static NSView *makeApprovalRow(NSString *label, NSString *detail, NSString *approvalID, id target) {
-    NSString *fullDetail = detail.length > 0 ? detail : label;
-    CGFloat rowWidth = kPanelWidth - (kPadding * 2);
-
-    NSView *row = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, rowWidth, kRowHeight)];
-    row.translatesAutoresizingMaskIntoConstraints = NO;
-    row.wantsLayer = YES;
-    row.layer.backgroundColor = [[NSColor systemOrangeColor] colorWithAlphaComponent:0.18].CGColor;
-    row.layer.cornerRadius = 6.0;
-
-    NSTextField *labelField = [NSTextField labelWithString:label];
-    labelField.font = [NSFont systemFontOfSize:[NSFont systemFontSize]];
-    labelField.textColor = [NSColor labelColor];
-    labelField.lineBreakMode = NSLineBreakByTruncatingTail;
-    labelField.translatesAutoresizingMaskIntoConstraints = NO;
-
-    NSView *labelTapArea = [[NSView alloc] init];
-    labelTapArea.translatesAutoresizingMaskIntoConstraints = NO;
-    [labelTapArea addSubview:labelField];
-    [row addSubview:labelTapArea];
-
-    NSButton *allowBtn = [NSButton buttonWithTitle:@"Run" target:target action:@selector(allowClicked:)];
-    allowBtn.identifier = approvalID;
-    allowBtn.translatesAutoresizingMaskIntoConstraints = NO;
-    styleColoredActionButton(allowBtn, @"Run", [NSColor systemGreenColor]);
-    [row addSubview:allowBtn];
-
-    NSButton *denyBtn = [NSButton buttonWithTitle:@"Decline" target:target action:@selector(denyClicked:)];
-    denyBtn.identifier = approvalID;
-    denyBtn.translatesAutoresizingMaskIntoConstraints = NO;
-    styleColoredActionButton(denyBtn, @"Decline", [NSColor systemRedColor]);
-    [row addSubview:denyBtn];
-
-    [NSLayoutConstraint activateConstraints:@[
-        [row.widthAnchor constraintEqualToConstant:rowWidth],
-        [labelTapArea.leadingAnchor constraintEqualToAnchor:row.leadingAnchor],
-        [labelTapArea.centerYAnchor constraintEqualToAnchor:row.centerYAnchor],
-        [labelTapArea.trailingAnchor constraintEqualToAnchor:allowBtn.leadingAnchor constant:-8.0],
-        [labelTapArea.heightAnchor constraintEqualToAnchor:row.heightAnchor],
-
-        [labelField.leadingAnchor constraintEqualToAnchor:labelTapArea.leadingAnchor],
-        [labelField.trailingAnchor constraintEqualToAnchor:labelTapArea.trailingAnchor],
-        [labelField.centerYAnchor constraintEqualToAnchor:labelTapArea.centerYAnchor],
-
-        [denyBtn.trailingAnchor constraintEqualToAnchor:row.trailingAnchor],
-        [denyBtn.centerYAnchor constraintEqualToAnchor:row.centerYAnchor],
-        [denyBtn.widthAnchor constraintGreaterThanOrEqualToConstant:72.0],
-
-        [allowBtn.trailingAnchor constraintEqualToAnchor:denyBtn.leadingAnchor constant:-6.0],
-        [allowBtn.centerYAnchor constraintEqualToAnchor:row.centerYAnchor],
-        [allowBtn.widthAnchor constraintGreaterThanOrEqualToConstant:56.0],
-
-        [row.heightAnchor constraintEqualToConstant:kRowHeight],
-    ]];
-
-    attachRowDetailTap(labelTapArea, fullDetail, approvalID, NO, target);
-    return row;
-}
-
-static void addRowsFromJSONArray(NSArray *rows, NSString *kind, id target, NSMutableArray *outViews) {
+static void addRowsFromJSONArray(NSArray *rows, id target, NSMutableArray *outViews) {
     if (![rows isKindOfClass:[NSArray class]]) {
         return;
     }
-    for (id rowObj in rows) {
+    for (NSUInteger i = 0; i < rows.count; i++) {
+        id rowObj = rows[i];
         if (![rowObj isKindOfClass:[NSDictionary class]]) {
             continue;
         }
@@ -1345,11 +1390,7 @@ static void addRowsFromJSONArray(NSArray *rows, NSString *kind, id target, NSMut
         if (rowID.length == 0) {
             continue;
         }
-        if ([kind isEqualToString:@"history"]) {
-            [outViews addObject:makeHistoryRow(rowLabel, rowDetail, rowID, target)];
-        } else {
-            [outViews addObject:makeApprovalRow(rowLabel, rowDetail, rowID, target)];
-        }
+        [outViews addObject:makeHistoryRow(rowLabel, rowDetail, rowID, (NSInteger)i, target)];
     }
 }
 
@@ -1380,12 +1421,22 @@ static NSString *detailTextForRowID(NSDictionary *payload, NSString *rowID) {
 }
 
 static void hideSettingsView(void) {
-    if (gBodyScroll == nil || gSettingsContainer == nil) {
+    if (gSettingsContainer == nil) {
         return;
     }
-    gBodyScroll.hidden = NO;
     gSettingsContainer.hidden = YES;
     gShowingSettings = NO;
+    if (gShowingCommandReview) {
+        applyPanelLayoutForReviewMode(YES);
+    } else {
+        applyPanelLayoutForReviewMode(NO);
+        if (gListHeaderStack != nil) {
+            gListHeaderStack.hidden = NO;
+        }
+        if (gBodyScroll != nil) {
+            gBodyScroll.hidden = NO;
+        }
+    }
 }
 
 static void populateDriverPopup(NSPopUpButton *popup, NSArray *drivers, NSString *selected) {
@@ -1608,12 +1659,300 @@ static NSDictionary *collectSettingsSavePayload(void) {
     };
 }
 
+static NSArray *pendingRowsFromPayload(NSDictionary *payload) {
+    if (payload == nil) {
+        return @[];
+    }
+    NSArray *rows = payload[@"pending_rows"];
+    if (![rows isKindOfClass:[NSArray class]]) {
+        return @[];
+    }
+    return rows;
+}
+
+static void clearListBodyStack(void) {
+    if (gBodyStack == nil) {
+        return;
+    }
+    for (NSView *subview in [gBodyStack.arrangedSubviews copy]) {
+        [gBodyStack removeArrangedSubview:subview];
+        [subview removeFromSuperview];
+    }
+}
+
+static void applyPanelLayoutForReviewMode(BOOL reviewMode) {
+    if (gPanelHeightConstraint != nil) {
+        gPanelHeightConstraint.constant = reviewMode ? kPanelHeightReview : kPanelHeightList;
+    }
+    if (gBodyScroll != nil) {
+        gBodyScroll.hidden = reviewMode;
+    }
+    if (gCommandReviewContainer != nil) {
+        gCommandReviewContainer.hidden = !reviewMode;
+    }
+    if (gListHeaderStack != nil) {
+        gListHeaderStack.hidden = reviewMode;
+    }
+    if (gUpdateFooter != nil && reviewMode) {
+        gUpdateFooter.hidden = YES;
+    }
+    if (gReviewBackBtn != nil) {
+        gReviewBackBtn.hidden = !reviewMode || gReviewMode != CommandReviewModeHistory;
+    }
+    if (gReviewCenterActions != nil) {
+        gReviewCenterActions.hidden = !reviewMode || gReviewMode != CommandReviewModePending;
+    }
+    if (reviewMode && gReviewMode == CommandReviewModePending && gHeaderTitleLabel != nil) {
+        gHeaderTitleLabel.stringValue = @"Pending approval";
+    } else if (gHeaderTitleLabel != nil) {
+        gHeaderTitleLabel.stringValue = @"SideGuard";
+    }
+    if (reviewMode) {
+        [gPanelRoot layoutSubtreeIfNeeded];
+    }
+}
+
+static void exitCommandReview(void) {
+    BOOL leavingPending = gReviewMode == CommandReviewModePending;
+    clearAnalyseUI();
+    gShowingCommandReview = NO;
+    gReviewRows = nil;
+    gReviewIndex = 0;
+    gReviewSkipMode = NO;
+    gReviewDecided = NO;
+    gReviewRowID = nil;
+    gReviewUseEventID = NO;
+    applyPanelLayoutForReviewMode(NO);
+    if (leavingPending) {
+        gHasSavedListScroll = NO;
+    }
+    if (gBodyScroll != nil) {
+        gBodyScroll.hidden = NO;
+    }
+    if (leavingPending) {
+        resetBodyScrollToTop();
+    }
+}
+
+static NSDictionary *reviewRowAtIndex(NSArray *rows, NSInteger index) {
+    if (rows == nil || index < 0 || (NSUInteger)index >= rows.count) {
+        return nil;
+    }
+    id rowObj = rows[(NSUInteger)index];
+    if (![rowObj isKindOfClass:[NSDictionary class]]) {
+        return nil;
+    }
+    return (NSDictionary *)rowObj;
+}
+
+static void updateCommandReviewDots(void) {
+    if (gReviewDotsStack == nil) {
+        return;
+    }
+    for (NSView *subview in [gReviewDotsStack.arrangedSubviews copy]) {
+        [gReviewDotsStack removeArrangedSubview:subview];
+        [subview removeFromSuperview];
+    }
+    NSUInteger count = gReviewRows.count;
+    if (count <= 1) {
+        return;
+    }
+    for (NSUInteger i = 0; i < count; i++) {
+        NSView *dot = [[NSView alloc] init];
+        dot.translatesAutoresizingMaskIntoConstraints = NO;
+        dot.wantsLayer = YES;
+        CGFloat size = (NSInteger)i == gReviewIndex ? 8.0 : 6.0;
+        dot.layer.cornerRadius = size / 2.0;
+        BOOL active = (NSInteger)i == gReviewIndex;
+        dot.layer.backgroundColor = active
+            ? (gReviewMode == CommandReviewModePending
+                   ? [NSColor systemOrangeColor].CGColor
+                   : [NSColor controlAccentColor].CGColor)
+            : [[NSColor secondaryLabelColor] colorWithAlphaComponent:0.45].CGColor;
+        [gReviewDotsStack addArrangedSubview:dot];
+        [NSLayoutConstraint activateConstraints:@[
+            [dot.widthAnchor constraintEqualToConstant:size],
+            [dot.heightAnchor constraintEqualToConstant:size],
+        ]];
+    }
+}
+
+static void syncCommandReviewNavButtons(void) {
+    NSUInteger count = gReviewRows.count;
+    BOOL hasPrev = NO;
+    BOOL hasNext = NO;
+
+    if (gReviewMode == CommandReviewModePending) {
+        hasPrev = gReviewIndex > 0 && !gReviewDecided;
+        hasNext = count > 0 && (NSUInteger)gReviewIndex < count - 1 && !gReviewSkipMode && !gReviewDecided;
+    } else {
+        hasPrev = gReviewIndex > 0;
+        hasNext = count > 0 && (NSUInteger)gReviewIndex < count - 1;
+    }
+
+    if (gReviewPrevBtn != nil) {
+        gReviewPrevBtn.enabled = hasPrev;
+    }
+    if (gReviewNextBtn != nil) {
+        gReviewNextBtn.enabled = hasNext;
+    }
+    if (gReviewRunBtn != nil) {
+        gReviewRunBtn.enabled = gReviewMode == CommandReviewModePending && !gReviewDecided && count > 0;
+    }
+    if (gReviewDeclineBtn != nil) {
+        gReviewDeclineBtn.enabled = gReviewMode == CommandReviewModePending && !gReviewDecided && count > 0;
+    }
+}
+
+static void refreshCommandReviewSlide(NSDictionary *payload) {
+    if (gReviewRows.count == 0) {
+        return;
+    }
+    if (gReviewIndex < 0) {
+        gReviewIndex = 0;
+    }
+    if ((NSUInteger)gReviewIndex >= gReviewRows.count) {
+        gReviewIndex = (NSInteger)gReviewRows.count - 1;
+    }
+
+    NSDictionary *row = reviewRowAtIndex(gReviewRows, gReviewIndex);
+    if (row == nil) {
+        return;
+    }
+
+    NSString *rowID = jsonString(row, @"id");
+    NSString *detail = jsonString(row, @"detail");
+    NSString *label = jsonString(row, @"label");
+    NSString *commandText = detail.length > 0 ? detail : label;
+    if (payload != nil && rowID.length > 0) {
+        NSString *updated = detailTextForRowID(payload, rowID);
+        if (updated.length > 0) {
+            commandText = updated;
+        }
+    }
+
+    BOOL slideChanged = gReviewRowID == nil || ![rowID isEqualToString:gReviewRowID];
+    if (slideChanged) {
+        clearAnalyseUI();
+    }
+
+    gReviewRowID = rowID.length > 0 ? [rowID copy] : nil;
+    gReviewUseEventID = gReviewMode == CommandReviewModeHistory;
+
+    if (gReviewCommandView != nil) {
+        gReviewCommandView.string = commandText ?: @"";
+        [gReviewCommandView scrollPoint:NSMakePoint(0, 0)];
+    }
+    if (gReviewRunBtn != nil) {
+        gReviewRunBtn.identifier = rowID;
+    }
+    if (gReviewDeclineBtn != nil) {
+        gReviewDeclineBtn.identifier = rowID;
+    }
+    if (gReviewCounter != nil) {
+        gReviewCounter.stringValue =
+            [NSString stringWithFormat:@"%ld of %lu",
+             (long)gReviewIndex + 1,
+             (unsigned long)gReviewRows.count];
+    }
+
+    updateCommandReviewDots();
+    syncCommandReviewNavButtons();
+}
+
+static void enterCommandReviewHistory(NSDictionary *payload, NSInteger index) {
+    NSArray *rows = historyRowsFromPayload(payload);
+    if (rows.count == 0) {
+        return;
+    }
+    gReviewMode = CommandReviewModeHistory;
+    gReviewRows = rows;
+    gReviewIndex = MAX(0, MIN(index, (NSInteger)rows.count - 1));
+    gReviewSkipMode = NO;
+    gReviewDecided = NO;
+    gShowingCommandReview = YES;
+    applyPanelLayoutForReviewMode(YES);
+    refreshCommandReviewSlide(payload);
+}
+
+static void enterCommandReviewPending(NSDictionary *payload, id target) {
+    (void)target;
+    NSArray *rows = pendingRowsFromPayload(payload);
+    if (rows.count == 0) {
+        if (gShowingCommandReview && gReviewMode == CommandReviewModePending) {
+            exitCommandReview();
+        }
+        return;
+    }
+
+    NSString *previousID = nil;
+    if (gReviewMode == CommandReviewModePending && gShowingCommandReview) {
+        NSDictionary *previousRow = reviewRowAtIndex(gReviewRows, gReviewIndex);
+        if (previousRow != nil) {
+            previousID = jsonString(previousRow, @"id");
+        }
+    } else {
+        clearListBodyStack();
+    }
+
+    gReviewMode = CommandReviewModePending;
+    gReviewRows = rows;
+    gShowingCommandReview = YES;
+    gReviewUseEventID = NO;
+    gHasSavedListScroll = NO;
+
+    NSInteger newIndex = 0;
+    BOOL foundPrevious = NO;
+    if (previousID.length > 0) {
+        for (NSUInteger i = 0; i < rows.count; i++) {
+            id rowObj = rows[i];
+            if (![rowObj isKindOfClass:[NSDictionary class]]) {
+                continue;
+            }
+            if ([previousID isEqualToString:jsonString((NSDictionary *)rowObj, @"id")]) {
+                newIndex = (NSInteger)i;
+                foundPrevious = YES;
+                break;
+            }
+        }
+    } else if (gReviewIndex >= 0 && (NSUInteger)gReviewIndex < rows.count) {
+        newIndex = gReviewIndex;
+        foundPrevious = YES;
+    }
+
+    if (!foundPrevious) {
+        if (gReviewDecided && gReviewIndex >= 0 && (NSUInteger)gReviewIndex < rows.count) {
+            newIndex = gReviewIndex;
+        } else if ((NSUInteger)gReviewIndex >= rows.count) {
+            newIndex = (NSInteger)rows.count - 1;
+        }
+        gReviewSkipMode = NO;
+        gReviewDecided = NO;
+    }
+
+    gReviewIndex = newIndex;
+    applyPanelLayoutForReviewMode(YES);
+    refreshCommandReviewSlide(payload);
+}
+
 static NSString *bodyPayloadFingerprint(NSDictionary *payload) {
     if (payload == nil) {
         return @"";
     }
+    NSArray *pendingRows = pendingRowsFromPayload(payload);
+    if (pendingRows.count > 0) {
+        NSDictionary *body = @{
+            @"pending_rows": pendingRows,
+            @"pending_overflow": payload[@"pending_overflow"] ?: @"",
+        };
+        NSData *data = [NSJSONSerialization dataWithJSONObject:body options:NSJSONWritingSortedKeys error:nil];
+        if (data == nil) {
+            return @"";
+        }
+        return [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] ?: @"";
+    }
     NSDictionary *body = @{
-        @"pending_rows": payload[@"pending_rows"] ?: @[],
+        @"pending_rows": @[],
         @"history_rows": payload[@"history_rows"] ?: @[],
         @"history_has_more": payload[@"history_has_more"] ?: @NO,
         @"pending_overflow": payload[@"pending_overflow"] ?: @"",
@@ -1638,29 +1977,43 @@ static void restoreBodyScrollOrigin(NSClipView *clipView, NSPoint origin) {
     });
 }
 
-static void refreshDetailFromPayload(NSDictionary *payload, NSString *detailRowID, BOOL detailUseEventID) {
-    if (gDetailTextView == nil || detailRowID.length == 0) {
+static void resetBodyScrollToTop(void) {
+    if (gBodyScroll == nil) {
         return;
     }
-    NSString *updated = detailTextForRowID(payload, detailRowID);
-    if (updated.length > 0) {
-        gDetailTextView.string = updated;
+    NSClipView *clipView = gBodyScroll.contentView;
+    if (clipView == nil) {
+        return;
     }
-    updateDetailActionButtons(detailRowID, detailUseEventID, payload);
+    restoreBodyScrollOrigin(clipView, NSMakePoint(0, 0));
+    gHasSavedListScroll = NO;
+    gSavedListScrollOrigin = NSZeroPoint;
 }
 
 static void rebuildBodyFromJSON(NSDictionary *payload, id target) {
-    BOOL wasShowingDetail = gShowingDetail;
+    BOOL wasShowingReview = gShowingCommandReview;
+    CommandReviewMode previousReviewMode = gReviewMode;
+    NSString *savedReviewRowID = wasShowingReview ? [gReviewRowID copy] : nil;
+    NSInteger savedReviewIndex = gReviewIndex;
     BOOL wasShowingSettings = gShowingSettings;
-    NSString *detailRowID = wasShowingDetail ? [gDetailRowID copy] : nil;
-    BOOL detailUseEventID = wasShowingDetail ? gDetailUseEventID : NO;
+
+    NSArray *pendingRows = pendingRowsFromPayload(payload);
+    BOOL hasPending = pendingRows.count > 0;
 
     NSString *fingerprint = bodyPayloadFingerprint(payload);
     BOOL fingerprintMatch = gLastBodyFingerprint != nil && [fingerprint isEqualToString:gLastBodyFingerprint];
     NSClipView *clipViewBefore = gBodyScroll ? gBodyScroll.contentView : nil;
+
     if (fingerprintMatch) {
-        if (wasShowingDetail) {
-            refreshDetailFromPayload(payload, detailRowID, detailUseEventID);
+        if (gShowingCommandReview && !wasShowingSettings) {
+            if (gReviewMode == CommandReviewModePending && hasPending) {
+                gReviewRows = pendingRows;
+            } else if (gReviewMode == CommandReviewModeHistory) {
+                gReviewRows = historyRowsFromPayload(payload);
+            }
+            refreshCommandReviewSlide(payload);
+        } else if (hasPending && !wasShowingSettings) {
+            enterCommandReviewPending(payload, target);
         } else if (gHasSavedListScroll && clipViewBefore != nil) {
             restoreBodyScrollOrigin(clipViewBefore, gSavedListScrollOrigin);
         }
@@ -1668,12 +2021,26 @@ static void rebuildBodyFromJSON(NSDictionary *payload, id target) {
     }
     gLastBodyFingerprint = [fingerprint copy];
 
+    if (hasPending && !wasShowingSettings) {
+        enterCommandReviewPending(payload, target);
+        gLastPendingRowCount = pendingRows.count;
+        return;
+    }
+
+    BOOL leavingPendingReview = wasShowingReview && previousReviewMode == CommandReviewModePending;
+    if (leavingPendingReview) {
+        exitCommandReview();
+        wasShowingReview = NO;
+    }
+
     NSClipView *clipView = gBodyScroll ? gBodyScroll.contentView : nil;
     NSPoint savedOrigin = NSZeroPoint;
     CGFloat docHeightBefore = 0;
-    BOOL preserveScroll = clipView != nil && !wasShowingDetail;
+    NSUInteger pendingCountBefore = gLastPendingRowCount;
+    BOOL preserveScroll = clipView != nil && !wasShowingReview && !wasShowingSettings && !leavingPendingReview &&
+                          gHasSavedListScroll;
     if (preserveScroll) {
-        savedOrigin = gHasSavedListScroll ? gSavedListScrollOrigin : clipView.bounds.origin;
+        savedOrigin = gSavedListScrollOrigin;
         if (clipView.documentView != nil) {
             docHeightBefore = NSHeight(clipView.documentView.bounds);
         }
@@ -1684,12 +2051,6 @@ static void rebuildBodyFromJSON(NSDictionary *payload, id target) {
         [subview removeFromSuperview];
     }
 
-    NSMutableArray *pendingViews = [NSMutableArray array];
-    addRowsFromJSONArray(payload[@"pending_rows"], @"pending", target, pendingViews);
-    for (NSView *view in pendingViews) {
-        [gBodyStack addArrangedSubview:view];
-    }
-
     NSString *overflow = jsonString(payload, @"pending_overflow");
     if (overflow.length > 0) {
         NSTextField *hint = [NSTextField labelWithString:overflow];
@@ -1698,12 +2059,10 @@ static void rebuildBodyFromJSON(NSDictionary *payload, id target) {
         [gBodyStack addArrangedSubview:hint];
     }
 
-    NSArray *historyRows = payload[@"history_rows"];
-    BOOL hasHistory = [historyRows isKindOfClass:[NSArray class]] && historyRows.count > 0;
-    if (hasHistory) {
-        [gBodyStack addArrangedSubview:makeSectionLabel(@"History")];
+    NSArray *historyRows = historyRowsFromPayload(payload);
+    if (historyRows.count > 0) {
         NSMutableArray *historyViews = [NSMutableArray array];
-        addRowsFromJSONArray(historyRows, @"history", target, historyViews);
+        addRowsFromJSONArray(historyRows, target, historyViews);
         for (NSView *view in historyViews) {
             [gBodyStack addArrangedSubview:view];
         }
@@ -1722,37 +2081,45 @@ static void rebuildBodyFromJSON(NSDictionary *payload, id target) {
         [gBodyStack addArrangedSubview:empty];
     }
 
+    gLastPendingRowCount = 0;
+
     [gBodyStack layoutSubtreeIfNeeded];
 
     if (preserveScroll && clipView.documentView != nil) {
         CGFloat docHeightAfter = NSHeight(clipView.documentView.bounds);
         CGFloat heightDelta = docHeightAfter - docHeightBefore;
-        // Pending rows prepend at the top; compensate scroll when the user had moved down.
-        if (heightDelta > 0 && savedOrigin.y > 0) {
+        if (pendingCountBefore > 0 && pendingRows.count > pendingCountBefore && savedOrigin.y > 0) {
+            CGFloat pendingRowDelta = (pendingRows.count - pendingCountBefore) * (kRowHeight + 6.0);
+            savedOrigin.y += pendingRowDelta;
+        } else if (pendingCountBefore == 0 && pendingRows.count == 0 && heightDelta > 0) {
+            // History-only list grew at the bottom — keep the same scroll origin.
+        } else if (heightDelta > 0 && savedOrigin.y > 0 && pendingRows.count > pendingCountBefore) {
             savedOrigin.y += heightDelta;
         }
         NSRect docBounds = clipView.documentView.bounds;
         CGFloat maxY = MAX(0, NSMaxY(docBounds) - NSHeight(clipView.bounds));
         savedOrigin.y = MIN(MAX(0, savedOrigin.y), maxY);
         restoreBodyScrollOrigin(clipView, savedOrigin);
+    } else if (leavingPendingReview) {
+        resetBodyScrollToTop();
     }
 
-    if (wasShowingDetail) {
-        gBodyScroll.hidden = YES;
-        gDetailContainer.hidden = NO;
-        gShowingDetail = YES;
-        gDetailRowID = detailRowID;
-        gDetailUseEventID = detailUseEventID;
-        if (gDetailTextView != nil && detailRowID.length > 0) {
-            NSString *updated = detailTextForRowID(payload, detailRowID);
-            if (updated.length > 0) {
-                gDetailTextView.string = updated;
+    if (wasShowingReview && previousReviewMode == CommandReviewModeHistory && !wasShowingSettings) {
+        NSInteger restoreIndex = savedReviewIndex;
+        if (savedReviewRowID.length > 0) {
+            NSArray *rows = historyRowsFromPayload(payload);
+            for (NSUInteger i = 0; i < rows.count; i++) {
+                NSDictionary *row = reviewRowAtIndex(rows, (NSInteger)i);
+                if (row != nil && [savedReviewRowID isEqualToString:jsonString(row, @"id")]) {
+                    restoreIndex = (NSInteger)i;
+                    break;
+                }
             }
         }
-        updateDetailActionButtons(detailRowID, detailUseEventID, payload);
+        enterCommandReviewHistory(payload, restoreIndex);
     } else if (wasShowingSettings) {
         gBodyScroll.hidden = YES;
-        gDetailContainer.hidden = YES;
+        gCommandReviewContainer.hidden = YES;
         gSettingsContainer.hidden = NO;
         gShowingSettings = YES;
     }

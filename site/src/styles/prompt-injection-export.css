@@ -1,0 +1,51 @@
+/* Fixed canvas for Playwright video capture (1270×760 Product Hunt gallery). */
+
+.prompt-injection-export-root {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  background: #10161c;
+}
+
+.prompt-injection-export-root .prompt-injection-scene {
+  width: 100%;
+  height: 100%;
+}
+
+.prompt-injection-viewport--export {
+  height: 100%;
+  width: 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Corner logo lockup — export video only. */
+.export-video-watermark {
+  position: absolute;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.export-video-watermark__logo {
+  flex-shrink: 0;
+  width: 1.625rem;
+  height: 1.625rem;
+  background: #5eead4;
+  filter: drop-shadow(0 1px 6px rgb(0 0 0 / 0.45));
+  mask: url(/assets/logo.svg) center / contain no-repeat;
+}
+
+.export-video-watermark__name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #f4f7fb;
+  text-shadow: 0 1px 8px rgb(0 0 0 / 0.55);
+}

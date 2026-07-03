@@ -110,8 +110,8 @@ func BuildTrayContent(snapshot PanelSnapshot) TrayContent {
 		pendingIDs[item.ID] = struct{}{}
 	}
 
-	visible, overflow := visiblePendingItems(snapshot.Items, maxVisiblePending)
-	for _, item := range visible {
+	// Darwin carousel shows every pending item; systray caps rows via menu slots + overflow hint.
+	for _, item := range snapshot.Items {
 		summary := approvalfmt.FormatTrayRowLabel(item)
 		content.PendingRows = append(content.PendingRows, TrayRow{
 			Kind:   TrayRowPending,
@@ -120,7 +120,7 @@ func BuildTrayContent(snapshot PanelSnapshot) TrayContent {
 			Detail: summary,
 		})
 	}
-	if overflow > 0 {
+	if overflow := len(snapshot.Items) - maxVisiblePending; overflow > 0 {
 		content.PendingOverflow = overflowLabel(overflow)
 	}
 
@@ -171,13 +171,20 @@ func BuildPanelRows(snapshot PanelSnapshot) PanelContent {
 		UpdateVisible: tray.UpdateVisible,
 		UpdateEnabled: tray.UpdateEnabled,
 	}
-	for _, row := range tray.PendingRows {
-		content.Rows = append(content.Rows, PanelRow{
-			ID:     row.ID,
-			Label:  row.Label,
-			Detail: row.Detail,
-			Kind:   row.Kind,
-		})
+	visible, overflow := visiblePendingItems(snapshot.Items, maxVisiblePending)
+	if overflow > 0 {
+		content.OverflowHint = overflowLabel(overflow)
+	}
+	if snapshot.HealthOK {
+		for _, item := range visible {
+			summary := approvalfmt.FormatTrayRowLabel(item)
+			content.Rows = append(content.Rows, PanelRow{
+				ID:     item.ID,
+				Label:  truncatePanelLabel(summary, maxPanelLabelLen),
+				Detail: summary,
+				Kind:   TrayRowPending,
+			})
+		}
 	}
 	return content
 }

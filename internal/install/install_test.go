@@ -294,6 +294,68 @@ func TestUnpatchMCPServers(t *testing.T) {
 	}
 }
 
+func TestUnpatchCursorHooksRemovesVibeguardLegacy(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "hooks.json")
+	initial := `{"version":1,"hooks":{"beforeShellExecution":[{"command":"/tmp/bin/vibeguard hook shell","timeout":600,"failClosed":true}],"beforeMCPExecution":[{"command":"/tmp/bin/vibeguard hook mcp","timeout":600,"failClosed":true}]}}`
+	if err := os.WriteFile(path, []byte(initial), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	removed, _, err := install.UnpatchCursorHooks(path, "/bin/sideguard", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if removed != 2 {
+		t.Fatalf("expected 2 removed, got %d", removed)
+	}
+
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(raw), "vibeguard") {
+		t.Fatalf("vibeguard hooks still present: %s", raw)
+	}
+}
+
+func TestUnpatchCursorMCPUnwrapsNestedVibeguardWrap(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "mcp.json")
+	initial := `{"mcpServers":{"fs":{"command":"/tmp/vibeguard","args":["wrap","--","/usr/local/bin/sideguard","wrap","--","npx","-y","server"]}}}`
+	if err := os.WriteFile(path, []byte(initial), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	unwrapped, _, err := install.UnpatchCursorMCP(path, "/bin/sideguard", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if unwrapped != 2 {
+		t.Fatalf("expected 2 unwrap layers, got %d", unwrapped)
+	}
+
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(raw), "vibeguard") || strings.Contains(string(raw), "sideguard") {
+		t.Fatalf("wrap layers still present: %s", raw)
+	}
+	var doc map[string]any
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	fs := doc["mcpServers"].(map[string]any)["fs"].(map[string]any)
+	if fs["command"] != "npx" {
+		t.Fatalf("command not restored: %v", fs["command"])
+	}
+}
+
 func TestUnpatchCursorHooksPreservesUserHooks(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "hooks.json")

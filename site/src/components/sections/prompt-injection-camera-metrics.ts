@@ -55,6 +55,21 @@ export function getAnnotationShowAfterMs(): number {
   return OVERVIEW_MS + PAN_MS + POST_SCROLL_WAIT_MS
 }
 
+/** Extra freeze on the last frame so GIF loops do not snap back instantly. */
+const PAN_GIF_HOLD_MS = 1_400
+
+/** Vertical pan + trap highlight — short clip for GIF export (see render-prompt-injection-video.mjs). */
+export function getPanGifSegmentMs(): {
+  startMs: number
+  endMs: number
+  holdMs: number
+} {
+  const startMs = OVERVIEW_MS - 500
+  const endMs =
+    OVERVIEW_MS + PAN_MS + POST_SCROLL_WAIT_MS + TRAP_ANNOTATION_MS + 400
+  return { startMs, endMs, holdMs: PAN_GIF_HOLD_MS }
+}
+
 /**
  * Clears active transforms so layout is measured in camera-local coordinates.
  * Call before every metrics pass (initial layout, resize, font load).

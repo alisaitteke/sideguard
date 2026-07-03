@@ -37,7 +37,15 @@ Brand tokens (JSON): [`brand-colors.json`](./brand-colors.json)
 | `logos/` | SVG marks + square PNGs (240–1024 px) |
 | `icons/` | App-style square icons (180, 512 px) |
 | `banners/` | Social / OG / Twitter / LinkedIn headers |
-| `gallery/` | Product Hunt gallery slides (1270×760) |
+| `gallery/` | Product Hunt gallery slides (1270×760) + prompt-injection demo video |
+
+Record the animated prompt-injection demo (landing page player) for PH / social:
+
+```bash
+cd site && npm run render:prompt-injection
+```
+
+Outputs `gallery/05-prompt-injection-1270x760.mp4` (full), `.gif` (pan clip only), and `.webm` (full intermediate). Requires Playwright Chromium and `ffmpeg` on PATH for MP4/GIF.
 
 ---
 
@@ -49,6 +57,7 @@ Brand tokens (JSON): [`brand-colors.json`](./brand-colors.json)
 | ----- | ------------- |
 | **Thumbnail** (240×240) | `logos/thumbnail-240.png` |
 | **Gallery** (1270×760, min 2) | `gallery/01-hero-1270x760.png` … `04-install-1270x760.png` |
+| **Gallery video** (1270×760) | `gallery/05-prompt-injection-1270x760.mp4` or `.gif` — `npm run render:prompt-injection` |
 | **Tagline** (≤60 chars) | See `copy.md` → Product Hunt tagline |
 | **Description** | See `copy.md` → Product Hunt description |
 | **Website** | https://sideguard.io |
