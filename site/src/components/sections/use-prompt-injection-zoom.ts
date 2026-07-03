@@ -8,6 +8,7 @@ import {
 } from "react"
 
 import {
+  applyCameraTransformAtTime,
   createCameraAnimation,
   measureCameraMetrics,
   type CameraMetrics,
@@ -99,9 +100,15 @@ export function usePromptInjectionZoom(
       timeMs,
       segmentEnd ?? runtime.metrics.durationMs
     )
+    const camera = cameraRef.current
+
+    if (camera) {
+      applyCameraTransformAtTime(camera, clamped, runtime.metrics)
+    }
+
     runtime.annotation.sync(clamped, runtime.metrics.annotationShowAfterMs)
     setCurrentTimeMs(clamped)
-  }, [])
+  }, [cameraRef])
 
   const completeSegment = useCallback(() => {
     if (segmentCompleteRef.current) {
@@ -360,7 +367,11 @@ export function usePromptInjectionZoom(
         const metrics = measureCameraMetrics(viewportEl, cameraEl, commandEl)
 
         if (metrics) {
-          cameraEl.style.transform = `translate3d(${metrics.scanEndX}px, ${metrics.zoomY}px, 0) scale(${metrics.zoomScale})`
+          applyCameraTransformAtTime(
+            cameraEl,
+            metrics.durationMs,
+            metrics
+          )
           const staticAnnotation = createTrapLineAnnotation(commandEl, false)
           staticAnnotation.show()
           staticAnnotationCleanup = () => {

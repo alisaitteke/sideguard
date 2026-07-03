@@ -1,8 +1,8 @@
 /**
  * Shared easing for pan-to-line camera moves and matching in-page scroll.
- * cubic-bezier(0.45, 0.05, 0.25, 1) — gentle ease-in at start, soft land at end.
+ * Standard ease-in-out — soft start and soft land (symmetric).
  */
-export const PAN_SCROLL_EASING = "cubic-bezier(0.45, 0.05, 0.25, 1)"
+export const PAN_SCROLL_EASING = "cubic-bezier(0.42, 0, 0.58, 1)"
 
 /** Camera pan segment duration (ms); page scroll uses the same value. */
 export const PAN_TO_LINE_MS = 650
@@ -45,7 +45,12 @@ function createCubicBezier(x1: number, y1: number, x2: number, y2: number) {
   }
 }
 
-const panScrollEase = createCubicBezier(0.45, 0.05, 0.25, 1)
+const panScrollEase = createCubicBezier(0.42, 0, 0.58, 1)
+
+/** JS easing sampler — matches {@link PAN_SCROLL_EASING} for rAF-driven camera moves. */
+export function easePanScroll(t: number): number {
+  return panScrollEase(t)
+}
 
 /**
  * Scrolls the window to `element` using the same easing curve as the issue pan.

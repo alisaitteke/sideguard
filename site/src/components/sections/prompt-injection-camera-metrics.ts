@@ -1,4 +1,4 @@
-import { PAN_SCROLL_EASING } from "@/lib/pan-scroll-motion"
+import { easePanScroll } from "@/lib/pan-scroll-motion"
 import {
   POST_ANNOTATION_WAIT_MS,
   POST_SCROLL_WAIT_MS,
@@ -13,8 +13,8 @@ export const ISSUE_PAD_X = 40
 
 const SCAN_PX_PER_SEC = 115
 const OVERVIEW_MS = 2_000
-/** Y-pan to trap line — slightly faster than shared page-scroll pan (650ms). */
-const PAN_MS = 450
+/** Y-pan to trap line inside the issue viewport (slower than hero page scroll). */
+const PAN_MS = 900
 const HOLD_MS =
   POST_SCROLL_WAIT_MS + TRAP_ANNOTATION_MS + POST_ANNOTATION_WAIT_MS
 const POST_ZOOM_WAIT_MS = 1_500
@@ -142,9 +142,10 @@ export function measureTrapLayout(
 export function computeCameraMetrics(layout: TrapLayout): CameraMetrics {
   const panY = layout.focusCenterY - layout.cmdCenterY
 
+  /** Line occupies ~8% of viewport height at peak zoom — subtle, not microscope-close. */
   const zoomScale = Math.min(
-    Math.max((layout.viewportHeight * 0.22) / layout.cmdHeight, 2.1),
-    3.8
+    Math.max((layout.viewportHeight * 0.08) / layout.cmdHeight, 1),
+    1.55
   )
 
   const zoomX = layout.padX - zoomScale * layout.cmdLeft
@@ -212,80 +213,111 @@ export function measureCameraMetrics(
   return computeCameraMetrics(layout)
 }
 
-export function buildCameraKeyframes(metrics: CameraMetrics): Keyframe[] {
-  const {
-    panY,
-    zoomX,
-    zoomY,
-    scanEndX,
-    zoomScale,
-    overviewEnd,
-    panEnd,
-    holdEnd,
-    zoomEnd,
-    postZoomEnd,
-    scanEnd,
-  } = metrics
+type PhaseBoundariesMs = {
+  overviewEnd: number
+  panEnd: number
+  holdEnd: number
+  zoomEnd: number
+  postZoomEnd: number
+  scanEnd: number
+}
+
+function getPhaseBoundariesMs(metrics: CameraMetrics): PhaseBoundariesMs {
+  const scanMs =
+    metrics.durationMs -
+    OVERVIEW_MS -
+    PAN_MS -
+    HOLD_MS -
+    ZOOM_MS -
+    POST_ZOOM_WAIT_MS -
+    TAIL_MS
+
+  return {
+    overviewEnd: OVERVIEW_MS,
+    panEnd: OVERVIEW_MS + PAN_MS,
+    holdEnd: OVERVIEW_MS + PAN_MS + HOLD_MS,
+    zoomEnd: OVERVIEW_MS + PAN_MS + HOLD_MS + ZOOM_MS,
+    postZoomEnd:
+      OVERVIEW_MS + PAN_MS + HOLD_MS + ZOOM_MS + POST_ZOOM_WAIT_MS,
+    scanEnd:
+      OVERVIEW_MS +
+      PAN_MS +
+      HOLD_MS +
+      ZOOM_MS +
+      POST_ZOOM_WAIT_MS +
+      scanMs,
+  }
+}
+
+function clampPhaseProgress(elapsedMs: number, phaseMs: number): number {
+  if (phaseMs <= 0) {
+    return 1
+  }
+
+  return Math.min(Math.max(elapsedMs / phaseMs, 0), 1)
+}
+
+/**
+ * Samples camera transform at `timeMs` with explicit per-phase easing.
+ * WAAPI per-keyframe easing on composite `transform` strings is unreliable across
+ * browsers — this sampler is the single source of truth for playback + export.
+ */
+export function sampleCameraTransform(
+  timeMs: number,
+  metrics: CameraMetrics
+): string {
+  const t = Math.min(Math.max(timeMs, 0), metrics.durationMs)
+  const phases = getPhaseBoundariesMs(metrics)
+  const { panY, zoomX, zoomY, scanEndX, zoomScale } = metrics
+
+  if (t <= phases.overviewEnd) {
+    return "translate3d(0, 0, 0) scale(1)"
+  }
+
+  if (t <= phases.panEnd) {
+    const eased = easePanScroll(
+      clampPhaseProgress(t - phases.overviewEnd, PAN_MS)
+    )
+    return `translate3d(0, ${panY * eased}px, 0) scale(1)`
+  }
+
+  if (t <= phases.holdEnd) {
+    return `translate3d(0, ${panY}px, 0) scale(1)`
+  }
+
+  if (t <= phases.zoomEnd) {
+    const eased = easePanScroll(clampPhaseProgress(t - phases.holdEnd, ZOOM_MS))
+    const tx = zoomX * eased
+    const ty = panY + (zoomY - panY) * eased
+    const scale = 1 + (zoomScale - 1) * eased
+    return `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`
+  }
 
   const zoomed = `translate3d(${zoomX}px, ${zoomY}px, 0) scale(${zoomScale})`
 
-  return [
-    { transform: "translate3d(0, 0, 0) scale(1)", offset: 0 },
-    {
-      transform: "translate3d(0, 0, 0) scale(1)",
-      offset: overviewEnd,
-    },
-    {
-      transform: `translate3d(0, ${panY}px, 0) scale(1)`,
-      offset: panEnd,
-      easing: PAN_SCROLL_EASING,
-    },
-    {
-      transform: `translate3d(0, ${panY}px, 0) scale(1)`,
-      offset: holdEnd,
-      easing: "linear",
-    },
-    {
-      transform: zoomed,
-      offset: zoomEnd,
-      easing: "ease-out",
-    },
-    {
-      transform: zoomed,
-      offset: postZoomEnd,
-      easing: "linear",
-    },
-    {
-      transform: `translate3d(${scanEndX}px, ${zoomY}px, 0) scale(${zoomScale})`,
-      offset: scanEnd,
-      easing: "linear",
-    },
-    {
-      transform: `translate3d(${scanEndX}px, ${zoomY}px, 0) scale(${zoomScale})`,
-      offset: 1,
-    },
-  ]
-}
-
-export function applyMetricsToAnimation(
-  animation: Animation,
-  metrics: CameraMetrics
-): void {
-  const effect = animation.effect
-
-  if (!(effect instanceof KeyframeEffect)) {
-    return
+  if (t <= phases.postZoomEnd) {
+    return zoomed
   }
 
-  effect.setKeyframes(buildCameraKeyframes(metrics))
-  effect.updateTiming({
-    duration: metrics.durationMs,
-    iterations: 1,
-    easing: "linear",
-    fill: "forwards",
-  })
+  if (t <= phases.scanEnd) {
+    const raw = clampPhaseProgress(t - phases.postZoomEnd, phases.scanEnd - phases.postZoomEnd)
+    const tx = zoomX + (scanEndX - zoomX) * raw
+    return `translate3d(${tx}px, ${zoomY}px, 0) scale(${zoomScale})`
+  }
+
+  return `translate3d(${scanEndX}px, ${zoomY}px, 0) scale(${zoomScale})`
 }
 
+export function applyCameraTransformAtTime(
+  camera: HTMLElement,
+  timeMs: number,
+  metrics: CameraMetrics
+): void {
+  camera.style.transformOrigin = "0 0"
+  camera.style.transform = sampleCameraTransform(timeMs, metrics)
+}
+
+/** Linear opacity clock — transform is driven by {@link sampleCameraTransform}. */
 export function createCameraAnimation(
   camera: HTMLElement,
   metrics: CameraMetrics
@@ -294,9 +326,9 @@ export function createCameraAnimation(
     animation.cancel()
   })
 
-  camera.style.transformOrigin = "0 0"
+  applyCameraTransformAtTime(camera, 0, metrics)
 
-  return camera.animate(buildCameraKeyframes(metrics), {
+  return camera.animate([{ opacity: 1 }, { opacity: 1 }], {
     duration: metrics.durationMs,
     iterations: 1,
     easing: "linear",
