@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 //go:build darwin
 
 // Analyse bridge helpers for the macOS tray detail view (no AppKit / CGO).

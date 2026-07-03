@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Package store provides SQLite persistence for approvals and audit events.
 // See docs/plans/2026-07-01-0127-sideguard-foundation/ (vgf-phase-1.0-project-init.md).
 package store

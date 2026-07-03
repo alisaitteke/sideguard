@@ -1,4 +1,9 @@
 /**
+ * Copyright (c) 2026 Ali Sait Teke
+ * SPDX-License-Identifier: MIT
+ */
+
+/**
  * Creator attribution for footer, craft section, and JSON-LD Person schema.
  * Plan: portfolio subtle attribution (Tier 3).
  */

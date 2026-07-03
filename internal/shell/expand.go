@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 package shell
 
 // Prepare is the top-level entry point for the detect engine: it normalizes the

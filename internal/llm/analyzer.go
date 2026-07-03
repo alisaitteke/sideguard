@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Analyzer runs on-demand command analysis using the analysis signature.
 // See docs/plans/2026-07-02-1521-llm-settings-analyse/ (lsa-phase-2.0-llm.md).
 package llm

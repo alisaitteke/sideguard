@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Package proxy wraps upstream MCP servers over STDIO transparently.
 // Dual-posture MCP proxy: client sees SideGuard; SideGuard forwards to upstream child.
 // See docs/plans/2026-07-01-0127-sideguard-foundation/ (vgf-phase-4.0-mcp-proxy.md).

@@ -1,4 +1,9 @@
 /**
+ * Copyright (c) 2026 Ali Sait Teke
+ * SPDX-License-Identifier: MIT
+ */
+
+/**
  * FAQ copy shared by FaqSection and FAQPage JSON-LD for SEO / AI crawlers.
  */
 export const FAQ_ITEMS = [

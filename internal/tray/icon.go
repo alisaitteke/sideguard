@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 package tray
 
 // menuBarIcon returns the default (idle, healthy, no pending) tray icon PNG bytes at 32 px.

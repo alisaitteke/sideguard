@@ -7,6 +7,7 @@ on:
     branches: [main]
     paths:
       - 'site/**'
+      - 'media-kit/**'
       - 'setup.sh'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
@@ -36,6 +37,8 @@ jobs:
         working-directory: site
       - name: Sync setup.sh into dist artifact
         run: cp setup.sh site/dist/setup.sh
+      - name: Sync media-kit into dist artifact
+        run: cp -R media-kit site/dist/media-kit && (cd site/dist && zip -rq media-kit.zip media-kit)
       - uses: actions/upload-pages-artifact@v5
         with:
           path: site/dist

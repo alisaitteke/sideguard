@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Package tray panel helpers build macOS NSPopover content from poll snapshots.
 // Shared row-cap and label formatters are also used by the !darwin systray menu.
 // See docs/plans/2026-07-01-1537-mac-tray-popover/ (mtp-phase-3.0-darwin-panel.md).

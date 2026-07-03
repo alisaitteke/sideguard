@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Package hook implements the Cursor/Claude shell and MCP hook bridge.
 // Blocking stdin/stdout normalization with daemon long-poll approval.
 // See docs/plans/2026-07-01-0127-sideguard-foundation/ (vgf-phase-5.0-hook-bridge.md).

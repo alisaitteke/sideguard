@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Package tray provides the menu-bar approval UI for SideGuard.
 // macOS uses a native NSPopover shell (darwin); see docs/plans/2026-07-01-1537-mac-tray-popover/.
 // Other platforms use systray; see docs/plans/2026-07-01-1355-go-systray-tray/.

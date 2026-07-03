@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // EvaluateFull chains YAML policy, local detect, and optional LLM triage.
 // See docs/plans/2026-07-02-0001-shell-detect-history/ (sdh-phase-3.0-integration.md).
 package policy

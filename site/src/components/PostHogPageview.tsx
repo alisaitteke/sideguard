@@ -4,12 +4,13 @@
 import { useEffect } from "react"
 import { useLocation } from "react-router-dom"
 
-import { posthog } from "@/lib/posthog"
+import { isPostHogEnabled, posthog } from "@/lib/posthog"
 
 export function PostHogPageview() {
   const location = useLocation()
 
   useEffect(() => {
+    if (!isPostHogEnabled) return
     posthog.capture("$pageview")
   }, [location.pathname, location.search, location.hash])
 

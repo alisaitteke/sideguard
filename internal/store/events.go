@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Command event persistence for intercept audit history.
 // See docs/plans/2026-07-02-0001-shell-detect-history/ (sdh-phase-4.0-history-store.md).
 package store

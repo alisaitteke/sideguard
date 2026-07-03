@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Package policy implements deterministic YAML allow/deny/ask rules for shell
 // commands and MCP tool names. See docs/plans/2026-07-01-0127-sideguard-foundation/
 // (vgf-phase-7.0-policy-engine.md).

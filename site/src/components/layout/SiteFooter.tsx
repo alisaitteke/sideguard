@@ -1,4 +1,9 @@
 /**
+ * Copyright (c) 2026 Ali Sait Teke
+ * SPDX-License-Identifier: MIT
+ */
+
+/**
  * Landing page footer: GitHub, license, domain, and subtle creator attribution.
  * Plan: portfolio subtle attribution (Tier 3).
  */
@@ -7,11 +12,13 @@ import {
   AUTHOR_NAME,
   AUTHOR_SITE_URL,
 } from "@/lib/author"
+import { SiteNav } from "@/components/layout/SiteNav"
 
 export function SiteFooter() {
   return (
     <footer className="mt-auto border-t border-border py-8">
-      <div className="mx-auto max-w-[52rem] space-y-1 px-4 text-center text-sm text-muted-foreground">
+      <div className="mx-auto max-w-[52rem] space-y-3 px-4 text-center text-sm text-muted-foreground">
+        <SiteNav />
         <p>
           <a
             href="https://github.com/alisaitteke/sideguard"

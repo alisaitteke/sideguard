@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Package detect registers its evaluator with policy at init to avoid an import cycle.
 package detect
 

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 package policy
 
 // DefaultTemplate is the starter policy written on install when no file exists.

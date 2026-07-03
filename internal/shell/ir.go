@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Package shell is SideGuard's static shell understanding layer. It normalizes,
 // deobfuscates, and parses shell command strings into a structured IR that the
 // detect engine consumes. It performs pure string/AST analysis and NEVER

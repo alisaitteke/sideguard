@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Package detect is SideGuard's local decision engine. It evaluates the
 // execution-free shell.IR produced by internal/shell against embedded YAML
 // category rules (plus optional user rules in ~/.sideguard/rules) and returns a

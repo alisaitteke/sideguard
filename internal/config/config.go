@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Package config loads ~/.sideguard/config.yaml and resolves LLM settings
 // with optional workspace policy overrides.
 // See docs/plans/2026-07-02-1521-llm-settings-analyse/ (lsa-phase-1.0-config.md).

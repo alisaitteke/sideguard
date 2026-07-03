@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 package api
 
 // ApprovalRequest is the payload for POST /v1/approval/request.

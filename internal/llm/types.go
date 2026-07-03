@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Package llm defines contracts for provider-driven LLM command classification.
 // HTTP providers are implemented in later phases; this package holds types and loaders.
 // See docs/plans/2026-07-01-0318-llm-auto-triage/ (lat-phase-1.0-contracts.md).

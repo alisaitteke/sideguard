@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Package daemon orchestrates the SideGuard background service lifecycle:
 // pid file, Unix socket + HTTP API, SQLite queue, and LaunchAgent wiring.
 // See docs/plans/2026-07-01-0127-sideguard-foundation/ (vgf-phase-2.0-daemon-core.md).

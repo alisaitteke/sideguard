@@ -107,6 +107,9 @@ No cloud required. SideGuard runs as a local daemon on loopback. History, policy
 ## Contact & links
 
 - Website: https://sideguard.io/
+- Media kit (press assets): https://sideguard.io/media
+- Contact: https://sideguard.io/contact
+- Static asset downloads: https://sideguard.io/media-kit/ (logos, banners, gallery)
 - GitHub: https://github.com/alisaitteke/sideguard
 - Install script: https://sideguard.io/setup.sh
 - Creator: Ali Sait Teke — https://alisait.com (https://www.linkedin.com/in/alisait/)

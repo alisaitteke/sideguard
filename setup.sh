@@ -1,4 +1,6 @@
 #!/usr/bin/env sh
+# Copyright (c) 2026 Ali Sait Teke
+# SPDX-License-Identifier: MIT
 # SideGuard installer — download a release binary from GitHub or build from source.
 # Usage:
 #   curl -fsSL https://sideguard.io/setup.sh | sh

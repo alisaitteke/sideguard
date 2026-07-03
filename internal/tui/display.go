@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 package tui
 
 // ClampSelection keeps cursor in range for the given item count.

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 //go:build darwin
 
 // Settings snapshot load/save for the macOS tray popover (no AppKit / CGO).

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Approval mode persistence and auto-decide engine for the daemon store.
 // See docs/plans/2026-07-01-1515-global-approval-mode/ (gam-phase-1.0-store-mode.md).
 package store

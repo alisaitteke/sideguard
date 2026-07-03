@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Package approvalfmt formats pending approval rows for CLI, TUI, and tray surfaces.
 // See docs/plans/2026-07-01-1355-go-systray-tray/ (gst-phase-2.0-api-integration.md).
 package approvalfmt

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 package config
 
 // HasAPIKeyForProvider reports whether credentials are configured for a provider instance.

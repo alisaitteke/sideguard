@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Package api provides the local HTTP API for the SideGuard daemon.
 // Routes bind to 127.0.0.1 only. See docs/plans/2026-07-01-0127-sideguard-foundation/
 // (vgf-phase-2.0-daemon-core.md).

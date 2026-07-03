@@ -1,4 +1,9 @@
 /**
+ * Copyright (c) 2026 Ali Sait Teke
+ * SPDX-License-Identifier: MIT
+ */
+
+/**
  * Landing page: composes all marketing sections inside semantic main.
  */
 import { CraftSection } from "@/components/sections/CraftSection"

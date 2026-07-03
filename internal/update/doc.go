@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Package update implements GitHub Releases discovery, semver comparison, download,
 // SHA256 verification, state persistence, and apply orchestration for self-updates.
 // Platform stop/start hooks are stubbed until Phase 5.

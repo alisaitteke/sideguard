@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Package install discovers client configs and wires hooks/MCP wraps.
 // See docs/plans/2026-07-01-0127-sideguard-foundation/ (vgf-phase-3.0-install.md).
 package install

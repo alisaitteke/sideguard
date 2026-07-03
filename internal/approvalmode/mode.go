@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Package approvalmode defines the daemon-persisted global approval mode.
 // See docs/plans/2026-07-01-1515-global-approval-mode/ (gam-phase-1.0-store-mode.md).
 package approvalmode

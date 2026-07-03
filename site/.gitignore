@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+public/media-kit
+public/media-kit.zip
 *.local
 
 # Editor directories and files

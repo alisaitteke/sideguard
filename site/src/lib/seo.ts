@@ -1,4 +1,9 @@
 /**
+ * Copyright (c) 2026 Ali Sait Teke
+ * SPDX-License-Identifier: MIT
+ */
+
+/**
  * SEO metadata, target keywords, and JSON-LD builders for sideguard.io.
  * Consumed by index.html (static), SeoJsonLd, and public llms*.txt sources.
  */

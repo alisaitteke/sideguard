@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // MCP JSON-RPC framing over STDIO (Content-Length headers).
 // See docs/plans/2026-07-01-0127-sideguard-foundation/ (vgf-phase-4.0-mcp-proxy.md).
 package proxy

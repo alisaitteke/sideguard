@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Package cmd defines the SideGuard cobra CLI surface.
 package cmd
 

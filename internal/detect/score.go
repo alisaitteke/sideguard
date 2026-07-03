@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 package detect
 
 import "github.com/alisaitteke/sideguard/internal/policy"

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 //go:build darwin
 
 // Package darwin provides the macOS AppKit tray shell (NSStatusItem + NSPopover).

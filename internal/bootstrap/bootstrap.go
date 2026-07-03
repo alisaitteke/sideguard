@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Package bootstrap writes default SideGuard config files on first install.
 package bootstrap
 

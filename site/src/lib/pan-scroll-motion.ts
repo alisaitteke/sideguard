@@ -1,4 +1,9 @@
 /**
+ * Copyright (c) 2026 Ali Sait Teke
+ * SPDX-License-Identifier: MIT
+ */
+
+/**
  * Shared easing for pan-to-line camera moves and matching in-page scroll.
  * Standard ease-in-out — soft start and soft land (symmetric).
  */

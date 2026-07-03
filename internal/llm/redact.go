@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Ali Sait Teke
+// SPDX-License-Identifier: MIT
+
 // Redaction helpers strip sensitive substrings from commands before LLM prompts.
 // See docs/plans/2026-07-01-0318-llm-auto-triage/ (lat-phase-3.0-classifier.md).
 package llm
