@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "render:social-card": "node scripts/render-social-card.mjs",
     "render:favicons": "node scripts/render-favicons.mjs",
-    "render:assets": "npm run render:favicons && npm run render:social-card"
+    "render:media-kit": "node scripts/render-media-kit.mjs",
+    "render:assets": "npm run render:favicons && npm run render:social-card && npm run render:media-kit"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

@@ -1,0 +1,36 @@
+{
+  "brand": {
+    "logoLight": "#0d9488",
+    "logoDark": "#5eead4",
+    "heroBackground": "#10161c",
+    "glowMint": "rgba(94, 234, 212, 0.22)",
+    "primary": "#3a9e6e",
+    "primaryDark": "#2d8659",
+    "foreground": "#e6edf3",
+    "foregroundMuted": "#94a3b8",
+    "fontFamily": "\"Geist\", system-ui, sans-serif"
+  },
+  "copy": {
+    "name": "SideGuard",
+    "domain": "sideguard.io",
+    "url": "https://sideguard.io",
+    "eyebrow": "Vibe Coding Security Tool",
+    "taglinePh": "MCP guard with human approval for Cursor & Claude Code",
+    "taglineShort": "Approve shell commands and MCP tools before your AI runs them.",
+    "descriptionMeta": "SideGuard is a vibe coding security tool and MCP guard for Cursor and Claude Code. Human-in-the-loop approval for shell commands and MCP tools—not an MCP antivirus. YAML policy, fail-closed hooks, local audit trail.",
+    "descriptionPh": "SideGuard is a local MCP guard for Cursor and Claude Code. Before your AI assistant runs a shell command or MCP tool on your machine, SideGuard asks you to approve. YAML policy, fail-closed hooks, and a local audit trail—no cloud proxy, no MCP antivirus signatures.",
+    "installCommand": "curl -fsSL https://sideguard.io/setup.sh | sh",
+    "maker": {
+      "name": "Ali Sait Teke",
+      "url": "https://alisait.com",
+      "github": "https://github.com/alisaitteke",
+      "linkedin": "https://www.linkedin.com/in/alisait/",
+      "twitter": "https://x.com/alisaitteke"
+    },
+    "links": {
+      "website": "https://sideguard.io",
+      "github": "https://github.com/alisaitteke/sideguard",
+      "install": "https://sideguard.io/setup.sh"
+    }
+  }
+}

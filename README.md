@@ -234,6 +234,8 @@ Production deploys `site/dist/` to GitHub Pages via [`.github/workflows/pages.ym
 
 Regenerate README / OG brand images: `cd site && npm run render:social-card` (writes `assets/readme-hero.png`, `site/public/assets/og-card.png`, `.github/social-preview.png`).
 
+Launch / press assets (Product Hunt, social banners, logos): see [`media-kit/`](media-kit/) — regenerate with `cd site && npm run render:media-kit`.
+
 Shortcut: `make site-dev` (same as `cd site && npm run dev`).
 
 ## Installing from GitHub Releases
@@ -345,6 +347,7 @@ macOS notifications are **alert-only** — decisions always happen in the termin
 | [docs/research-report.md](docs/research-report.md) | Cursor/Claude hooks and hybrid architecture research |
 | [docs/integration-and-terminal-ui.md](docs/integration-and-terminal-ui.md) | Install flow and terminal approval UX |
 | [docs/plans/2026-07-01-0127-sideguard-foundation/](docs/plans/2026-07-01-0127-sideguard-foundation/) | Phased implementation plan |
+| [docs/plans/2026-07-03-0904-product-hunt-launch-readiness/](docs/plans/2026-07-03-0904-product-hunt-launch-readiness/) | Product Hunt launch readiness research & roadmap |
 
 ## Local paths
 
