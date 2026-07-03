@@ -52,6 +52,14 @@ To remove integration: `sideguard uninstall` surgically strips SideGuard hooks a
 
 Background menu-bar icon that polls the daemon on loopback (`127.0.0.1:9477`) every ~2s. The tray does **not** replace the terminal UI (`sideguard ui`) or CLI (`approve` / `deny`).
 
+<p align="center">
+  <img src="assets/tray-pending-approval.png" alt="SideGuard tray — pending approval with Run, Decline, and Analyse" width="420" />
+  &nbsp;&nbsp;
+  <img src="assets/tray-history.png" alt="SideGuard tray — command history and daemon status" width="420" />
+</p>
+
+<p align="center"><sub><b>Left:</b> pending command in the popover — review, optionally Analyse, then Run or Decline.<br><b>Right:</b> recent intercept history with daemon health and pending count.</sub></p>
+
 **Prerequisites**
 
 1. Daemon running: `sideguard daemon start` (or `sideguard daemon install-service` for login auto-start)

@@ -15,6 +15,7 @@ import { NotWhatSection } from "@/components/sections/NotWhatSection"
 import { PlatformsSection } from "@/components/sections/PlatformsSection"
 import { PromptInjectionSection } from "@/components/sections/PromptInjectionSection"
 import { QuickStartSection } from "@/components/sections/QuickStartSection"
+import { TraySection } from "@/components/sections/TraySection"
 import { SeoJsonLd } from "@/components/SeoJsonLd"
 
 export function HomePage() {
@@ -24,6 +25,7 @@ export function HomePage() {
       <HeroSection />
       <PromptInjectionSection />
       <NotWhatSection />
+      <TraySection />
       <FeaturesSection />
       <CraftSection />
       <InstallSection />
